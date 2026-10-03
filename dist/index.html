@@ -705,6 +705,136 @@ function profileLabel(p){
   return [schoolTypeName(p.type,p.state),(stateByK(p.state)||{}).n,(t&&t.gradeLabel? p.grade+". "+t.gradeLabel : "Klasse "+p.grade)].join(" · ");
 }
 
+/* ---- 04b_handwriting.js ---- */
+/* ===================== Handschrift und GoodNotes ===================== */
+// Handschrift lesen: In claude.ai liest Claude Seitenbilder (auch Handschrift). Ohne Claude (lokal, GitHub Pages)
+// übernimmt Tesseract.js im Browser – gut bei gedrucktem Text, bei Handschrift nur eingeschränkt.
+// GoodNotes: .goodnotes-Dateien sind ZIP-Archive. GoodNotes legt die eigene Handschrifterkennung
+// pro Seite unter search/<Seiten-ID> ab; diesen Text übernimmt Merkwerk. Eingebettete PDFs und Bilder
+// (importierte Folien, Fotos) werden wie normale Dateien gelesen.
+
+const FILE_ACCEPT=".pdf,.docx,.txt,.md,.goodnotes,image/*";
+const TESSERACT="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js";
+const OCR_BY={claude:"von Claude abgeschrieben",browser:"im Browser erkannt",goodnotes:"Handschrift von GoodNotes erkannt"};
+const BROWSER_OCR_NOTE="Ohne Claude liest Merkwerk Bilder mit einer Texterkennung im Browser. Gedruckter Text klappt meist gut, Handschrift oft nur teilweise. Prüfe und korrigiere den Text unter „Gelesenen Text ansehen“; in claude.ai liest Claude auch Handschrift.";
+const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
+
+/* ---------- Texterkennung im Browser (ohne Claude) ---------- */
+let tessWorker=null;
+async function ocrLocal(blobs,progress){
+  progress&&progress("Lade Texterkennung …");
+  await loadScript(TESSERACT);
+  if(!tessWorker) tessWorker=window.Tesseract.createWorker(["deu","eng"]).catch(e=>{tessWorker=null;throw e;});
+  const w=await tessWorker; const out=[];
+  for(let i=0;i<blobs.length;i++){
+    progress&&progress(`Texterkennung im Browser: Bild ${i+1} von ${blobs.length} …`);
+    const {data}=await w.recognize(blobs[i]);
+    out.push(String(data.text||"").replace(/[ \t]+\n/g,"\n").trim());
+  }
+  return out;
+}
+
+/* ---------- ZIP lesen (ohne Bibliothek) ---------- */
+async function inflateRaw(u8){
+  const s=new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+function unzipIndex(u8){
+  const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
+  let e=-1; for(let i=u8.length-22;i>=Math.max(0,u8.length-65557);i--){ if(dv.getUint32(i,true)===0x06054b50){e=i;break;} }
+  if(e<0) throw new Error("kein ZIP-Archiv");
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const dec=new TextDecoder(); const files={};
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) throw new Error("ZIP-Verzeichnis beschädigt");
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), off=dv.getUint32(p+42,true);
+    const name=dec.decode(u8.subarray(p+46,p+46+nl));
+    const start=off+30+dv.getUint16(off+26,true)+dv.getUint16(off+28,true);
+    files[name]={method,raw:u8.subarray(start,start+csize)};
+    p+=46+nl+xl+cl;
+  }
+  return files;
+}
+async function zipRead(entry){
+  if(!entry) return null;
+  if(entry.method===0) return entry.raw;
+  if(entry.method===8) return inflateRaw(entry.raw);
+  throw new Error("ZIP-Kompression wird nicht unterstützt");
+}
+
+/* ---------- Protobuf ohne Schema ---------- */
+function pbFields(u8){
+  const out=[]; let i=0;
+  const varint=()=>{ let r=0,m=1,b; do{ if(i>=u8.length) throw 0; b=u8[i++]; r+=(b&127)*m; m*=128; }while(b&128); return r; };
+  while(i<u8.length){
+    const key=varint(), f=Math.floor(key/8), t=key%8; let v;
+    if(f<1) throw 0;
+    if(t===0) v=varint(); else if(t===1){ v=null; i+=8; } else if(t===5){ v=null; i+=4; }
+    else if(t===2){ const L=varint(); if(i+L>u8.length) throw 0; v=u8.subarray(i,i+L); i+=L; }
+    else throw 0;
+    out.push([f,t,v]);
+  }
+  return out;
+}
+const pbTry=u8=>{ try{ return pbFields(u8); }catch{ return null; } };
+function pbDelimited(u8){ // Folge von Datensätzen mit vorangestellter Länge
+  const out=[]; let i=0;
+  while(i<u8.length){ let L=0,m=1,b; do{ b=u8[i++]; L+=(b&127)*m; m*=128; }while(b&128 && i<u8.length); out.push(u8.subarray(i,i+L)); i+=L; }
+  return out;
+}
+const utf8=u8=>new TextDecoder().decode(u8);
+
+/* ---------- GoodNotes ---------- */
+// Erkannter Text einer Seite: Feld 6 = Wort/Zeichen, darin Feld 3 = Kandidaten (der erste ist der beste)
+function goodnotesSearchText(u8){
+  const top=pbTry(u8); if(!top) return "";
+  let s="";
+  for(const [f,t,v] of top){
+    if(f!==6||t!==2) continue;
+    const tok=pbTry(v); if(!tok) continue;
+    const c=tok.find(([ff,tt])=>ff===3&&tt===2);
+    if(c) s+=utf8(c[2]);
+  }
+  return s.replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+function sniff(u8){
+  const h=String.fromCharCode(...u8.subarray(0,8));
+  if(h.startsWith("%PDF")) return "pdf";
+  if(u8[0]===0x89&&h.slice(1,4)==="PNG") return "png";
+  if(u8[0]===0xff&&u8[1]===0xd8) return "jpeg";
+  return "";
+}
+async function readGoodnotes(file,progress,readPdf,ocrImagesFn){
+  const name=file.name; let files;
+  try{ files=unzipIndex(new Uint8Array(await file.arrayBuffer())); }
+  catch{ throw new Error(`„${name}“: Diese GoodNotes-Datei lässt sich nicht öffnen. Exportiere die Notizen in GoodNotes als PDF (Teilen → Exportieren → PDF) und lade das PDF hoch.`); }
+  progress&&progress(`Lese GoodNotes-Notizen ${name} …`);
+  // Seiten in der Reihenfolge des Notizbuchs
+  const ids=[]; const idxRaw=await zipRead(files["index.notes.pb"]).catch(()=>null);
+  if(idxRaw) for(const rec of pbDelimited(idxRaw)){ const fs=pbTry(rec); const id=fs&&fs.find(([f,t])=>f===1&&t===2); if(id){ const s=utf8(id[2]); if(!ids.includes(s)) ids.push(s); } }
+  for(const k of Object.keys(files)){ const m=k.match(/^notes\/(.+)$/); if(m&&!ids.includes(m[1])) ids.push(m[1]); }
+  const parts=[]; let hand=0;
+  for(const id of ids){
+    const raw=await zipRead(files["search/"+id]).catch(()=>null);
+    const t=raw?goodnotesSearchText(raw):"";
+    if(t){ parts.push(t); hand++; }
+  }
+  // Eingebettete PDFs (importierte Folien, Arbeitsblätter) nur mit Textebene – sonst ist es meist das Papier (Linien, Karos)
+  // und die Handschrift darauf steckt schon in search/. Eingebettete Bilder (Fotos, Screenshots) werden gelesen.
+  const imgs=[]; let by=hand?"goodnotes":""; let ocrUsed=hand>0;
+  for(const k of Object.keys(files).filter(k=>k.startsWith("attachments/"))){
+    const raw=await zipRead(files[k]).catch(()=>null); if(!raw) continue;
+    const kind=sniff(raw);
+    if(kind==="pdf"){ try{ const r=await readPdf(raw,name,progress,{textOnly:true}); if(r.text.trim()){ parts.push(r.text); if(r.ocr){ ocrUsed=true; by=by||r.ocrBy; } } }catch{} }
+    else if(kind==="png"||kind==="jpeg"){ if(raw.length>20000) imgs.push(new Blob([raw],{type:"image/"+kind})); }
+  }
+  if(imgs.length){
+    try{ const r=await ocrImagesFn(imgs,progress); const t=r.texts.filter(Boolean).join("\n\n"); if(t.trim()){ parts.push(t); ocrUsed=true; by=by||r.by; } }catch{}
+  }
+  const text=parts.join("\n\n").trim();
+  if(!text) throw new Error(`„${name}“: In dieser GoodNotes-Datei wurde kein Text gefunden. Wahrscheinlich hat GoodNotes die Handschrift noch nicht erkannt. Exportiere die Notizen als PDF und lade das PDF hoch – ${CAP.sample?"Claude":"die Texterkennung"} liest dann die Seiten.`);
+  return {text,ocr:ocrUsed,ocrBy:by||"goodnotes",kind:"goodnotes"};
+}
+
 /* ---- 05_learn.js ---- */
 /* ===================== Lernen (Merkwerk-Kern) ===================== */
 const TYPE_LABEL={mc:"Multiple Choice",text:"Schriftliche Antwort",match:"Zuordnung",cloze:"Lückentext"};
@@ -749,43 +879,59 @@ const PDFJS="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
 const PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 const MAMMOTH="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
 
+// Liest Bilder (Scans, Fotos, Seiten mit Handschrift). Mit Claude: Claude schreibt ab. Ohne Claude: Texterkennung im Browser.
+// Liefert {texts:[ein Text pro Bild], by:"claude"|"browser"}.
 async function ocrImages(blobs,progress){
-  if(!CAP.sample) throw {code:"not_granted"};
-  if(!CAP.images) throw {code:"images_unavailable"};
-  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); let out=[];
+  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(blobs,progress),by:"browser"};
+  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); const texts=[];
   for(let i=0;i<blobs.length;i+=per){
-    const part=blobs.slice(i,i+per); progress&&progress(`Claude schreibt Seite ${i+1}–${i+part.length} von ${blobs.length} ab …`);
-    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial (Scan, Foto oder Screenshot). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
-    out.push(text.trim());
+    const part=blobs.slice(i,i+per); progress&&progress(`Claude liest Seite ${i+1}–${i+part.length} von ${blobs.length} …`);
+    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
+    const ps=text.trim().split(/\n*=====\n*/);
+    if(ps.length===part.length) texts.push(...ps.map(t=>t.trim())); else { texts.push(text.trim()); for(let k=1;k<part.length;k++) texts.push(""); }
   }
-  return out.join("\n\n");
+  return {texts,by:"claude"};
+}
+// Ab so vielen Vektorpfaden gilt eine PDF-Seite als handschriftlich beschrieben (GoodNotes, Notability, OneNote exportieren Striche als Pfade)
+const INK_PATHS=150;
+async function readPdf(data,name,progress,opt={}){
+  progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
+  const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+  const pdf=await lib.getDocument({data:new Uint8Array(data)}).promise;
+  const claude=!!(CAP.sample&&CAP.images);
+  const pages=[]; const scans=[]; let inkOnly=0;
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p); const tc=await page.getTextContent();
+    let t=""; for(const it of tc.items){ t+=it.str+(it.hasEOL?"\n":" "); }
+    t=t.replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();
+    const empty=t.replace(/\s/g,"").length<25;
+    // Seite mit Text und Handschrift: mit Claude die ganze Seite lesen lassen, damit die Handschrift nicht fehlt
+    let ink=false;
+    if(!empty&&!opt.textOnly){ try{ const ops=await page.getOperatorList(); ink=ops.fnArray.filter(f=>f===lib.OPS.constructPath).length>=INK_PATHS; }catch{} }
+    if(opt.textOnly) pages.push(empty?"":t);
+    else if(empty||(ink&&claude)){
+      progress&&progress(`Bereite Seite ${p} von ${pdf.numPages} vor …`);
+      const vp=page.getViewport({scale:empty&&!claude?2.2:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+      const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b,t}); pages.push(null);
+    } else { pages.push(t); if(ink) inkOnly++; }
+  }
+  let ocr=false, ocrBy="";
+  if(scans.length){ const r=await ocrImages(scans.map(s=>s.b),progress); scans.forEach((s,i)=>{pages[s.p-1]=(r.texts[i]||"").trim()||s.t;}); ocr=true; ocrBy=r.by; }
+  const text=pages.filter(Boolean).join("\n\n");
+  const note=inkOnly?`„${name}“: Auf ${inkOnly===1?"einer Seite":inkOnly+" Seiten"} steht vermutlich Handschrift neben gedrucktem Text. Ohne Claude wurde dort nur der gedruckte Text gelesen.`:"";
+  return {text,ocr,ocrBy,kind:"pdf",note};
 }
 async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
   if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const r=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,ocr:false,kind:"docx"}; }
-  if(ext==="pdf"){
-    progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
-    const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
-    const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
-    const pages=[]; const scans=[];
-    for(let p=1;p<=pdf.numPages;p++){
-      const page=await pdf.getPage(p); const tc=await page.getTextContent();
-      let t=""; for(const it of tc.items){ t+=it.str+(it.hasEOL?"\n":" "); }
-      t=t.replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();
-      if(t.replace(/\s/g,"").length<25){
-        const vp=page.getViewport({scale:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
-        await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
-        const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b}); pages.push(null);
-      } else pages.push(t);
-    }
-    let ocr=false;
-    if(scans.length){ const txt=await ocrImages(scans.map(s=>s.b),progress); const parts=txt.split(/\n=====\n?/); scans.forEach((s,i)=>{pages[s.p-1]=(parts[i]||"").trim();}); if(parts.length!==scans.length) pages[scans[0].p-1]=txt; ocr=true; }
-    return {text:pages.filter(Boolean).join("\n\n"),ocr,kind:"pdf"};
-  }
-  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ return {text:await ocrImages([file],progress),ocr:true,kind:"bild"}; }
-  throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT oder Bild).`);
+  if(ext==="pdf") return readPdf(await file.arrayBuffer(),name,progress);
+  if(ext==="goodnotes") return readGoodnotes(file,progress,readPdf,ocrImages);
+  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ const r=await ocrImages([file],progress); return {text:r.texts[0]||"",ocr:true,ocrBy:r.by,kind:"bild"}; }
+  throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT, GoodNotes oder Bild).`);
 }
 
 /* ---------- Lernsets ---------- */
@@ -977,7 +1123,7 @@ VIEWS.learn = async function(m,arg){
   if(set&&arg&&arg.cards) return renderCards(m,set);
   if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
@@ -1025,9 +1171,9 @@ function renderSetPanel(el,set){
    </section>
    <section class="sheet stack">
      <h3>Material</h3>
-     ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, Fotos und Screenshots · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div>
+     ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, GoodNotes, Fotos und Screenshots – auch Handschrift · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept="${FILE_ACCEPT}" hidden></div>
      <div id="upStatus" class="small"></div>`}
-     <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?'· <span class="pill warn">von Claude abgeschrieben – bitte prüfen</span>':""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
+     <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?`· <span class="pill warn">${esc(ocrLabel(f))}</span>`:""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
      ${set.files.length?`<details id="readText"><summary>Gelesenen Text ansehen</summary><div class="stack" style="margin-top:10px">${set.files.map(f=>`<div class="stack" style="gap:6px"><span class="label">${esc(f.name)}</span>${set.example?`<div class="pre">${esc(f.text)}</div>`:`<textarea id="tx_${f.id}" style="min-height:200px">${esc(f.text)}</textarea><div><button class="btn sm" data-savetx="${f.id}">Korrektur speichern</button></div>`}</div>`).join("")}</div></details>`:""}
    </section></div>`;
   const nameIn=$("#setName"), subjIn=$("#setSubj");
@@ -1047,17 +1193,19 @@ function renderSetPanel(el,set){
     fi.onchange=()=>addFiles(set,[...fi.files]); }
 }
 async function addFiles(set,files){
-  const st=$("#upStatus"); const errs=[];
+  const st=$("#upStatus"); const errs=[]; const notes=[];
   for(const f of files){
     try{ const r=await readFile(f,t=>{st.innerHTML=`<span class="spin"></span> ${esc(t)}`;});
       if(!r.text.trim()){ errs.push(`„${f.name}“: Kein Text gefunden.`); continue; }
-      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr});
+      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""});
+      if(r.note) notes.push(r.note);
+      if(r.ocrBy==="browser"&&!notes.includes(BROWSER_OCR_NOTE)) notes.push(BROWSER_OCR_NOTE);
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
   }
   set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});
-  if(errs.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")}</div>`;},50);
-  else toast(`${files.length} Datei(en) gelesen`);
+  if(errs.length||notes.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=(errs.length?`<div class="note bad">${errs.map(esc).join("<br>")}</div>`:"")+(notes.length?`<div class="note warn">${notes.map(esc).join("<br>")}</div>`:"");},50);
+  if(!errs.length) toast(`${files.length} Datei(en) gelesen`);
 }
 
 function renderRound(m,set){
@@ -1539,11 +1687,11 @@ function openEntryForm(subject,topic){
     <label class="f">Titel<input type="text" id="eTitle" placeholder="z. B. Spickzettel Scheitelpunktform"></label>
     <label class="f">Art<select id="eKind">${KINDS.map(k=>`<option>${k}</option>`).join("")}</select></label>
     <label class="f">Inhalt<textarea id="eContent" style="min-height:200px" placeholder="Schreib oder füge deinen Text ein – oder übernimm eine Datei bzw. ein Lernset."></textarea></label>
-    <div class="row"><button class="btn sm" id="eFileBtn">Datei übernehmen</button><input type="file" id="eFile" accept=".pdf,.docx,.txt,.md,image/*" hidden>${SETS.length?`<select id="eSet" style="width:auto"><option value="">Aus Lernset übernehmen …</option>${SETS.filter(s=>!s.example).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select>`:""}<span id="eSt" class="small"></span></div>
+    <div class="row"><button class="btn sm" id="eFileBtn">Datei übernehmen</button><input type="file" id="eFile" accept="${FILE_ACCEPT}" hidden>${SETS.length?`<select id="eSet" style="width:auto"><option value="">Aus Lernset übernehmen …</option>${SETS.filter(s=>!s.example).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select>`:""}<span id="eSt" class="small"></span></div>
     <label class="row small" style="gap:8px;align-items:flex-start"><input type="checkbox" id="eOk" style="margin-top:4px"><span>Das ist mein eigener Inhalt (eigene Notizen, eigene Zusammenfassung) – keine abfotografierten Buchseiten oder fremden Lösungen. Er wird für alle Nutzer der Bibliothek sichtbar.</span></label>
     <div class="row"><button class="btn primary" id="ePost">Veröffentlichen</button><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
     const fi=$("#eFile",m); $("#eFileBtn",m).onclick=()=>fi.click();
-    fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return; try{ const r=await readFile(f,t=>{$("#eSt",m).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); $("#eContent",m).value=r.text; if(!$("#eTitle",m).value) $("#eTitle",m).value=f.name.replace(/\.[^.]+$/,""); $("#eSt",m).textContent=r.ocr?"Von Claude abgeschrieben – bitte prüfen.":""; }catch(e){ $("#eSt",m).textContent=e&&e.code?sampleErr(e):String(e.message||e); } };
+    fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return; try{ const r=await readFile(f,t=>{$("#eSt",m).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); $("#eContent",m).value=r.text; if(!$("#eTitle",m).value) $("#eTitle",m).value=f.name.replace(/\.[^.]+$/,""); $("#eSt",m).textContent=r.ocr?ocrLabel(r)[0].toUpperCase()+ocrLabel(r).slice(1)+".":""; }catch(e){ $("#eSt",m).textContent=e&&e.code?sampleErr(e):String(e.message||e); } };
     const es=$("#eSet",m); if(es) es.onchange=()=>{ const s=setById(es.value); if(s){ $("#eContent",m).value=s.files.map(f=>f.text).join("\n\n"); if(!$("#eTitle",m).value) $("#eTitle",m).value=s.name; } };
     $("#ePost",m).onclick=async()=>{
       const t=$("#eTopic",m).value.trim(), ti=$("#eTitle",m).value.trim(), c=$("#eContent",m).value.trim();
@@ -1918,7 +2066,7 @@ function planForm(el,it,set){
   const candidates=SETS.filter(s=>!s.example);
   el.innerHTML=`<div class="stack">
     <label class="f">Material<select id="pSet"><option value="">Neues Lernset mit Dateien anlegen …</option>${candidates.map(s=>`<option value="${s.id}" ${set&&set.id===s.id?"selected":""}>${esc(s.name)} (${s.sections.length} Abschnitte)</option>`).join("")}</select></label>
-    <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT oder Fotos</span><input type="file" id="pFi" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div><div id="pSt" class="small"></div></div>
+    <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT, GoodNotes oder Fotos</span><input type="file" id="pFi" multiple accept="${FILE_ACCEPT}" hidden></div><div id="pSt" class="small"></div></div>
     <div class="stack" style="gap:6px"><span class="label">An diesen Tagen lernen</span><div class="row" style="gap:6px">${DAYS.map((d,i)=>`<button class="chip" data-wd="${i}" aria-pressed="${wds.includes(i)}">${d}</button>`).join("")}</div></div>
     <label class="f" style="max-width:280px">Wiederholungstage vor dem Termin<select id="pRev">${[0,1,2,3,4].map(n=>`<option ${n===rev?"selected":""}>${n}</option>`).join("")}</select></label>
     <div class="row"><button class="btn primary" id="pGo">Lernplan erstellen</button></div><div id="pErr"></div></div>`;
@@ -1939,7 +2087,7 @@ function planForm(el,it,set){
     if(!s){
       if(!pending.length){ err.innerHTML=`<div class="note bad">Wähle ein Lernset oder lade Material hoch.</div>`; return; }
       s=newSet(`${it.title}`,it.subject); const errs=[];
-      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
+      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
       if(!s.files.length){ err.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")||"Kein Text gefunden."}</div>`; return; }
       s.sections=makeSections(s.files); await putSet(s);
       if(errs.length) toast(errs.join(" "),5000);

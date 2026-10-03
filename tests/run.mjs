@@ -1,18 +1,19 @@
-// Prüft reine Logik ohne Browser: Beispielzitate, Karteikarten, Abschnitte, Lernplan, ICS-Import, Stundenraster.
+// Prüft reine Logik ohne Browser: Beispielzitate, Karteikarten, Abschnitte, Lernplan, ICS-Import, Stundenraster, GoodNotes.
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import vm from "node:vm";
+import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","03_example.js","04_core.js","05_learn.js","05b_cards.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","03_example.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
-const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout,
+const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -121,6 +122,43 @@ okAsync("Zweite Prüfung verwirft Fragen mit falscher Lösung", async () => {
   fake.json = async () => { throw {code:"rate_limited"}; };
   assert.equal((await A.verifyQuestions(set, qs)).length, 3);
   A.CAP.sample = null;
+});
+// --- GoodNotes: kleines Notizbuch im echten Aufbau (ZIP, index.notes.pb, search/<Seite>) nachbauen ---
+const pbVar = n => { const o=[]; do { let b=n&127; n>>>=7; if(n) b|=128; o.push(b); } while(n); return o; };
+const pbStr = (f, bytes) => [...pbVar(f*8+2), ...pbVar(bytes.length), ...bytes];
+const te = s => [...new TextEncoder().encode(s)];
+const word = (...cands) => pbStr(6, [...pbVar(1*8+0), 5, ...cands.flatMap(c=>pbStr(3, te(c)))]);
+function zip(entries) { // [name, Uint8Array, deflate?]
+  const loc=[], cen=[]; let off=0;
+  for (const [name, data, def] of entries) {
+    const nm=Buffer.from(name), body=def?deflateRawSync(data):Buffer.from(data), h=Buffer.alloc(30), c=Buffer.alloc(46);
+    h.writeUInt32LE(0x04034b50,0); h.writeUInt16LE(def?8:0,8); h.writeUInt32LE(body.length,18); h.writeUInt32LE(data.length,22); h.writeUInt16LE(nm.length,26);
+    c.writeUInt32LE(0x02014b50,0); c.writeUInt16LE(def?8:0,10); c.writeUInt32LE(body.length,20); c.writeUInt32LE(data.length,24); c.writeUInt16LE(nm.length,28); c.writeUInt32LE(off,42);
+    loc.push(h,nm,body); cen.push(c,nm); off+=30+nm.length+body.length;
+  }
+  const cd=Buffer.concat(cen), e=Buffer.alloc(22);
+  e.writeUInt32LE(0x06054b50,0); e.writeUInt16LE(entries.length,8); e.writeUInt16LE(entries.length,10); e.writeUInt32LE(cd.length,12); e.writeUInt32LE(off,16);
+  return Buffer.concat([...loc,cd,e]);
+}
+okAsync("GoodNotes: Handschrift-Erkennung wird seitenweise übernommen", async () => {
+  const p1="AAAAAAAA-0000-0000-0000-000000000001", p2="BBBBBBBB-0000-0000-0000-000000000002";
+  const rec = id => { const m=[...pbStr(1,te(id)), ...pbStr(2,te("notes/"+id))]; return [...pbVar(m.length), ...m]; };
+  const s1 = Uint8Array.from([...pbStr(5,te(p1)), ...word("Photosynthese","Photosynthase"), ...word(" "), ...word("ist","ist."), ...word(" "), ...word("Lichtenergie"), ...word("\n"), ...word("ATP","AJP")]);
+  const s2 = Uint8Array.from([...pbStr(5,te(p2)), ...word("Seite"), ...word(" "), ...word("zwei")]);
+  const buf = zip([["schema.pb",Uint8Array.from([8,35])], ["index.notes.pb",Uint8Array.from([...rec(p2),...rec(p1)]),true],
+    ["notes/"+p1,Uint8Array.from([1,2,3])], ["notes/"+p2,Uint8Array.from([1])], ["search/"+p1,s1,true], ["search/"+p2,s2,false],
+    ["attachments/X",Uint8Array.from(te("%PDF-1.7 Vorlage")),true]]);
+  let pdfCalls = 0;
+  const readPdf = async () => { pdfCalls++; return {text:"Gedrucktes Arbeitsblatt",ocr:false}; };
+  const r = await A.readGoodnotes({name:"Bio.goodnotes", arrayBuffer:async()=>buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.length)}, null, readPdf, async()=>({texts:[],by:"browser"}));
+  assert.equal(r.kind, "goodnotes"); assert.equal(r.ocrBy, "goodnotes"); assert.ok(r.ocr);
+  assert.equal(r.text, "Seite zwei\n\nPhotosynthese ist Lichtenergie\nATP\n\nGedrucktes Arbeitsblatt");
+  assert.equal(pdfCalls, 1);
+});
+okAsync("GoodNotes: kaputte oder leere Datei verweist auf den PDF-Export", async () => {
+  await assert.rejects(A.readGoodnotes({name:"x.goodnotes", arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}, null, null, null), /als PDF/);
+  const buf = zip([["schema.pb",Uint8Array.from([8,35])]]);
+  await assert.rejects(A.readGoodnotes({name:"leer.goodnotes", arrayBuffer:async()=>buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.length)}, null, null, null), /kein Text/);
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

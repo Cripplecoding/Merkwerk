@@ -41,43 +41,59 @@ const PDFJS="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
 const PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 const MAMMOTH="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
 
+// Liest Bilder (Scans, Fotos, Seiten mit Handschrift). Mit Claude: Claude schreibt ab. Ohne Claude: Texterkennung im Browser.
+// Liefert {texts:[ein Text pro Bild], by:"claude"|"browser"}.
 async function ocrImages(blobs,progress){
-  if(!CAP.sample) throw {code:"not_granted"};
-  if(!CAP.images) throw {code:"images_unavailable"};
-  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); let out=[];
+  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(blobs,progress),by:"browser"};
+  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); const texts=[];
   for(let i=0;i<blobs.length;i+=per){
-    const part=blobs.slice(i,i+per); progress&&progress(`Claude schreibt Seite ${i+1}–${i+part.length} von ${blobs.length} ab …`);
-    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial (Scan, Foto oder Screenshot). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
-    out.push(text.trim());
+    const part=blobs.slice(i,i+per); progress&&progress(`Claude liest Seite ${i+1}–${i+part.length} von ${blobs.length} …`);
+    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
+    const ps=text.trim().split(/\n*=====\n*/);
+    if(ps.length===part.length) texts.push(...ps.map(t=>t.trim())); else { texts.push(text.trim()); for(let k=1;k<part.length;k++) texts.push(""); }
   }
-  return out.join("\n\n");
+  return {texts,by:"claude"};
+}
+// Ab so vielen Vektorpfaden gilt eine PDF-Seite als handschriftlich beschrieben (GoodNotes, Notability, OneNote exportieren Striche als Pfade)
+const INK_PATHS=150;
+async function readPdf(data,name,progress,opt={}){
+  progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
+  const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+  const pdf=await lib.getDocument({data:new Uint8Array(data)}).promise;
+  const claude=!!(CAP.sample&&CAP.images);
+  const pages=[]; const scans=[]; let inkOnly=0;
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p); const tc=await page.getTextContent();
+    let t=""; for(const it of tc.items){ t+=it.str+(it.hasEOL?"\n":" "); }
+    t=t.replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();
+    const empty=t.replace(/\s/g,"").length<25;
+    // Seite mit Text und Handschrift: mit Claude die ganze Seite lesen lassen, damit die Handschrift nicht fehlt
+    let ink=false;
+    if(!empty&&!opt.textOnly){ try{ const ops=await page.getOperatorList(); ink=ops.fnArray.filter(f=>f===lib.OPS.constructPath).length>=INK_PATHS; }catch{} }
+    if(opt.textOnly) pages.push(empty?"":t);
+    else if(empty||(ink&&claude)){
+      progress&&progress(`Bereite Seite ${p} von ${pdf.numPages} vor …`);
+      const vp=page.getViewport({scale:empty&&!claude?2.2:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+      const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b,t}); pages.push(null);
+    } else { pages.push(t); if(ink) inkOnly++; }
+  }
+  let ocr=false, ocrBy="";
+  if(scans.length){ const r=await ocrImages(scans.map(s=>s.b),progress); scans.forEach((s,i)=>{pages[s.p-1]=(r.texts[i]||"").trim()||s.t;}); ocr=true; ocrBy=r.by; }
+  const text=pages.filter(Boolean).join("\n\n");
+  const note=inkOnly?`„${name}“: Auf ${inkOnly===1?"einer Seite":inkOnly+" Seiten"} steht vermutlich Handschrift neben gedrucktem Text. Ohne Claude wurde dort nur der gedruckte Text gelesen.`:"";
+  return {text,ocr,ocrBy,kind:"pdf",note};
 }
 async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
   if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const r=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,ocr:false,kind:"docx"}; }
-  if(ext==="pdf"){
-    progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
-    const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
-    const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
-    const pages=[]; const scans=[];
-    for(let p=1;p<=pdf.numPages;p++){
-      const page=await pdf.getPage(p); const tc=await page.getTextContent();
-      let t=""; for(const it of tc.items){ t+=it.str+(it.hasEOL?"\n":" "); }
-      t=t.replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();
-      if(t.replace(/\s/g,"").length<25){
-        const vp=page.getViewport({scale:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
-        await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
-        const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b}); pages.push(null);
-      } else pages.push(t);
-    }
-    let ocr=false;
-    if(scans.length){ const txt=await ocrImages(scans.map(s=>s.b),progress); const parts=txt.split(/\n=====\n?/); scans.forEach((s,i)=>{pages[s.p-1]=(parts[i]||"").trim();}); if(parts.length!==scans.length) pages[scans[0].p-1]=txt; ocr=true; }
-    return {text:pages.filter(Boolean).join("\n\n"),ocr,kind:"pdf"};
-  }
-  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ return {text:await ocrImages([file],progress),ocr:true,kind:"bild"}; }
-  throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT oder Bild).`);
+  if(ext==="pdf") return readPdf(await file.arrayBuffer(),name,progress);
+  if(ext==="goodnotes") return readGoodnotes(file,progress,readPdf,ocrImages);
+  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ const r=await ocrImages([file],progress); return {text:r.texts[0]||"",ocr:true,ocrBy:r.by,kind:"bild"}; }
+  throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT, GoodNotes oder Bild).`);
 }
 
 /* ---------- Lernsets ---------- */
@@ -269,7 +285,7 @@ VIEWS.learn = async function(m,arg){
   if(set&&arg&&arg.cards) return renderCards(m,set);
   if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
@@ -317,9 +333,9 @@ function renderSetPanel(el,set){
    </section>
    <section class="sheet stack">
      <h3>Material</h3>
-     ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, Fotos und Screenshots · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div>
+     ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, GoodNotes, Fotos und Screenshots – auch Handschrift · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept="${FILE_ACCEPT}" hidden></div>
      <div id="upStatus" class="small"></div>`}
-     <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?'· <span class="pill warn">von Claude abgeschrieben – bitte prüfen</span>':""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
+     <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?`· <span class="pill warn">${esc(ocrLabel(f))}</span>`:""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
      ${set.files.length?`<details id="readText"><summary>Gelesenen Text ansehen</summary><div class="stack" style="margin-top:10px">${set.files.map(f=>`<div class="stack" style="gap:6px"><span class="label">${esc(f.name)}</span>${set.example?`<div class="pre">${esc(f.text)}</div>`:`<textarea id="tx_${f.id}" style="min-height:200px">${esc(f.text)}</textarea><div><button class="btn sm" data-savetx="${f.id}">Korrektur speichern</button></div>`}</div>`).join("")}</div></details>`:""}
    </section></div>`;
   const nameIn=$("#setName"), subjIn=$("#setSubj");
@@ -339,17 +355,19 @@ function renderSetPanel(el,set){
     fi.onchange=()=>addFiles(set,[...fi.files]); }
 }
 async function addFiles(set,files){
-  const st=$("#upStatus"); const errs=[];
+  const st=$("#upStatus"); const errs=[]; const notes=[];
   for(const f of files){
     try{ const r=await readFile(f,t=>{st.innerHTML=`<span class="spin"></span> ${esc(t)}`;});
       if(!r.text.trim()){ errs.push(`„${f.name}“: Kein Text gefunden.`); continue; }
-      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr});
+      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""});
+      if(r.note) notes.push(r.note);
+      if(r.ocrBy==="browser"&&!notes.includes(BROWSER_OCR_NOTE)) notes.push(BROWSER_OCR_NOTE);
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
   }
   set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});
-  if(errs.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")}</div>`;},50);
-  else toast(`${files.length} Datei(en) gelesen`);
+  if(errs.length||notes.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=(errs.length?`<div class="note bad">${errs.map(esc).join("<br>")}</div>`:"")+(notes.length?`<div class="note warn">${notes.map(esc).join("<br>")}</div>`:"");},50);
+  if(!errs.length) toast(`${files.length} Datei(en) gelesen`);
 }
 
 function renderRound(m,set){
