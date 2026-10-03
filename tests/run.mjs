@@ -12,7 +12,7 @@ const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, cl
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 
@@ -44,6 +44,17 @@ ok("Karteikarten-Durchlauf zählt und wiederholt nicht gewusste", () => {
   const again = [...set.fc.practice];
   A.fcStart(set, again, true);
   assert.equal(set.fc.ids.length, 2); assert.ok(set.fc.ids.every(id=>again.includes(id))); assert.equal(set.fc.retry, true);
+});
+ok("Lückentext toleriert kleine Tipp- und Grammatikfehler", () => {
+  assert.ok(A.clozeMatch("kostenorientierte", ["kostenorientierten"]));
+  assert.ok(A.clozeMatch("Kostenorientirten", ["kostenorientierten"]));
+  assert.ok(A.clozeMatch("Glukose", ["Glucose"]));
+  assert.ok(A.clozeMatch("Chloroplasten", ["Chloroplast"]));
+  assert.ok(A.clozeMatch("Thylakoidmembran", ["Thylakoidmembranen"]));
+  assert.ok(!A.clozeMatch("nachfrageorientierten", ["kostenorientierten"]));
+  assert.ok(!A.clozeMatch("ADP", ["ATP"]));
+  assert.ok(!A.clozeMatch("Stroma", ["Thylakoide"]));
+  assert.ok(!A.clozeMatch("", ["ATP"]));
 });
 ok("Fragenmix 5/4/3/3", () => { assert.equal(JSON.stringify(A.mixFor(15)), JSON.stringify({mc:5,text:4,match:3,cloze:3})); });
 ok("Lernplan deckt alle Abschnitte vor dem Termin ab", () => {
