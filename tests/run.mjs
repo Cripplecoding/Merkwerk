@@ -12,7 +12,7 @@ const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, cl
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 
@@ -82,4 +82,19 @@ ok("Fächerkatalog Bayern Mittelschule ohne Biologie/Physik", () => {
   const f = A.subjectsFor({track:"schule",state:"BY",type:"haupt",grade:7}).map(x=>x.n);
   assert.ok(f.includes("Natur und Technik")); assert.ok(!f.includes("Physik"));
 });
+let pending = [];
+const okAsync = (name, fn) => pending.push(fn().then(() => { n++; console.log("✓", name); }));
+okAsync("Zweite Prüfung verwirft Fragen mit falscher Lösung", async () => {
+  const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
+  const qs = A.EXAMPLE_QUESTIONS.slice(0,3).map(q => ({...q, sections:[set.sections[0].id]}));
+  let prompt = "";
+  const fake = async () => ({text:""}); fake.json = async (p) => { prompt = p; return {checks:[{i:0,ok:true},{i:1,ok:false,grund:"vertauscht"},{i:2,ok:true}]}; };
+  A.CAP.sample = fake;
+  const kept = await A.verifyQuestions(set, qs);
+  assert.equal(kept.length, 2); assert.ok(!kept.includes(qs[1])); assert.ok(prompt.includes("#1"));
+  fake.json = async () => { throw {code:"rate_limited"}; };
+  assert.equal((await A.verifyQuestions(set, qs)).length, 3);
+  A.CAP.sample = null;
+});
+await Promise.all(pending);
 console.log(`\n${n} Prüfungen bestanden`);

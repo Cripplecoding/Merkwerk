@@ -821,6 +821,7 @@ REGELN
 5. Genau diese Anzahl je Format: ${mix.mc||0}× "mc", ${mix.text||0}× "text", ${mix.match||0}× "match", ${mix.cloze||0}× "cloze".
 ${uncovered.length?`6. Diese Abschnitte wurden noch nie abgefragt und haben Vorrang: ${uncovered.slice(0,40).join(", ")}.`:""}
 ${avoid&&avoid.length?`7. Diese Fragen gab es schon, stelle andere:\n- ${avoid.slice(0,40).join("\n- ")}`:""}
+8. Prüfe jede Lösung vor der Ausgabe Wort für Wort gegen das Material. Bei Zuordnungen und Einteilungen in Kategorien (zum Beispiel „glatter Preis“ / „gebrochener Preis“) muss jede einzelne Zuordnung im Material so stehen oder sich zwingend daraus ergeben. Vertausche nie Kategorien; im Zweifel lass die Frage weg.
 
 FORMATE (Felder)
 - mc: {"type":"mc","afb","prompt","options":[4 Antworten],"answer":Index der richtigen (0-3),"explain":"1 Satz","quote","sections"}
@@ -844,6 +845,37 @@ function validateQ(set,q){
   if(q.type==="cloze"){ const n=(String(q.prompt).match(/___/g)||[]).length; const b=(q.blanks||[]).map(x=>Array.isArray(x)?x.map(String):[String(x)]); if(!n||b.length!==n) return null; return {...base,blanks:b}; }
   return null;
 }
+/* ---------- Zweite Prüfung: stimmt die Lösung mit dem Material überein? ---------- */
+function solutionText(q){
+  if(q.type==="mc") return "Richtige Antwort: "+q.options[q.answer]+" | Falsche Antworten: "+q.options.filter((_,i)=>i!==q.answer).join(" / ");
+  if(q.type==="text") return "Musterlösung: "+q.model_answer;
+  if(q.type==="match") return "Zuordnung: "+q.pairs.map(p=>p.left+" → "+p.right).join("; ");
+  if(q.type==="cloze") return "Lücken: "+q.blanks.map(b=>b[0]).join("; ");
+  return "";
+}
+async function verifyQuestions(set,qs,signal){
+  if(!qs.length||!CAP.sample) return qs;
+  const ids=[...new Set(qs.flatMap(q=>q.sections))]; let budget=60000;
+  const material=set.sections.filter(s=>ids.includes(s.id)).filter(s=>(budget-=s.text.length)>=0).map(s=>`[${s.id}]\n${s.text}`).join("\n\n");
+  const list=qs.map((q,i)=>`#${i} (${q.type}) ${q.prompt}\n${solutionText(q)}\nBeleg: "${q.quote}"`).join("\n\n");
+  try{
+    const r=await CAP.sample.json(`Du kontrollierst Prüfungsfragen einer Lernseite, bevor Lernende sie sehen. Prüfe für jede Frage streng anhand des Materials:
+- Ist die angegebene Lösung laut Material richtig und vollständig?
+- Bei Multiple Choice: Ist genau eine Antwort richtig, und sind die falschen Antworten laut Material wirklich falsch?
+- Bei Zuordnungen und Kategorien: Stimmt jede einzelne Zuordnung, nichts vertauscht?
+Im Zweifel "ok": false.
+
+Antworte nur mit JSON: {"checks":[{"i":Nummer,"ok":true|false,"grund":"kurz"}]}
+
+FRAGEN
+${list}
+
+MATERIAL
+${material}`,{modelTier:"default",cache:false,signal});
+    const bad=new Set(((r&&r.checks)||[]).filter(c=>c&&c.ok===false).map(c=>Number(c.i)));
+    return qs.filter((_,i)=>!bad.has(i));
+  }catch(e){ if(e&&e.code==="cancelled") throw e; return qs; }
+}
 async function generateQuestions(set,{n=15,restrict=null,onStatus,signal}={}){
   const want=mixFor(n); const got={mc:[],text:[],match:[],cloze:[]}; let dropped=0;
   const avoid=(set.history||[]).flatMap(h=>h.prompts||[]).slice(-60);
@@ -853,7 +885,10 @@ async function generateQuestions(set,{n=15,restrict=null,onStatus,signal}={}){
     onStatus&&onStatus(attempt?"Ersetze verworfene Fragen …":"Claude erstellt die Fragen. Das dauert meist 20–60 Sekunden …");
     const res=await CAP.sample.json(buildPrompt(set,need,restrict,[...avoid,...Object.values(got).flat().map(q=>q.prompt)]),{modelTier:"default",cache:false,signal});
     const list=Array.isArray(res)?res:(res&&res.questions)||[];
-    for(const raw of list){ const q=validateQ(set,raw); if(!q){dropped++;continue;} if(got[q.type].length<want[q.type]) got[q.type].push(q); }
+    const valid=[]; for(const raw of list){ const q=validateQ(set,raw); if(!q){dropped++;continue;} valid.push(q); }
+    onStatus&&onStatus("Claude prüft die Lösungen gegen dein Material …");
+    const checked=await verifyQuestions(set,valid,signal); dropped+=valid.length-checked.length;
+    for(const q of checked){ if(got[q.type].length<want[q.type]) got[q.type].push(q); }
   }
   const qs=[...got.mc,...got.text,...got.match,...got.cloze];
   return {qs:shuffle(qs),dropped};
@@ -869,7 +904,7 @@ function prepQuestion(q){
 }
 async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef=null,fresh=false}={}){
   let qs;
-  if(reuse && set.round){ qs=shuffle(set.round.qs.map(q=>prepQuestion(q))); }
+  if(reuse && set.round){ qs=shuffle(set.round.qs.filter(q=>!q.disputed).map(q=>prepQuestion(q))); if(!qs.length){ toast("Keine Fragen übrig – starte einen neuen Durchgang"); return; } }
   else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
   else{
     if(!CAP.sample){ toast("Dafür braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
@@ -879,8 +914,8 @@ async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef
       const r=await generateQuestions(set,{n,restrict,signal:ctl.signal,onStatus:t=>{const e=$("#rsTxt"); if(e) e.textContent=t;}});
       if(!r.qs.length){ if(box) box.innerHTML=`<div class="note bad">Es konnte keine belegte Frage erzeugt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.</div>`; return; }
       qs=r.qs.map(prepQuestion);
-      if(r.qs.length<n) toast(`${r.qs.length} von ${n} Fragen belegt – ${r.dropped} ohne gültiges Zitat verworfen`,4200);
-      else if(r.dropped) toast(`${r.dropped} Fragen ohne gültiges Zitat verworfen und ersetzt`,3500);
+      if(r.qs.length<n) toast(`${r.qs.length} von ${n} Fragen belegt – ${r.dropped} ohne gültigen Beleg oder mit falscher Lösung verworfen`,4200);
+      else if(r.dropped) toast(`${r.dropped} Fragen ohne gültigen Beleg oder mit falscher Lösung verworfen und ersetzt`,3500);
     }catch(e){ if(box){ if(e&&e.code==="cancelled"){box.hidden=true;} else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
     qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; }));
   }
@@ -1041,13 +1076,16 @@ function renderRound(m,set){
   if(done){
     const sol = q.type==="mc"?esc(q.options[q.answer]) : q.type==="text"?esc(q.model_answer) : q.type==="match"? q.pairs.map(p=>`${esc(p.left)} → ${esc(p.right)}`).join("<br>") : q.blanks.map((b,i)=>`Lücke ${i+1}: ${esc(b[0])}`).join("<br>");
     fb.innerHTML=`<div class="feedback ${res.correct?"ok":"bad"}" role="status">
-      <b>${res.correct?"Richtig":res.verdict==="teilweise"?"Teilweise richtig – noch nicht ganz":"Leider falsch"}${res.partial&&!res.correct?` · ${res.partial} richtig zugeordnet`:""}</b>
+      <b>${res.disputed?"Als richtig gewertet":res.correct?"Richtig":res.verdict==="teilweise"?"Teilweise richtig – noch nicht ganz":"Leider falsch"}${res.partial&&!res.correct?` · ${res.partial} richtig zugeordnet`:""}</b>
       ${res.feedback?`<p>${esc(res.feedback)}</p>`:""}
       ${!res.correct||q.type==="text"?`<div><span class="label">Lösung</span><p>${sol}</p></div>`:""}
       ${q.explain&&!res.correct?`<p class="small">${esc(q.explain)}</p>`:""}
       <div><span class="label">Beleg aus ${esc(q.fileName)}</span><p class="quote">„${esc(q.quote)}“</p></div>
+      ${!res.correct?`<div class="row small"><span class="muted">Stimmt die Lösung nicht mit deinem Material überein?</span><button class="btn ghost sm" id="dispute">Lösung ist falsch – als richtig werten</button></div>`:""}
+      ${res.disputed?`<p class="small muted">Als fehlerhaft gemeldet: zählt als richtig und kommt bei „Dieselben Fragen“ nicht mehr dran.</p>`:""}
       <div class="row"><button class="btn primary" id="nextQ">${R.idx+1<R.qs.length?"Nächste Frage":"Auswertung ansehen"}</button></div></div>`;
     $("#nextQ").onclick=async()=>{ if(R.idx+1<R.qs.length){R.idx++;} else { R.phase="end"; const pctv=Math.round(R.results.filter(r=>r&&r.correct).length/R.qs.length*100); (set.history ||= []).push({at:Date.now(),pct:pctv,prompts:R.qs.map(q=>q.prompt)}); if(R.planRef) markPlanDone(R.planRef,pctv); } await putSet(set); renderRound(m,set); };
+    const dp=$("#dispute"); if(dp) dp.onclick=async()=>{ q.disputed=true; const orig=R.qs.find(x=>x.id===q.id); if(orig) orig.disputed=true; R.results[R.idx]={...res,correct:true,disputed:true}; await putSet(set); renderRound(m,set); };
     $("#nextQ").focus();
   }
 }
@@ -1092,6 +1130,7 @@ REGELN
 1. Jede Karte hat "term": einen Fachbegriff, Namen oder eine kurze Bezeichnung aus dem Material (höchstens 6 Wörter), und "definition": eine Erklärung in 1 bis 2 Sätzen, nur mit Inhalten aus dem Material. Der Begriff selbst steht nicht in der Definition.
 2. Jede Karte hat "quote": ein wörtliches, zusammenhängendes Zitat aus dem Material (40 bis 300 Zeichen), das die Definition belegt. Exakt so geschrieben wie im Material, ohne Auslassungen, ohne "…".
 3. Etwa ${n} Karten, verteilt über das ganze Material. Jeder Begriff nur einmal, die wichtigsten zuerst.
+4. Prüfe jede Definition vor der Ausgabe Wort für Wort gegen das Material. Vertausche nie Begriffe oder Kategorien (zum Beispiel „glatter Preis“ und „gebrochener Preis“); im Zweifel lass die Karte weg.
 
 Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}
 
