@@ -222,15 +222,32 @@ function editDist(a,b){ const m=a.length,n=b.length; if(!m) return n; if(!n) ret
   for(let i=1;i<=m;i++){ const cur=[i]; for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); prev=cur; } return prev[n]; }
 const looseWord=w=>w.replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/(?:en|em|er|es|e|n|s)$/,"");
 const loose=s=>cmp(s).split(" ").filter(Boolean).map(looseWord).join(" ");
+// Ergebnis: "exact", "near" (kleine Abweichung) oder false
 function clozeMatch(given,answers){
   const g=cmp(given); if(!g) return false;
-  return answers.some(a=>{ const b=cmp(a); if(!b) return false; if(g===b) return true;
+  if(answers.some(a=>cmp(a)===g)) return "exact";
+  return answers.some(a=>{ const b=cmp(a); if(!b) return false;
     const lg=loose(given), lb=loose(a); if(lg===lb) return true;
-    const tol=lb.length<=4?0:lb.length<=8?1:2; return editDist(lg,lb)<=tol; });
+    const tol=lb.length<=4?0:lb.length<=8?1:2; return editDist(lg,lb)<=tol; })?"near":false;
+}
+// Kleine Abweichungen zählen nur, wenn sie den Sinn nicht verändern (mit Claude geprüft, ohne Claude großzügig)
+async function judgeNearBlanks(q,given,verdicts){
+  const near=verdicts.map((v,i)=>v==="near"?i:-1).filter(i=>i>=0);
+  if(!near.length||!CAP.sample) return verdicts.map(Boolean);
+  try{
+    const r=await CAP.sample.json(`Ein Lernender hat einen Lückentext ausgefüllt. Kleine Tipp- oder Grammatikfehler sollen nicht zählen, Abweichungen, die den Sinn verändern, schon (zum Beispiel ein anderes Wort, eine andere Zahl, das Gegenteil, ein anderer Fachbegriff).
+
+Satz: ${q.prompt}
+${near.map(i=>`Lücke ${i}: richtig wäre "${q.blanks[i][0]}", geschrieben wurde "${given[i]}"`).join("\n")}
+
+Antworte nur mit JSON: {"luecken":[{"i":Nummer der Lücke,"sinnentstellend":true|false}]}`,{modelTier:"quick",cache:false});
+    const bad=new Set(((r&&r.luecken)||[]).filter(x=>x&&x.sinnentstellend===true).map(x=>Number(x.i)));
+    return verdicts.map((v,i)=>v==="exact"||(v==="near"&&!bad.has(i)));
+  }catch{ return verdicts.map(Boolean); }
 }
 async function gradeText(q,answer){
   if(!CAP.sample) return null;
-  const r=await CAP.sample.json(`Bewerte die Antwort eines Lernenden auf eine Prüfungsfrage. Bewerte nur inhaltlich anhand der Musterlösung und des Belegs. Rechtschreib-, Tipp- und Grammatikfehler zählen nicht.
+  const r=await CAP.sample.json(`Bewerte die Antwort eines Lernenden auf eine Prüfungsfrage. Bewerte nur inhaltlich anhand der Musterlösung und des Belegs. Rechtschreib-, Tipp- und Grammatikfehler zählen nicht, außer sie verändern den Sinn (zum Beispiel ein anderes Fachwort, eine andere Zahl oder das Gegenteil).
 
 Frage: ${q.prompt}
 Musterlösung: ${q.model_answer}
@@ -371,9 +388,11 @@ function renderRound(m,set){
     if(!done) $("#chk").onclick=()=>{ const given=q.pairs.map((_,i)=>$("#m"+i).value); if(given.some(x=>!x)){toast("Ordne zuerst alles zu");return;} const n=given.filter((g,i)=>g===q.pairs[i].right).length; finish({correct:n===q.pairs.length,given,partial:`${n}/${q.pairs.length}`}); };
   }
   if(q.type==="cloze"){
-    let k=0; const html=esc(q.prompt).replace(/___/g,()=>{ const i=k++; const g=done?res.given[i]:""; const ok=done&&clozeMatch(g,q.blanks[i]); return `<input type="text" id="c${i}" aria-label="Lücke ${i+1}" value="${esc(g)}" ${done?"disabled":""} class="${done?(ok?"right":"wrong"):""}" size="${Math.max(8,(q.blanks[i][0]||"").length+2)}">`; });
+    let k=0; const html=esc(q.prompt).replace(/___/g,()=>{ const i=k++; const g=done?res.given[i]:""; const ok=done&&(res.blankOk?res.blankOk[i]:!!clozeMatch(g,q.blanks[i])); return `<input type="text" id="c${i}" aria-label="Lücke ${i+1}" value="${esc(g)}" ${done?"disabled":""} class="${done?(ok?"right":"wrong"):""}" size="${Math.max(8,(q.blanks[i][0]||"").length+2)}">`; });
     body.innerHTML=`<p class="cloze" style="font-size:1.1rem;line-height:2.1">${html}</p>${done?"":`<div><button class="btn primary" id="chk">Lücken prüfen</button></div>`}`;
-    if(!done){ $("#chk").onclick=()=>{ const given=q.blanks.map((_,i)=>$("#c"+i).value.trim()); if(given.some(x=>!x)){toast("Fülle zuerst alle Lücken");return;} const okAll=given.every((g,i)=>clozeMatch(g,q.blanks[i])); finish({correct:okAll,given}); };
+    if(!done){ $("#chk").onclick=async()=>{ const given=q.blanks.map((_,i)=>$("#c"+i).value.trim()); if(given.some(x=>!x)){toast("Fülle zuerst alle Lücken");return;} const verdicts=given.map((g,i)=>clozeMatch(g,q.blanks[i])); const btn=$("#chk"); btn.disabled=true;
+        if(CAP.sample&&verdicts.includes("near")) btn.innerHTML=`<span class="spin"></span> Prüfe kleine Abweichungen …`;
+        const blankOk=await judgeNearBlanks(q,given,verdicts); finish({correct:blankOk.every(Boolean),given,blankOk}); };
       body.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();$("#chk").click();}}); }
   }
   if(done){
@@ -381,7 +400,7 @@ function renderRound(m,set){
     fb.innerHTML=`<div class="feedback ${res.correct?"ok":"bad"}" role="status">
       <b>${res.disputed?"Als richtig gewertet":res.correct?"Richtig":res.verdict==="teilweise"?"Teilweise richtig – noch nicht ganz":"Leider falsch"}${res.partial&&!res.correct?` · ${res.partial} richtig zugeordnet`:""}</b>
       ${res.feedback?`<p>${esc(res.feedback)}</p>`:""}
-      ${res.correct&&q.type==="cloze"&&res.given.some((g,i)=>!q.blanks[i].some(b=>cmp(b)===cmp(g)))?`<p class="small">Kleine Abweichung, trotzdem richtig. Genau so steht es im Material:<br>${q.blanks.map((b,i)=>`Lücke ${i+1}: ${esc(b[0])}`).join("<br>")}</p>`:""}
+      ${res.correct&&q.type==="cloze"&&res.given.some((g,i)=>clozeMatch(g,q.blanks[i])==="near")?`<p class="small">Kleine Abweichung, trotzdem richtig. Genau so steht es im Material:<br>${q.blanks.map((b,i)=>`Lücke ${i+1}: ${esc(b[0])}`).join("<br>")}</p>`:""}
       ${!res.correct||q.type==="text"?`<div><span class="label">Lösung</span><p>${sol}</p></div>`:""}
       ${q.explain&&!res.correct?`<p class="small">${esc(q.explain)}</p>`:""}
       <div><span class="label">Beleg aus ${esc(q.fileName)}</span><p class="quote">„${esc(q.quote)}“</p></div>

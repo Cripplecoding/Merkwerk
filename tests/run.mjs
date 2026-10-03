@@ -12,9 +12,11 @@ const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, cl
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
+let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
+const okAsync = (name, fn) => { chain = chain.then(fn).then(() => { n++; console.log("✓", name); }); };
 
 ok("Alle Beispielzitate stehen wörtlich im Beispieltext", () => {
   for (const q of A.EXAMPLE_QUESTIONS) assert.ok(A.relax(A.EXAMPLE_TEXT).includes(A.relax(q.quote)), q.quote);
@@ -55,6 +57,21 @@ ok("Lückentext toleriert kleine Tipp- und Grammatikfehler", () => {
   assert.ok(!A.clozeMatch("ADP", ["ATP"]));
   assert.ok(!A.clozeMatch("Stroma", ["Thylakoide"]));
   assert.ok(!A.clozeMatch("", ["ATP"]));
+  assert.equal(A.clozeMatch("ATP", ["ATP"]), "exact");
+  assert.equal(A.clozeMatch("Glukose", ["Glucose"]), "near");
+});
+okAsync("Sinnverändernde Abweichungen im Lückentext zählen als falsch", async () => {
+  const q = {prompt:"Die Rate ___ und die Kosten sind ___.", blanks:[["zunehmende"],["kostenorientierten"]]};
+  const given = ["abnehmende","kostenorientierte"];
+  const v = given.map((g,i)=>A.clozeMatch(g,q.blanks[i]));
+  assert.deepEqual([...v], ["near","near"]);
+  const fake = async () => ({text:""}); fake.json = async () => ({luecken:[{i:0,sinnentstellend:true},{i:1,sinnentstellend:false}]});
+  A.CAP.sample = fake;
+  assert.deepEqual([...await A.judgeNearBlanks(q, given, v)], [false, true]);
+  fake.json = async () => { throw {code:"rate_limited"}; };
+  assert.deepEqual([...await A.judgeNearBlanks(q, given, v)], [true, true]);
+  A.CAP.sample = null;
+  assert.deepEqual([...await A.judgeNearBlanks(q, given, v)], [true, true]);
 });
 ok("Fragenmix 5/4/3/3", () => { assert.equal(JSON.stringify(A.mixFor(15)), JSON.stringify({mc:5,text:4,match:3,cloze:3})); });
 ok("Lernplan deckt alle Abschnitte vor dem Termin ab", () => {
@@ -93,8 +110,6 @@ ok("Fächerkatalog Bayern Mittelschule ohne Biologie/Physik", () => {
   const f = A.subjectsFor({track:"schule",state:"BY",type:"haupt",grade:7}).map(x=>x.n);
   assert.ok(f.includes("Natur und Technik")); assert.ok(!f.includes("Physik"));
 });
-let pending = [];
-const okAsync = (name, fn) => pending.push(fn().then(() => { n++; console.log("✓", name); }));
 okAsync("Zweite Prüfung verwirft Fragen mit falscher Lösung", async () => {
   const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
   const qs = A.EXAMPLE_QUESTIONS.slice(0,3).map(q => ({...q, sections:[set.sections[0].id]}));
@@ -107,5 +122,5 @@ okAsync("Zweite Prüfung verwirft Fragen mit falscher Lösung", async () => {
   assert.equal((await A.verifyQuestions(set, qs)).length, 3);
   A.CAP.sample = null;
 });
-await Promise.all(pending);
+await chain;
 console.log(`\n${n} Prüfungen bestanden`);
