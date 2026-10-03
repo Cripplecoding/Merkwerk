@@ -7,6 +7,7 @@ Merkwerk ist eine Lernseite: Du lädst dein Material hoch (PDF, DOCX, TXT, Fotos
 ```sh
 npm test        # Logik-Prüfungen
 npm run build   # baut dist/
+npm start       # baut dist/ und startet einen lokalen Server (lädt `serve` per npx)
 ```
 
 Danach `dist/index.html` per Doppelklick in Chrome, Edge oder Firefox öffnen. Node.js 18 oder neuer, keine Abhängigkeiten.
