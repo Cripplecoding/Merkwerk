@@ -1,17 +1,18 @@
 /* ===================== Profil-Abfrage ===================== */
-function wizardHTML(p){
+function wizardHTML(p,opt={}){
   p=p||{};
   const track=p.track||"";
+  const on=t=>track===t?"border-color:var(--accent);background:var(--accent-soft)":"";
   return `<div class="stack" style="gap:16px" id="wiz">
-   <div class="stack" style="gap:4px"><h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p></div>
-   <div class="grid2">
-     <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${track==="schule"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich gehe zur Schule</b><span class="small muted">Grundschule bis Abitur, Berufsschule</span></button>
-     <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${track==="uni"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich studiere</b><span class="small muted">Universität, Hochschule, Duale Hochschule</span></button>
+   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Merkwerk die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
+   <div class="grid2${opt.onboard?" track-pick":""}">
+     <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${on("schule")}"><b>${opt.onboard?"Schüler":"Ich gehe zur Schule"}</b><span class="small muted">${opt.onboard?"Ich gehe zur Schule":"Grundschule bis Abitur, Berufsschule"}</span></button>
+     <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${on("uni")}"><b>${opt.onboard?"Student":"Ich studiere"}</b><span class="small muted">${opt.onboard?"Ich studiere":"Universität, Hochschule, Duale Hochschule"}</span></button>
    </div>
    <div id="wizFields"></div>
   </div>`;
 }
-function mountWizard(root,onDone){
+function mountWizard(root,onDone,opt={}){
   const draft={...(S.profile||{})};
   const fields=$("#wizFields",root);
   const draw=()=>{
@@ -21,7 +22,7 @@ function mountWizard(root,onDone){
       const tdef=SCHOOL_TYPES.find(t=>t.k===draft.type);
       fields.innerHTML=`<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
         <label class="f">Bundesland<select id="wState"><option value="">Bitte wählen</option>${STATES.map(s=>`<option value="${s.k}" ${draft.state===s.k?"selected":""}>${esc(s.n)}</option>`).join("")}</select></label>
-        <label class="f">Schulart<select id="wType" ${draft.state?"":"disabled"}><option value="">Bitte wählen</option>${SCHOOL_TYPES.filter(t=>!(t.k==="bg"&&draft.state==="BY")).map(t=>`<option value="${t.k}" ${draft.type===t.k?"selected":""}>${esc(schoolTypeName(t.k,draft.state))}</option>`).join("")}</select></label>
+        <label class="f">Schulart<select id="wType" ${draft.state?"":"disabled"}><option value="">Bitte wählen</option>${SCHOOL_TYPES.filter(t=>!(t.k==="bg"&&draft.state==="BY")&&!(t.only&&!t.only.includes(draft.state))).map(t=>`<option value="${t.k}" ${draft.type===t.k?"selected":""}>${esc(schoolTypeName(t.k,draft.state))}</option>`).join("")}</select></label>
         <label class="f">${tdef&&tdef.gradeLabel?tdef.gradeLabel:"Klassenstufe"}<select id="wGrade" ${grades.length?"":"disabled"}><option value="">Bitte wählen</option>${grades.map(g=>`<option ${Number(draft.grade)===g?"selected":""}>${g}</option>`).join("")}</select></label>
       </div>
       ${draft.state==="BW"&&draft.type==="gym"?`<p class="small muted">Baden-Württemberg kehrt zu G9 zurück: Seit 2025/26 lernen die Klassen 5 und 6 nach G9, höhere Jahrgänge machen das Abitur noch nach Klasse 12.</p>`:""}
@@ -41,10 +42,10 @@ function mountWizard(root,onDone){
     } else fields.innerHTML="";
     const nx=$("#wNext",root); if(nx) nx.onclick=()=>subjectStep();
   };
-  const subjectStep=()=>{
+  const subjectStep=async()=>{
     const p={...draft};
-    let opts;
-    if(p.track==="schule") opts=subjectsFor(p);
+    let opts, fromPlan=false;
+    if(p.track==="schule"){ root.innerHTML=`<p class="muted"><span class="spin"></span> Lade die Fächer aus deinem Bildungsplan …</p>`; fromPlan=await loadPlans(); opts=subjectOptions(p); fromPlan=fromPlan&&opts.some(o=>o.plan); }
     else{ const key=Object.keys(PROGRAMS).find(k=>k.toLowerCase()===String(p.program).toLowerCase()) || Object.keys(PROGRAMS).find(k=>String(p.program).toLowerCase().includes(k.toLowerCase().split(" ")[0])); opts=(key?PROGRAMS[key]:[]).map(n=>({n,core:false})); }
     const same=S.profile&&JSON.stringify(S.profile)===JSON.stringify(p);
     let sel=new Set(same&&S.mySubjects.length?S.mySubjects:opts.filter(o=>o.core).map(o=>o.n));
@@ -54,8 +55,8 @@ function mountWizard(root,onDone){
     const link=p.track==="schule"?planLink(p):null;
     root.innerHTML=`<div class="stack" style="gap:14px">
       <div class="stack" style="gap:4px"><h2>${p.track==="schule"?"Deine Fächer":"Deine Module"}</h2>
-      <p class="muted">${p.track==="schule"?`Fächerangebot für ${esc(profileLabel(p))}. Wähle aus, was du hast – Wahlfächer und Profile unterscheiden sich je Schule.`:`Typische Module für ${esc(p.program)}. Maßgeblich ist das Modulhandbuch deiner Hochschule – ergänze oder entferne Module.`}</p>
-      ${link?`<p class="small">Quelle: <a href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)}</a></p>`:`<p class="small"><a href="https://www.google.com/search?q=${encodeURIComponent("Modulhandbuch "+(p.uni||"")+" "+(p.program||""))}" target="_blank" rel="noopener">Modulhandbuch von ${esc(p.uni)} suchen</a></p>`}</div>
+      <p class="muted">${p.track==="schule"?`${fromPlan?"Fächer laut Bildungsplan":"Fächerangebot"} für ${esc(profileLabel(p))}. Wähle aus, was du hast – Wahlfächer und Profile unterscheiden sich je Schule.`:`Typische Module für ${esc(p.program)}. Maßgeblich ist das Modulhandbuch deiner Hochschule – ergänze oder entferne Module.`}</p>
+      ${link?`<p class="small">Quelle: ${fromPlan?`Master-Index der Bildungspläne (Stand ${esc(fmtDate(window.PLAN_DB.stand,{day:"numeric",month:"long",year:"numeric"}))}), `:""}<a href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)}</a></p>`:`<p class="small"><a href="https://www.google.com/search?q=${encodeURIComponent("Modulhandbuch "+(p.uni||"")+" "+(p.program||""))}" target="_blank" rel="noopener">Modulhandbuch von ${esc(p.uni)} suchen</a></p>`}</div>
       <div class="grid3" id="subjGrid">${all.map(o=>`<button class="subj" aria-pressed="${sel.has(o.n)}" data-n="${esc(o.n)}"><b>${esc(o.n)}</b>${o.core?'<span class="small muted">Kernfach</span>':""}</button>`).join("")}</div>
       <div class="row"><input type="text" id="addSubj" placeholder="${p.track==="schule"?"Fach hinzufügen":"Modul hinzufügen"}" style="max-width:320px"><button class="btn" id="addSubjBtn">Hinzufügen</button>${p.track==="uni"?`<button class="btn" id="suggestMods">Module von Claude vorschlagen lassen</button>`:""}</div>
       <div id="modSug"></div>
@@ -72,7 +73,7 @@ function mountWizard(root,onDone){
         box.innerHTML=`<div class="note ${arr.sicher?"":"warn"} small">${arr.sicher?"Vorschläge von Claude.":"Claude kennt das Modulhandbuch dieser Hochschule nicht sicher – das sind übliche Module."} Bitte mit dem Modulhandbuch abgleichen. Antippen zum Übernehmen.</div><div class="row" style="margin-top:8px">${mods.map(x=>`<button class="chip" data-addm="${esc(x)}">+ ${esc(x)}</button>`).join("")}</div>`;
         $$("[data-addm]",box).forEach(b=>b.onclick=()=>{addOne(b.dataset.addm); b.remove();});
       }catch(e){ box.innerHTML=`<p class="small">${esc(sampleErr(e))}</p>`; } sm.disabled=false; }; }
-    $("#wBack",root).onclick=()=>{ root.innerHTML=wizardHTML(draft); mountWizard(root,onDone); };
+    $("#wBack",root).onclick=()=>{ root.innerHTML=wizardHTML(draft,opt); mountWizard(root,onDone,opt); };
     $("#wSave",root).onclick=()=>{ S.profile=p; S.mySubjects=[...sel]; save(); onDone&&onDone(); };
   };
   $$("[data-track]",root).forEach(b=>b.onclick=()=>{draft.track=b.dataset.track; draw();});

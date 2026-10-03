@@ -60,6 +60,27 @@ a{color:var(--accent)}
 .brand b{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
 .brand b span{background:var(--mark);color:var(--mark-ink);padding:0 .15em;border-radius:3px}
 .brand .who{margin-left:auto}
+.brand .acc{padding:3px 10px 3px 3px}
+.brand #profileChip[hidden]+.acc{margin-left:auto}
+.avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.85rem;flex:none}
+.avatar.big{width:48px;height:48px;font-size:1.3rem}
+.acc-name{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.guest .tabs,.guest #profileChip{display:none!important}
+.welcome{max-width:720px;margin-inline:auto;padding-top:clamp(12px,5vh,56px)}
+.welcome-hero{gap:10px}
+.welcome-hero h1{font-size:clamp(1.8rem,5vw,2.8rem)}
+.welcome-choice .wizard-opt{padding:22px 20px;min-height:110px;justify-content:center}
+.welcome-choice .wizard-opt b{font-family:var(--f-display);font-size:1.25rem}
+.wizard-opt.primary-opt{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.wizard-opt.primary-opt .muted{color:inherit;opacity:.85}
+.welcome-card{gap:14px}
+.welcome-card h1{font-size:clamp(1.5rem,4vw,2.1rem)}
+.auth-list{gap:10px}
+.auth-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;width:100%;font-weight:700}
+.track-pick{grid-template-columns:1fr 1fr}
+.track-pick .wizard-opt{min-height:120px;justify-content:center;align-items:center;text-align:center}
+.track-pick .wizard-opt b{font-family:var(--f-display);font-size:1.3rem}
+.gen-src{display:flex;flex-direction:column;gap:6px}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{border:1px solid transparent;border-bottom:none;background:none;padding:9px 14px;border-radius:9px 9px 0 0;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap}
@@ -260,6 +281,7 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
       <b>Merk<span>werk</span></b>
       <span class="muted small">Belegte Prüfungsfragen aus deinem Material</span>
       <button class="chip who" id="profileChip" type="button" hidden></button>
+      <button class="chip acc" id="accountChip" type="button" hidden></button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
       <button class="tab" role="tab" data-v="home" id="tab-home">Heute</button>
@@ -311,6 +333,7 @@ const SCHOOL_TYPES = [
   {k:"real",n:"Realschule",grades:[5,6,7,8,9,10]},
   {k:"gms",n:"Gesamt- / Gemeinschaftsschule",grades:[5,6,7,8,9,10,11,12,13]},
   {k:"gym",n:"Gymnasium",grades:[5,6,7,8,9,10,11,12,13]},
+  {k:"ws",n:"Wirtschaftsschule",grades:[6,7,8,9,10,11],only:["BY"]},
   {k:"bg",n:"Berufliches Gymnasium",grades:[11,12,13]},
   {k:"fos",n:"Fachoberschule / Berufsoberschule",grades:[11,12,13]},
   {k:"bs",n:"Berufsschule (Ausbildung)",grades:[1,2,3,4],gradeLabel:"Ausbildungsjahr"},
@@ -509,6 +532,61 @@ const PROGRAMS = {
   "Pflege / Gesundheit":["Anatomie und Physiologie","Pflegewissenschaft","Krankheitslehre","Pharmakologie","Hygiene","Kommunikation und Beratung","Gesundheitsökonomie","Ethik"],
 };
 
+/* ---- 02b_plans.js ---- */
+/* ===================== Bildungspläne: passende Pläne zu Profil, Fach und Thema ===================== */
+/* Die Daten (data/bildungsplaene.js, ca. 1 MB) lädt Merkwerk erst, wenn sie gebraucht werden. */
+const PLAN_SRC="bildungsplaene.js";
+const PLAN_STATUS={g:"gültig",a:"gültig, wird aufsteigend eingeführt",x:"auslaufend, gilt noch für höhere Jahrgänge",s:"gilt subsidiär weiter",k:"tritt erst künftig in Kraft",e:"Erprobungsfassung",n:"nicht verifiziert",p:"Portalübersicht"};
+const PLAN_RANK={g:0,a:0,e:1,s:2,n:3,x:4,k:5,p:6};
+let PLAN_ROWS=null;
+function planRows(){
+  if(PLAN_ROWS) return PLAN_ROWS;
+  const D=(typeof window!=="undefined"&&window.PLAN_DB)||null; if(!D) return null;
+  PLAN_ROWS=D.rows.map(r=>({land:r[0],types:D.types[r[1]].split(","),art:D.arten[r[2]],lo:r[3],hi:r[4],fach:D.faecher[r[5]],title:r[6],url:D.pre[r[7]]+r[8],st:r[9],gen:!!r[10],valid:r[11]||""}));
+  return PLAN_ROWS;
+}
+let planLoading=null;
+async function loadPlans(){
+  if(planRows()) return true;
+  planLoading ||= loadScript(PLAN_SRC).then(()=>!!planRows()).catch(()=>{ planLoading=null; return false; });
+  return planLoading;
+}
+// Alle Pläne für Land, Schulart und Klasse
+function plansFor(p){
+  const rows=planRows(); if(!rows||!p||p.track!=="schule"||!p.state||!p.type) return [];
+  const g=Number(p.grade)||0;
+  return rows.filter(r=>r.land===p.state&&r.types.includes(p.type)&&(p.type==="bs"||!g||(g>=r.lo&&g<=r.hi)))
+    .sort((a,b)=>(PLAN_RANK[a.st]??9)-(PLAN_RANK[b.st]??9));
+}
+// Fächer laut Bildungsplan: [{n, docs}]
+function planSubjects(p){
+  const m=new Map();
+  for(const r of plansFor(p)){ if(r.gen||!r.fach||r.st==="p") continue; const k=subjKey(r.fach); if(!m.has(k)) m.set(k,{n:r.fach,docs:0}); m.get(k).docs++; }
+  return [...m.values()].sort((a,b)=>a.n.localeCompare(b.n,"de"));
+}
+// Passt ein Planfach zu einem Fachnamen des Nutzers? (gleicher Name oder dasselbe Kernfach unter anderem Namen)
+function sameSubject(planFach,name){
+  const a=subjKey(planFach), b=subjKey(name); if(!a||!b) return false;
+  if(a===b) return true;
+  if(/,| als |zweitsprache|herkunft|profil|gebärden|\(nwt\)/i.test(planFach)) return false; // z. B. „Deutsch als Zweitsprache“, „Informatik, Mathematik, Physik (IMP)“
+  const ta=topicAlias(planFach), tb=topicAlias(name); return !!(ta&&tb&&ta===tb&&(a===subjKey(ta)||b===subjKey(ta)));
+}
+// Pläne zu einem Fach: {docs: Fachpläne, general: übergreifende Teile}
+function plansForSubject(p,subject){
+  const all=plansFor(p);
+  return { docs:all.filter(r=>!r.gen&&r.fach&&sameSubject(r.fach,subject)), general:all.filter(r=>r.gen).slice(0,4) };
+}
+// Fächerliste für die Profil-Abfrage: Fächer laut Bildungsplan, Kernfächer (aus subjectsFor) vorausgewählt
+function subjectOptions(p){
+  const base=subjectsFor(p); const fromPlan=planSubjects(p);
+  if(!fromPlan.length) return base;
+  const out=fromPlan.map(s=>({n:s.n,core:base.some(b=>b.core&&sameSubject(s.n,b.n)),plan:true}));
+  return out.sort((a,b)=>(b.core-a.core)||a.n.localeCompare(b.n,"de"));
+}
+function planDocHTML(r){
+  return `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)} ↗</a>${r.st!=="g"?` <span class="small muted">· ${esc(PLAN_STATUS[r.st]||"")}</span>`:""}`;
+}
+
 /* ---- 03_example.js ---- */
 /* ===================== Beispiel: Photosynthese (selbst geschrieben, als Beispiel gekennzeichnet) ===================== */
 const EXAMPLE_TEXT = `Photosynthese – Grundlagen
@@ -569,6 +647,46 @@ const EXAMPLE_CARDS = [
  {term:"Zellatmung",definition:"Kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird.",quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird."},
 ];
 
+/* ---- 03b_account.js ---- */
+/* ===================== Konten: Anmeldung mit Google, Apple, Microsoft ===================== */
+/* Client-IDs der eigenen App-Registrierungen. Leer = Anbieter noch nicht eingerichtet;
+   dann legt Merkwerk das Konto nur auf diesem Gerät an (siehe README, Abschnitt Anmeldung). */
+const AUTH_CONFIG = {
+  google:   { clientId: "" },                  // Google Cloud Console → OAuth-Client „Webanwendung“
+  microsoft:{ clientId: "" },                  // Microsoft Entra → App-Registrierung, Plattform „Single-Page-Anwendung“
+  apple:    { clientId: "", redirectURI: "" }, // Apple Developer → Services ID mit „Sign in with Apple“
+};
+const PROVIDERS = [
+  {k:"google",n:"Google"},
+  {k:"apple",n:"Apple"},
+  {k:"microsoft",n:"Microsoft"},
+];
+const providerName = k => (PROVIDERS.find(p=>p.k===k)||{n:k==="claude"?"Claude":k==="local"?"diesem Gerät":k}).n;
+
+/* Kontenliste auf diesem Gerät. Jedes Konto hat eigenen App-Zustand (localStorage) und eigene Lernsets (IndexedDB).
+   Daten von vor der Kontenfunktion übernimmt das erste Konto. */
+const ACC_KEY="merkwerk.accounts";
+const accLoad=()=>{ try{ return JSON.parse(localStorage.getItem(ACC_KEY))||{list:[],current:null}; }catch{ return {list:[],current:null}; } };
+const accStore=a=>{ try{ localStorage.setItem(ACC_KEY,JSON.stringify(a)); }catch{} };
+let ACC=accLoad();
+const currentAccount=()=>ACC.list.find(a=>a.id===ACC.current)||null;
+function storageFor(acc){ return acc ? {ls:acc.ls, db:acc.db} : {ls:"merkwerk.v2", db:"merkwerk"}; }
+// Sucht ein Konto über Anbieter und Kennung; legt es sonst an. Liefert {acc, created}.
+function upsertAccount(ident){
+  let acc=ACC.list.find(a=>a.provider===ident.provider&&a.sub===ident.sub);
+  if(acc){ Object.assign(acc,{name:ident.name||acc.name,email:ident.email||acc.email,picture:ident.picture||acc.picture}); ACC.current=acc.id; accStore(ACC); return {acc,created:false}; }
+  const id=Math.random().toString(36).slice(2,10);
+  const legacyFree=!ACC.list.some(a=>a.db==="merkwerk");
+  acc={id,provider:ident.provider,sub:String(ident.sub),name:ident.name||"",email:ident.email||"",picture:ident.picture||"",createdAt:Date.now(),
+    ls: legacyFree?"merkwerk.v2":"merkwerk.v2."+id, db: legacyFree?"merkwerk":"merkwerk-"+id};
+  ACC.list.push(acc); ACC.current=acc.id; accStore(ACC);
+  return {acc,created:true};
+}
+function signOutAccount(){ ACC.current=null; accStore(ACC); }
+function removeAccount(id){ ACC.list=ACC.list.filter(a=>a.id!==id); if(ACC.current===id) ACC.current=null; accStore(ACC); }
+// Kennung aus einem JWT (Apple liefert die Identität nur als ID-Token)
+function jwtPayload(t){ try{ const p=String(t).split(".")[1].replace(/-/g,"+").replace(/_/g,"/"); return JSON.parse(decodeURIComponent(escape(atob(p)))); }catch{ return {}; } }
+
 /* ---- 04_core.js ---- */
 /* ===================== Grundlagen ===================== */
 const $ = (s,r=document)=>r.querySelector(s);
@@ -602,13 +720,13 @@ function confirmBox(text,okLabel="Löschen"){return new Promise(res=>{modal(`<h3
 async function copyText(t){try{await navigator.clipboard.writeText(t);toast("Kopiert");}catch{toast("Kopieren nicht möglich – bitte markieren und kopieren");}}
 
 /* ---------- Speicher: localStorage (App-Zustand) + IndexedDB (Material) ---------- */
-const LS_KEY="merkwerk.v2";
+let LS_KEY=storageFor(currentAccount()).ls;
 const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
 const idb={
-  _db:null,
+  _db:null, name:storageFor(currentAccount()).db,
   open(){ if(this._db) return Promise.resolve(this._db);
-    return new Promise((res,rej)=>{ try{ const r=indexedDB.open("merkwerk",1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
+    return new Promise((res,rej)=>{ try{ const r=indexedDB.open(this.name,1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
   async all(){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("sets").objectStore("sets").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}catch{ return lsGet(LS_KEY+".sets",[]); } },
   async put(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ const all=lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==v.id); all.push(v); if(!lsSet(LS_KEY+".sets",all)) toast("Speicher voll – sehr große Dateien müssen nach dem Neuladen evtl. neu hochgeladen werden"); } },
   async del(id){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ lsSet(LS_KEY+".sets",lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==id)); } },
@@ -629,6 +747,14 @@ const DEFAULT_STATE = () => ({
 });
 let S = Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {}));
 let SETS = []; // Lernsets inkl. Text (aus IndexedDB)
+// Nach An- oder Abmelden: Zustand und Lernsets des jeweiligen Kontos laden
+async function useAccountStorage(){
+  const st=storageFor(currentAccount());
+  clearTimeout(saveTimer);
+  LS_KEY=st.ls; if(idb._db){ try{idb._db.close();}catch{} } idb._db=null; idb.name=st.db;
+  S=Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {})); SETS=[];
+  await loadSets(); await syncDown();
+}
 
 let saveTimer=null;
 function save(remote=true){
@@ -664,14 +790,14 @@ const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Fu
 /* ---------- Geräteübergreifend: privater Bereich in der Datenbank ---------- */
 let syncing=false;
 async function syncDown(){
-  if(!CAP.db||!CAP.uid) return;
+  if(!CAP.db||!CAP.uid||!currentAccount()) return;
   try{
     const snap=await CAP.db.doc(`data/users/${CAP.uid}/app`).get();
     if(snap.exists){ const r=snap.data(); if(r && (r.updatedAt||0) > (S.updatedAt||0)){ S=Object.assign(DEFAULT_STATE(), r.state||{}); S.updatedAt=r.updatedAt; lsSet(LS_KEY,S); } }
   }catch{}
 }
 async function syncUp(){
-  if(!CAP.db||!CAP.uid||syncing) return; syncing=true;
+  if(!CAP.db||!CAP.uid||syncing||!currentAccount()) return; syncing=true;
   try{ const st=JSON.parse(JSON.stringify(S)); await CAP.db.doc(`data/users/${CAP.uid}/app`).set({updatedAt:S.updatedAt,state:st}); }catch(e){}
   syncing=false;
 }
@@ -688,13 +814,16 @@ function go(v,arg){
 }
 const ROUTE={v:S.lastView||"home",arg:null};
 function render(){
-  const m=$("#main"); const fn=VIEWS[ROUTE.v]||VIEWS.home;
+  const m=$("#main");
+  renderAccountChip();
+  if(!currentAccount()||WEL.step==="onboard"){ renderWelcome(m); return; }
+  const fn=VIEWS[ROUTE.v]||VIEWS.home;
   fn(m,ROUTE.arg);
   renderProfileChip();
 }
 function renderProfileChip(){
   const c=$("#profileChip"); const p=S.profile;
-  if(!p){c.hidden=true;return;}
+  if(!p||!currentAccount()){c.hidden=true;return;}
   c.hidden=false; c.textContent=profileLabel(p);
   c.onclick=()=>openWizard();
 }
@@ -1131,7 +1260,7 @@ VIEWS.learn = async function(m,arg){
   chips.innerHTML=SETS.map(s=>`<button class="chip" aria-pressed="${s.id===(set&&set.id)}" data-id="${s.id}">${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</button>`).join("")+
     `<button class="chip" id="newSet">+ Neues Lernset</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
   $$("[data-id]",chips).forEach(b=>b.onclick=()=>{S.activeSet=b.dataset.id;save(false);go("learn",{manage:true});});
-  $("#newSet").onclick=async()=>{const s=newSet("Lernset "+(SETS.length+1));await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});};
+  $("#newSet").onclick=()=>openNewSetDialog();
   const ex=$("#exBtn"); if(ex) ex.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
   renderSetPanel($("#setPanel"),set);
 };
@@ -1143,9 +1272,9 @@ function fcInfo(set){
   return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
 }
 function renderSetPanel(el,set){
-  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an und lade dein Material hoch – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
+  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Merkwerk passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
-    $("#e2").onclick=async()=>{const s=newSet("Lernset 1");await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});}; return; }
+    $("#e2").onclick=()=>openNewSetDialog(); return; }
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
   const last=(set.history||[]).slice(-1)[0];
   el.innerHTML=`<div class="grid2">
@@ -1153,6 +1282,7 @@ function renderSetPanel(el,set){
      ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
      <label class="f">Fach<input type="text" id="setSubj" list="subjList" value="${esc(set.subject||"")}" placeholder="z. B. Biologie"><datalist id="subjList">${subjOpts.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
+     ${set.example?"":`<label class="f">Thema<input type="text" id="setTopic" list="topicList" value="${esc(set.topic||"")}" placeholder="z. B. Lineare Funktionen"><datalist id="topicList">${curatedTopics(set.subject).map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>`}
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung</span><span class="spacer"></span><span class="mono small">${cov.done}/${cov.n} Abschnitte · ${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div><p class="small muted">Neue Fragen nehmen zuerst die Abschnitte dran, die noch nicht abgefragt wurden.</p></div>
      ${last?`<p class="small">Letzter Durchgang: <b class="mono">${last.pct} %</b> am ${new Date(last.at).toLocaleDateString("de-DE")}</p>`:""}
      <div id="roundStatus" hidden></div>
@@ -1172,13 +1302,18 @@ function renderSetPanel(el,set){
    <section class="sheet stack">
      <h3>Material</h3>
      ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, GoodNotes, Fotos und Screenshots – auch Handschrift · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept="${FILE_ACCEPT}" hidden></div>
-     <div id="upStatus" class="small"></div>`}
+     <div id="upStatus" class="small"></div>
+     <div class="row"><span class="small muted">oder</span><button class="btn" id="genBtn">Lerninhalte generieren</button><span class="small muted">${set.topic?`zu „${esc(set.topic)}“`:"Thema links eintragen"}</span></div>
+     <div id="genBox" hidden></div>
+     ${genInfoHTML(set)}`}
      <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?`· <span class="pill warn">${esc(ocrLabel(f))}</span>`:""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
      ${set.files.length?`<details id="readText"><summary>Gelesenen Text ansehen</summary><div class="stack" style="margin-top:10px">${set.files.map(f=>`<div class="stack" style="gap:6px"><span class="label">${esc(f.name)}</span>${set.example?`<div class="pre">${esc(f.text)}</div>`:`<textarea id="tx_${f.id}" style="min-height:200px">${esc(f.text)}</textarea><div><button class="btn sm" data-savetx="${f.id}">Korrektur speichern</button></div>`}</div>`).join("")}</div></details>`:""}
    </section></div>`;
   const nameIn=$("#setName"), subjIn=$("#setSubj");
   nameIn.onchange=async()=>{set.name=nameIn.value.trim()||"Lernset";await putSet(set);go("learn",{manage:true});};
-  subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);};
+  subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);go("learn",{manage:true});};
+  const topIn=$("#setTopic"); if(topIn) topIn.onchange=async()=>{set.topic=topIn.value.trim(); if(/^Lernset \d+$/.test(set.name)&&set.topic) set.name=set.topic; await putSet(set);go("learn",{manage:true});};
+  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } generateIntoSet(set); };
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
@@ -1466,21 +1601,222 @@ function renderCardsEnd(m,set){
   $("#fcHome").onclick=()=>go("home");
 }
 
+/* ---- 05c_generate.js ---- */
+/* ===================== Neues Lernset mit Fach- und Themenvorschlägen, „Lerninhalte generieren“ ===================== */
+// Typische Themen aus der Themenliste (Orientierung am Bildungsplan)
+function curatedTopics(subject,p=S.profile){
+  const alias=topicAlias(subject||""); const band=topicBand(p);
+  return p&&p.track==="schule"&&alias&&TOPICS[alias]?(TOPICS[alias][band]||[]):[];
+}
+function levelText(p=S.profile){
+  if(!p) return "";
+  return p.track==="uni"?`Studium ${p.program||""}${p.semester?`, ${p.semester}. Semester`:""}${p.uni?` an der ${p.uni}`:""}`:profileLabel(p);
+}
+// Claude schlägt Themen aus dem Bildungsplan vor
+async function claudeTopics(subject,docs){
+  const p=S.profile;
+  const ctx=p&&p.track==="schule"
+    ?`im Fach "${subject}" für ${profileLabel(p)} laut dem geltenden Bildungsplan${docs.length?` (${docs.slice(0,3).map(d=>d.title).join("; ")})`:""}`
+    :`im Fach bzw. Modul "${subject}"${p?` (${levelText(p)})`:""}`;
+  const r=await CAP.sample.json(`Nenne die Themen ${ctx}. Antworte nur mit JSON: {"topics":["Thema",...],"sicher":true|false} mit 8 bis 16 kurzen Themenbezeichnungen in der Reihenfolge des Plans. "sicher" ist false, wenn du den konkreten Plan nicht genau kennst.`,{modelTier:"default",cache:{gcTime:864e5}});
+  return {topics:(r.topics||[]).map(String).slice(0,20),sure:!!r.sicher};
+}
+
+function openNewSetDialog(preset={}){
+  const p=S.profile; let subject=preset.subject||""; let topic=preset.topic||""; let plansOk=false;
+  const mine=[...new Set(S.mySubjects||[])];
+  modal(`<div class="stack" style="gap:14px" id="ns">
+    <div class="stack" style="gap:4px"><h2>Neues Lernset</h2><p class="small muted">${p?esc(levelText(p)):"Ohne Angaben zu Schule oder Studium gibt es keine Vorschläge aus dem Bildungsplan."}</p></div>
+    <div class="stack" style="gap:6px">
+      <label class="f" for="nsSubj">Fach</label>
+      <input type="text" id="nsSubj" value="${esc(subject)}" placeholder="z. B. Mathematik" autocomplete="off">
+      <div class="row" id="nsSubjChips"></div>
+      <div id="nsMoreSubj"></div>
+      <div id="nsPlan" class="small"></div>
+    </div>
+    <div class="stack" style="gap:6px">
+      <label class="f" for="nsTopic">Thema</label>
+      <input type="text" id="nsTopic" value="${esc(topic)}" placeholder="z. B. Lineare Funktionen" autocomplete="off">
+      <div class="row" id="nsTopicChips"></div>
+      <div id="nsClaudeTopics"></div>
+    </div>
+    <div class="stack" style="gap:8px"><span class="label">Material</span>
+      <div class="grid2" style="gap:10px">
+        <button class="wizard-opt" id="nsOwn"><b>Eigene Dateien anfügen</b><span class="small muted">PDF, DOCX, GoodNotes, Fotos – wie gewohnt</span></button>
+        <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Merkwerk gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
+      </div>
+    </div>
+    <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Abbrechen</button></div>
+  </div>`,(m,close)=>{
+    const sIn=$("#nsSubj",m), tIn=$("#nsTopic",m);
+    const chip=(v,attr,on)=>`<button class="chip" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(v)}</button>`;
+    const drawSubjects=()=>{
+      $("#nsSubjChips",m).innerHTML=mine.map(n=>chip(n,"data-ns",subjKey(n)===subjKey(subject))).join("");
+      const extra=plansOk?planSubjects(p).filter(s=>!mine.some(n=>sameSubject(s.n,n))):[];
+      $("#nsMoreSubj",m).innerHTML=extra.length?`<details><summary class="small">Weitere Fächer aus deinem Bildungsplan (${extra.length})</summary><div class="row" style="margin-top:6px">${extra.map(s=>chip(s.n,"data-ns",subjKey(s.n)===subjKey(subject))).join("")}</div></details>`:"";
+      $$("[data-ns]",m).forEach(b=>b.onclick=()=>{ subject=b.dataset.ns; sIn.value=subject; drawSubjects(); drawPlan(); drawTopics(); });
+    };
+    const drawPlan=()=>{
+      const box=$("#nsPlan",m);
+      if(!p||p.track!=="schule"||!subject){ box.innerHTML=""; return; }
+      if(!plansOk){ const l=planLink(p); box.innerHTML=`Bildungsplan: <a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.src)} ↗</a>`; return; }
+      const {docs}=plansForSubject(p,subject);
+      box.innerHTML=docs.length?`<div class="stack" style="gap:4px"><span class="muted">Dein Bildungsplan für ${esc(subject)}:</span>${docs.slice(0,4).map(d=>`<span>${planDocHTML(d)}</span>`).join("")}</div>`
+        :`<span class="muted">Für „${esc(subject)}“ ist kein eigener Plan für ${esc(profileLabel(p))} im Index. Du kannst das Fach trotzdem nutzen.</span>`;
+    };
+    const drawTopics=()=>{
+      const cur=curatedTopics(subject,p);
+      $("#nsTopicChips",m).innerHTML=(cur.length?`<span class="small muted" style="width:100%">Typische Themen – Orientierung am Bildungsplan:</span>`:"")+cur.map(t=>chip(t,"data-nt",t===topic)).join("")
+        +(CAP.sample&&subject?`<button class="btn sm" id="nsAskTopics">Themen aus dem Bildungsplan vorschlagen</button>`:"");
+      $$("[data-nt]",m).forEach(b=>b.onclick=()=>{ topic=b.dataset.nt; tIn.value=topic; $$("[data-nt]",m).forEach(c=>c.setAttribute("aria-pressed",c.dataset.nt===topic)); });
+      const ask=$("#nsAskTopics",m); if(ask) ask.onclick=async()=>{ const box=$("#nsClaudeTopics",m); ask.disabled=true; box.innerHTML=`<span class="spin"></span> Claude sammelt Themen …`;
+        try{ const docs=plansOk&&p&&p.track==="schule"?plansForSubject(p,subject).docs:[]; const r=await claudeTopics(subject,docs);
+          box.innerHTML=`<p class="small muted">${r.sure?"Vorschläge von Claude":"Vorschläge von Claude (Plan nicht sicher bekannt)"} – bitte mit dem offiziellen Plan abgleichen.</p><div class="row">${r.topics.filter(t=>!cur.includes(t)).map(t=>chip(t,"data-nt",t===topic)).join("")}</div>`;
+          $$("[data-nt]",box).forEach(b=>b.onclick=()=>{ topic=b.dataset.nt; tIn.value=topic; $$("[data-nt]",m).forEach(c=>c.setAttribute("aria-pressed",c.dataset.nt===topic)); });
+        }catch(e){ box.innerHTML=`<p class="small">${esc(sampleErr(e))}</p>`; } ask.disabled=false; };
+    };
+    sIn.oninput=()=>{ subject=sIn.value.trim(); drawSubjects(); drawPlan(); drawTopics(); };
+    tIn.oninput=()=>{ topic=tIn.value.trim(); $$("[data-nt]",m).forEach(c=>c.setAttribute("aria-pressed",c.dataset.nt===topic)); };
+    drawSubjects(); drawPlan(); drawTopics();
+    if(p&&p.track==="schule") loadPlans().then(ok=>{ plansOk=ok; if($("#ns")){ drawSubjects(); drawPlan(); } });
+    const create=async gen=>{
+      subject=sIn.value.trim(); topic=tIn.value.trim();
+      if(gen&&!topic){ toast("Gib zuerst ein Thema ein – dazu sucht Merkwerk die Inhalte"); tIn.focus(); return; }
+      const s=newSet(topic||subject||"Lernset "+(SETS.length+1),subject); s.topic=topic;
+      await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true});
+      if(gen) generateIntoSet(s);
+    };
+    $("#nsOwn",m).onclick=()=>create(false);
+    $("#nsGen",m).onclick=()=>create(true);
+    (subject?tIn:sIn).focus();
+  });
+}
+
+/* ---------- Lerninhalte generieren ---------- */
+const WIKI="https://de.wikipedia.org/w/api.php";
+async function wikiSearch(q,n=3,signal){
+  const r=await fetch(`${WIKI}?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=${n}&format=json&origin=*`,{signal});
+  const j=await r.json(); return ((j.query&&j.query.search)||[]).map(x=>x.title);
+}
+async function wikiText(title,signal){
+  const r=await fetch(`${WIKI}?action=query&prop=extracts&explaintext=1&exsectionformat=plain&redirects=1&titles=${encodeURIComponent(title)}&format=json&origin=*`,{signal});
+  const j=await r.json(); const pg=Object.values((j.query&&j.query.pages)||{})[0]||{};
+  // Literatur, Weblinks und Einzelnachweise abschneiden
+  const t=String(pg.extract||"").split(/\n(?:Literatur|Weblinks|Einzelnachweise|Siehe auch|Anmerkungen)\n/)[0].replace(/\n{3,}/g,"\n\n").trim();
+  return {title:pg.title||title,text:t,url:`https://de.wikipedia.org/wiki/${encodeURIComponent((pg.title||title).replace(/ /g,"_"))}`};
+}
+// Suchlinks zu Erklärungen und Videos (YouTube ohne eigenen Schlüssel nur als Suche)
+function learnLinks(subject,topic,p=S.profile){
+  const lvl=p&&p.track==="schule"&&p.grade?` Klasse ${p.grade}`:"";
+  const q=`${topic} ${subject}`.trim();
+  return [
+    {kind:"Video",title:`YouTube: Erklärvideos zu „${topic}“`,url:`https://www.youtube.com/results?search_query=${encodeURIComponent(q+" einfach erklärt"+lvl)}`},
+    {kind:"Erklärung",title:`Serlo: „${topic}“`,url:`https://de.serlo.org/search?q=${encodeURIComponent(topic)}`},
+    {kind:"Erklärung",title:`Wikipedia-Suche: „${topic}“`,url:`https://de.wikipedia.org/w/index.php?search=${encodeURIComponent(topic)}`},
+  ];
+}
+// Prüft Fach und Thema gegen den Bildungsplan. Ohne Claude: Abgleich mit der Themenliste.
+async function checkAgainstPlan(set,docs,signal){
+  const p=S.profile; const cur=curatedTopics(set.subject,p);
+  const inList=cur.some(t=>subjKey(t)===subjKey(set.topic)||subjKey(t).includes(subjKey(set.topic))||subjKey(set.topic).includes(subjKey(t)));
+  if(!CAP.sample) return {fit:inList?"ja":"offen",note:inList?"Das Thema steht in den typischen Themen für deine Klassenstufe.":"Ohne Claude kann Merkwerk nur mit der Themenliste abgleichen; das Thema steht dort nicht. Prüfe es im verlinkten Plan.",focus:[],terms:[set.topic]};
+  const r=await CAP.sample.json(`Du prüfst für eine Lernseite, ob ein Thema zum Bildungsplan eines Lernenden passt.
+
+Lernende/r: ${levelText(p)||"keine Angaben"}
+Fach: ${set.subject||"(nicht angegeben)"}
+Thema: ${set.topic}
+${docs.length?`Geltende Pläne laut offiziellem Index:\n${docs.slice(0,5).map(d=>`- ${d.title} (${PLAN_STATUS[d.st]||""})${d.valid?` – ${d.valid}`:""}`).join("\n")}`:"Kein konkreter Plan im Index gefunden."}
+${cur.length?`Typische Themen dieser Stufe: ${cur.join("; ")}`:""}
+
+Antworte nur mit JSON: {"passt":"ja"|"teilweise"|"nein","hinweis":"1 bis 2 Sätze an den Lernenden: in welcher Klassenstufe und welchem Rahmen das Thema laut Plan dran ist","schwerpunkte":["was laut Plan auf dieser Stufe gekonnt werden soll", 3 bis 6 Punkte],"suchbegriffe":["1 bis 2 Begriffe für die Suche in Wikipedia"]}. Wenn du den konkreten Plan nicht sicher kennst, sag das im Hinweis.`,{modelTier:"default",cache:{gcTime:864e5},signal});
+  return {fit:["ja","teilweise","nein"].includes(r.passt)?r.passt:"offen",note:String(r.hinweis||""),focus:(r.schwerpunkte||[]).map(String).slice(0,8),terms:(r.suchbegriffe||[]).map(String).filter(Boolean).slice(0,2)};
+}
+async function generateContent(set,{onStatus,signal}={}){
+  const p=S.profile;
+  onStatus&&onStatus("Gleiche Fach und Thema mit deinem Bildungsplan ab …");
+  const docs=p&&p.track==="schule"&&await loadPlans()?plansForSubject(p,set.subject).docs:[];
+  const check=await checkAgainstPlan(set,docs,signal);
+  onStatus&&onStatus("Suche Erklärungen in Wikipedia …");
+  let wiki=[];
+  try{
+    const terms=[...new Set([...(check.terms||[]),set.topic])];
+    const titles=[]; for(const t of terms){ for(const x of await wikiSearch(t,2,signal)) if(!titles.includes(x)) titles.push(x); if(titles.length>=2) break; }
+    for(const t of titles.slice(0,2)){ const w=await wikiText(t,signal); if(w.text.length>300) wiki.push(w); }
+  }catch(e){ if(e&&e.name==="AbortError") throw e; wiki=[]; }
+  const links=[...wiki.map(w=>({kind:"Quelle",title:`Wikipedia: ${w.title}`,url:w.url})),...learnLinks(set.subject,set.topic,p)];
+  const files=[];
+  if(CAP.sample){
+    onStatus&&onStatus(wiki.length?"Claude schreibt aus den Quellen deinen Lerntext …":"Claude schreibt deinen Lerntext …");
+    const src=wiki.map(w=>`[Wikipedia: ${w.title}]\n${w.text.slice(0,24000)}`).join("\n\n");
+    const {text}=await CAP.sample(`Schreibe einen Lerntext für eine Lernseite.
+
+Lernende/r: ${levelText(p)||"keine Angaben"}
+Fach: ${set.subject||"(nicht angegeben)"}
+Thema: ${set.topic}
+${check.focus.length?`Laut Bildungsplan soll auf dieser Stufe gekonnt werden:\n- ${check.focus.join("\n- ")}`:""}
+
+REGELN
+- Sprache und Tiefe passend zur Stufe. Nur, was zum Thema auf dieser Stufe gehört.
+- ${wiki.length?"Stütze dich auf die Quellen unten. Übernimm keine Zahl, kein Datum und keinen Fachbegriff, der nicht in den Quellen steht; was die Quellen nicht hergeben, lässt du weg.":"Es konnten keine Quellen geladen werden. Schreib nur gesichertes Lehrbuchwissen und nichts, bei dem du unsicher bist."}
+- Gliedere mit kurzen Zwischenüberschriften (eigene Zeile, ohne Markdown-Zeichen) und Absätzen, getrennt durch Leerzeilen.
+- Jeder Fachbegriff bekommt einen eigenen Definitionssatz der Form „Begriff ist …“ oder „Als Begriff bezeichnet man …“.
+- Am Ende ein Absatz „Das Wichtigste in Kürze“ mit 4 bis 6 Sätzen.
+- 600 bis 1400 Wörter. Gib nur den Lerntext aus.
+${src?`\nQUELLEN\n${src}`:""}`,{modelTier:"default",signal});
+    const t=text.replace(/^#+\s*/gm,"").replace(/\*\*/g,"").trim();
+    if(t.length>200) files.push({id:rid("f_"),name:`Lerntext: ${set.topic}${wiki.length?" (Claude, aus Wikipedia)":" (Claude)"}`,kind:"generiert",text:t,ocr:false});
+  } else {
+    wiki.forEach(w=>files.push({id:rid("f_"),name:`Wikipedia: ${w.title}`,kind:"generiert",text:w.text.slice(0,30000),ocr:false}));
+  }
+  return {files,gen:{at:Date.now(),fit:check.fit,note:check.note,focus:check.focus,docs:docs.slice(0,4).map(d=>({title:d.title,url:d.url,st:d.st})),links,by:CAP.sample?"claude":"wikipedia"}};
+}
+async function generateIntoSet(set){
+  const box=$("#genBox"); const ctl=new AbortController();
+  const status=t=>{ const e=$("#genTxt"); if(e) e.textContent=t; };
+  if(box){ box.hidden=false; box.innerHTML=`<div class="note"><div class="row"><span class="spin"></span><span id="genTxt">Starte …</span><span class="spacer"></span><button class="btn sm" id="genStop">Abbrechen</button></div></div>`; $("#genStop").onclick=()=>ctl.abort(); }
+  try{
+    const r=await generateContent(set,{onStatus:status,signal:ctl.signal});
+    set.gen=r.gen;
+    if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Merkwerk ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
+    set.files.push(...r.files); set.sections=makeSections(set.files); set.cards=null; set.fc=null;
+    await putSet(set); go("learn",{manage:true}); toast("Lerninhalte erstellt – wähle jetzt, wie du lernen willst");
+  }catch(e){
+    const b=$("#genBox"); if(!b) return;
+    if((e&&e.code==="cancelled")||(e&&e.name==="AbortError")){ b.hidden=true; return; }
+    b.innerHTML=`<div class="note bad">${esc(e&&e.code?sampleErr(e):"Die Inhalte konnten nicht geladen werden. Prüfe die Internetverbindung und versuch es noch einmal.")}</div>`;
+  }
+}
+const FIT_LABEL={ja:"passt zum Bildungsplan",teilweise:"passt teilweise zum Bildungsplan",nein:"steht so nicht im Bildungsplan",offen:"nicht sicher geprüft"};
+function genInfoHTML(set){
+  const g=set.gen; if(!g) return "";
+  const pill=g.fit==="ja"?"ok":g.fit==="nein"?"bad":"warn";
+  return `<div class="stack gen-src">
+    <div class="row" style="gap:6px"><span class="label">Abgleich mit dem Bildungsplan</span><span class="pill ${pill}">${esc(FIT_LABEL[g.fit]||"")}</span></div>
+    ${g.note?`<p class="small">${esc(g.note)}</p>`:""}
+    ${g.focus&&g.focus.length?`<ul class="small" style="margin:0;padding-left:18px">${g.focus.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`:""}
+    ${g.docs&&g.docs.length?`<div class="small stack" style="gap:2px">${g.docs.map(d=>`<span>${planDocHTML(d)}</span>`).join("")}</div>`:""}
+    <span class="label" style="margin-top:6px">Quellen, Erklärungen und Videos</span>
+    <div class="small stack" style="gap:2px">${(g.links||[]).map(l=>`<span><span class="muted">${esc(l.kind)}:</span> <a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)} ↗</a></span>`).join("")}</div>
+    <p class="small muted">${g.by==="claude"?"Der Lerntext ist von Claude geschrieben. Gleiche ihn mit deinem Heft oder Schulbuch ab.":"Ohne Claude übernimmt Merkwerk den Wikipedia-Text als Material. Er kann über deine Klassenstufe hinausgehen."}</p>
+  </div>`;
+}
+
 /* ---- 06_library.js ---- */
 /* ===================== Profil-Abfrage ===================== */
-function wizardHTML(p){
+function wizardHTML(p,opt={}){
   p=p||{};
   const track=p.track||"";
+  const on=t=>track===t?"border-color:var(--accent);background:var(--accent-soft)":"";
   return `<div class="stack" style="gap:16px" id="wiz">
-   <div class="stack" style="gap:4px"><h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p></div>
-   <div class="grid2">
-     <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${track==="schule"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich gehe zur Schule</b><span class="small muted">Grundschule bis Abitur, Berufsschule</span></button>
-     <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${track==="uni"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich studiere</b><span class="small muted">Universität, Hochschule, Duale Hochschule</span></button>
+   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Merkwerk die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
+   <div class="grid2${opt.onboard?" track-pick":""}">
+     <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${on("schule")}"><b>${opt.onboard?"Schüler":"Ich gehe zur Schule"}</b><span class="small muted">${opt.onboard?"Ich gehe zur Schule":"Grundschule bis Abitur, Berufsschule"}</span></button>
+     <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${on("uni")}"><b>${opt.onboard?"Student":"Ich studiere"}</b><span class="small muted">${opt.onboard?"Ich studiere":"Universität, Hochschule, Duale Hochschule"}</span></button>
    </div>
    <div id="wizFields"></div>
   </div>`;
 }
-function mountWizard(root,onDone){
+function mountWizard(root,onDone,opt={}){
   const draft={...(S.profile||{})};
   const fields=$("#wizFields",root);
   const draw=()=>{
@@ -1490,7 +1826,7 @@ function mountWizard(root,onDone){
       const tdef=SCHOOL_TYPES.find(t=>t.k===draft.type);
       fields.innerHTML=`<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
         <label class="f">Bundesland<select id="wState"><option value="">Bitte wählen</option>${STATES.map(s=>`<option value="${s.k}" ${draft.state===s.k?"selected":""}>${esc(s.n)}</option>`).join("")}</select></label>
-        <label class="f">Schulart<select id="wType" ${draft.state?"":"disabled"}><option value="">Bitte wählen</option>${SCHOOL_TYPES.filter(t=>!(t.k==="bg"&&draft.state==="BY")).map(t=>`<option value="${t.k}" ${draft.type===t.k?"selected":""}>${esc(schoolTypeName(t.k,draft.state))}</option>`).join("")}</select></label>
+        <label class="f">Schulart<select id="wType" ${draft.state?"":"disabled"}><option value="">Bitte wählen</option>${SCHOOL_TYPES.filter(t=>!(t.k==="bg"&&draft.state==="BY")&&!(t.only&&!t.only.includes(draft.state))).map(t=>`<option value="${t.k}" ${draft.type===t.k?"selected":""}>${esc(schoolTypeName(t.k,draft.state))}</option>`).join("")}</select></label>
         <label class="f">${tdef&&tdef.gradeLabel?tdef.gradeLabel:"Klassenstufe"}<select id="wGrade" ${grades.length?"":"disabled"}><option value="">Bitte wählen</option>${grades.map(g=>`<option ${Number(draft.grade)===g?"selected":""}>${g}</option>`).join("")}</select></label>
       </div>
       ${draft.state==="BW"&&draft.type==="gym"?`<p class="small muted">Baden-Württemberg kehrt zu G9 zurück: Seit 2025/26 lernen die Klassen 5 und 6 nach G9, höhere Jahrgänge machen das Abitur noch nach Klasse 12.</p>`:""}
@@ -1510,10 +1846,10 @@ function mountWizard(root,onDone){
     } else fields.innerHTML="";
     const nx=$("#wNext",root); if(nx) nx.onclick=()=>subjectStep();
   };
-  const subjectStep=()=>{
+  const subjectStep=async()=>{
     const p={...draft};
-    let opts;
-    if(p.track==="schule") opts=subjectsFor(p);
+    let opts, fromPlan=false;
+    if(p.track==="schule"){ root.innerHTML=`<p class="muted"><span class="spin"></span> Lade die Fächer aus deinem Bildungsplan …</p>`; fromPlan=await loadPlans(); opts=subjectOptions(p); fromPlan=fromPlan&&opts.some(o=>o.plan); }
     else{ const key=Object.keys(PROGRAMS).find(k=>k.toLowerCase()===String(p.program).toLowerCase()) || Object.keys(PROGRAMS).find(k=>String(p.program).toLowerCase().includes(k.toLowerCase().split(" ")[0])); opts=(key?PROGRAMS[key]:[]).map(n=>({n,core:false})); }
     const same=S.profile&&JSON.stringify(S.profile)===JSON.stringify(p);
     let sel=new Set(same&&S.mySubjects.length?S.mySubjects:opts.filter(o=>o.core).map(o=>o.n));
@@ -1523,8 +1859,8 @@ function mountWizard(root,onDone){
     const link=p.track==="schule"?planLink(p):null;
     root.innerHTML=`<div class="stack" style="gap:14px">
       <div class="stack" style="gap:4px"><h2>${p.track==="schule"?"Deine Fächer":"Deine Module"}</h2>
-      <p class="muted">${p.track==="schule"?`Fächerangebot für ${esc(profileLabel(p))}. Wähle aus, was du hast – Wahlfächer und Profile unterscheiden sich je Schule.`:`Typische Module für ${esc(p.program)}. Maßgeblich ist das Modulhandbuch deiner Hochschule – ergänze oder entferne Module.`}</p>
-      ${link?`<p class="small">Quelle: <a href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)}</a></p>`:`<p class="small"><a href="https://www.google.com/search?q=${encodeURIComponent("Modulhandbuch "+(p.uni||"")+" "+(p.program||""))}" target="_blank" rel="noopener">Modulhandbuch von ${esc(p.uni)} suchen</a></p>`}</div>
+      <p class="muted">${p.track==="schule"?`${fromPlan?"Fächer laut Bildungsplan":"Fächerangebot"} für ${esc(profileLabel(p))}. Wähle aus, was du hast – Wahlfächer und Profile unterscheiden sich je Schule.`:`Typische Module für ${esc(p.program)}. Maßgeblich ist das Modulhandbuch deiner Hochschule – ergänze oder entferne Module.`}</p>
+      ${link?`<p class="small">Quelle: ${fromPlan?`Master-Index der Bildungspläne (Stand ${esc(fmtDate(window.PLAN_DB.stand,{day:"numeric",month:"long",year:"numeric"}))}), `:""}<a href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)}</a></p>`:`<p class="small"><a href="https://www.google.com/search?q=${encodeURIComponent("Modulhandbuch "+(p.uni||"")+" "+(p.program||""))}" target="_blank" rel="noopener">Modulhandbuch von ${esc(p.uni)} suchen</a></p>`}</div>
       <div class="grid3" id="subjGrid">${all.map(o=>`<button class="subj" aria-pressed="${sel.has(o.n)}" data-n="${esc(o.n)}"><b>${esc(o.n)}</b>${o.core?'<span class="small muted">Kernfach</span>':""}</button>`).join("")}</div>
       <div class="row"><input type="text" id="addSubj" placeholder="${p.track==="schule"?"Fach hinzufügen":"Modul hinzufügen"}" style="max-width:320px"><button class="btn" id="addSubjBtn">Hinzufügen</button>${p.track==="uni"?`<button class="btn" id="suggestMods">Module von Claude vorschlagen lassen</button>`:""}</div>
       <div id="modSug"></div>
@@ -1541,7 +1877,7 @@ function mountWizard(root,onDone){
         box.innerHTML=`<div class="note ${arr.sicher?"":"warn"} small">${arr.sicher?"Vorschläge von Claude.":"Claude kennt das Modulhandbuch dieser Hochschule nicht sicher – das sind übliche Module."} Bitte mit dem Modulhandbuch abgleichen. Antippen zum Übernehmen.</div><div class="row" style="margin-top:8px">${mods.map(x=>`<button class="chip" data-addm="${esc(x)}">+ ${esc(x)}</button>`).join("")}</div>`;
         $$("[data-addm]",box).forEach(b=>b.onclick=()=>{addOne(b.dataset.addm); b.remove();});
       }catch(e){ box.innerHTML=`<p class="small">${esc(sampleErr(e))}</p>`; } sm.disabled=false; }; }
-    $("#wBack",root).onclick=()=>{ root.innerHTML=wizardHTML(draft); mountWizard(root,onDone); };
+    $("#wBack",root).onclick=()=>{ root.innerHTML=wizardHTML(draft,opt); mountWizard(root,onDone,opt); };
     $("#wSave",root).onclick=()=>{ S.profile=p; S.mySubjects=[...sel]; save(); onDone&&onDone(); };
   };
   $$("[data-track]",root).forEach(b=>b.onclick=()=>{draft.track=b.dataset.track; draw();});
@@ -2310,6 +2646,7 @@ VIEWS.home = async function(m){
    <div class="stack" style="gap:4px"><span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span><h1>${fresh?"Willkommen bei Merkwerk":"Heute"}</h1></div>
    ${fresh?`<section class="sheet stack"><p>Merkwerk macht aus deinem Material Prüfungsfragen – jede mit einem wörtlichen Beleg. Dazu kommen eine Bibliothek für dein Fach, dein Stundenplan und ein Lernplan bis zur nächsten Klausur.</p>
      <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
+   ${!fresh&&!SETS.some(x=>!x.example)?`<section class="sheet stack"><h3>Leg dein erstes Lernset an</h3><p class="small muted">Wähle Fach und Thema – Merkwerk schlägt dir passende Themen aus deinem Bildungsplan vor. Dann lädst du eigenes Material hoch oder lässt Merkwerk Lerninhalte generieren.</p><div class="row"><button class="btn primary" id="hNew">Neues Lernset</button><button class="btn" id="hEx">Beispiel ausprobieren</button></div></section>`:""}
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
    ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
    ${fcRunning?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Karteikarten angefangen</span><b>${esc(active.name)} · ${active.fc.idx} von ${active.fc.ids.length} Karten</b></div><button class="btn primary" id="contFc">Weiter üben</button></section>`:""}
@@ -2330,6 +2667,8 @@ VIEWS.home = async function(m){
   </div>`;
   const h1=$("#h1"); if(h1) h1.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
   const h2=$("#h2"); if(h2) h2.onclick=()=>go("lib");
+  const hn=$("#hNew"); if(hn) hn.onclick=()=>openNewSetDialog();
+  const hx=$("#hEx"); if(hx) hx.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
   const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
   const cf=$("#contFc"); if(cf) cf.onclick=()=>go("learn",{setId:active.id,cards:true});
   $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
@@ -2337,10 +2676,166 @@ VIEWS.home = async function(m){
   $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
 };
 
-/* ===================== Start ===================== */
+/* ---- 11_account.js ---- */
+/* ===================== Begrüßung, Anmeldung, Konto ===================== */
+const MSAL_JS="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.30.0/lib/msal-browser.min.js";
+const GOOGLE_JS="https://accounts.google.com/gsi/client";
+const APPLE_JS="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/de_DE/appleid.auth.js";
+const authReady=k=>!!(AUTH_CONFIG[k]&&AUTH_CONFIG[k].clientId);
+const WEL={step:"start",mode:"login",provider:null,busy:false,err:""};
+
+// Echte Anmeldung beim Anbieter. Liefert {provider, sub, name, email, picture}.
+async function signInWith(k){
+  const c=AUTH_CONFIG[k];
+  if(k==="google"){
+    await loadScript(GOOGLE_JS);
+    const token=await new Promise((res,rej)=>{
+      const cl=window.google.accounts.oauth2.initTokenClient({client_id:c.clientId,scope:"openid email profile",
+        callback:r=>r.error?rej(new Error(r.error_description||r.error)):res(r.access_token),
+        error_callback:e=>rej(new Error(e&&e.type==="popup_closed"?"Anmeldung abgebrochen":"Anmeldung bei Google fehlgeschlagen"))});
+      cl.requestAccessToken();
+    });
+    const u=await (await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+token}})).json();
+    if(!u.sub) throw new Error("Google hat kein Konto zurückgegeben");
+    return {provider:"google",sub:u.sub,name:u.name||"",email:u.email||"",picture:u.picture||""};
+  }
+  if(k==="microsoft"){
+    await loadScript(MSAL_JS);
+    const pca=new window.msal.PublicClientApplication({auth:{clientId:c.clientId,authority:"https://login.microsoftonline.com/common",redirectUri:location.origin+location.pathname},cache:{cacheLocation:"localStorage"}});
+    await pca.initialize();
+    const r=await pca.loginPopup({scopes:["openid","profile","email"],prompt:"select_account"});
+    const a=r.account; return {provider:"microsoft",sub:a.homeAccountId,name:a.name||"",email:a.username||""};
+  }
+  if(k==="apple"){
+    await loadScript(APPLE_JS);
+    window.AppleID.auth.init({clientId:c.clientId,scope:"name email",redirectURI:c.redirectURI||location.origin+location.pathname,usePopup:true});
+    const r=await window.AppleID.auth.signIn();
+    const p=jwtPayload(r.authorization&&r.authorization.id_token);
+    if(!p.sub) throw new Error("Apple hat kein Konto zurückgegeben");
+    const n=r.user&&r.user.name?[r.user.name.firstName,r.user.name.lastName].filter(Boolean).join(" "):"";
+    return {provider:"apple",sub:p.sub,name:n,email:p.email||""};
+  }
+  throw new Error("Unbekannter Anbieter");
+}
+
+// Nach erfolgreicher Anmeldung oder Registrierung
+async function enterAccount(ident){
+  const {acc,created}=upsertAccount(ident);
+  await useAccountStorage();
+  if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
+  WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home");
+  toast(created?"Konto angelegt":`Willkommen zurück${acc.name?", "+acc.name.split(" ")[0]:""}`);
+}
+
+function accountLabel(a){ return a.name||a.email||(a.provider==="claude"?"Claude-Konto":"Konto"); }
+async function claudeName(){ try{ return CAP.user?(await CAP.user.name())||"":""; }catch{ return ""; } }
+
+function renderWelcome(m){
+  document.body.classList.add("guest");
+  const w=WEL; const verb=w.mode==="register"?"registrieren":"anmelden";
+  const provBtns=()=>`<div class="stack auth-list">${PROVIDERS.map(p=>`<button class="btn auth-btn" data-prov="${p.k}" ${w.busy?"disabled":""}>${AUTH_ICON[p.k]}<span>Mit ${p.n} ${verb}</span></button>`).join("")}</div>`;
+  const back=`<button class="btn ghost" id="wBackStart">← Zurück</button>`;
+  let html="";
+  if(w.step==="start"){
+    html=`<div class="welcome-hero stack"><span class="label">Merkwerk</span><h1>Herzlich Willkommen bei Merkwerk,<br>bereit, dein Lernen für immer zu verändern?</h1></div>
+      <div class="grid2 welcome-choice">
+        <button class="wizard-opt" id="wHave"><b>Ich habe schon ein Konto</b><span class="small muted">Anmelden und weiterlernen</span></button>
+        <button class="wizard-opt primary-opt" id="wNew"><b>Verändere mein Lernen</b><span class="small muted">Neues Konto anlegen</span></button>
+      </div>`;
+  } else if(w.step==="auth"){
+    const local=ACC.list.filter(a=>a.provider==="local"||a.provider==="claude"||!authReady(a.provider));
+    html=`<section class="sheet stack welcome-card">
+      <h1>${w.mode==="login"?"Schön, dass du wieder am Start bist":"Leg dein Konto an"}</h1>
+      <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Merkwerk auf dich ab."}</p>
+      ${CAP.user?`<button class="btn primary auth-btn" id="wClaude" ${w.busy?"disabled":""}>${AUTH_ICON.claude}<span>Mit deinem Claude-Konto weiter</span></button><p class="small muted">In claude.ai meldet Merkwerk dich über dein Claude-Konto an; deine Daten sind dann auf allen Geräten da.</p>`:""}
+      ${provBtns()}
+      ${w.err?`<div class="note bad small">${esc(w.err)}</div>`:""}
+      ${w.mode==="login"&&local.length?`<div class="stack" style="gap:6px"><span class="label">Konten auf diesem Gerät</span><div class="list">${local.map(a=>`<div class="li"><div class="grow"><b>${esc(accountLabel(a))}</b><div class="small muted">${a.provider==="local"?"nur auf diesem Gerät":"über "+esc(providerName(a.provider))}</div></div><button class="btn sm" data-acc="${a.id}">Weiter</button></div>`).join("")}</div></div>`:""}
+      <div class="row">${back}</div></section>`;
+  } else if(w.step==="fallback"){
+    const pn=providerName(w.provider);
+    html=`<section class="sheet stack welcome-card">
+      <h2>${esc(pn)}-Anmeldung ist hier noch nicht eingerichtet</h2>
+      <p>Damit Merkwerk dich über ${esc(pn)} anmelden kann, muss die Seite bei ${esc(pn)} registriert sein. Bis dahin kannst du trotzdem starten: Merkwerk legt dein Konto auf diesem Gerät an. Deine Lernsets und Termine bleiben dann in diesem Browser.</p>
+      ${w.mode==="login"?`<p class="small muted">Du hattest schon ein Konto auf diesem Gerät? Geh zurück und wähle es unter „Konten auf diesem Gerät“.</p>`:""}
+      <label class="f">Wie heißt du?<input type="text" id="wName" placeholder="Vorname" autocomplete="given-name"></label>
+      <div class="row"><button class="btn primary" id="wLocal">Konto auf diesem Gerät anlegen</button><button class="btn ghost" id="wBackAuth">← Zurück</button></div></section>`;
+  } else if(w.step==="onboard"){
+    html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Merkwerk auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
+      <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>`;
+  }
+  m.innerHTML=`<div class="view welcome">${html}</div>`;
+  const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
+  on("wHave",()=>{ Object.assign(WEL,{step:"auth",mode:"login",err:""}); render(); });
+  on("wNew",()=>{ Object.assign(WEL,{step:"auth",mode:"register",err:""}); render(); });
+  on("wBackStart",()=>{ Object.assign(WEL,{step:"start",err:""}); render(); });
+  on("wBackAuth",()=>{ Object.assign(WEL,{step:"auth",err:""}); render(); });
+  on("wClaude",async()=>{ if(!CAP.uid){ WEL.err="Dein Claude-Konto ist hier nicht verfügbar. Lade die Seite neu."; render(); return; } await enterAccount({provider:"claude",sub:CAP.uid,name:""}); });
+  $$("[data-prov]",m).forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.prov; WEL.provider=k; WEL.err="";
+    if(!authReady(k)){ WEL.step="fallback"; render(); return; }
+    WEL.busy=true; render();
+    try{ const ident=await signInWith(k); WEL.busy=false; await enterAccount(ident); }
+    catch(e){ WEL.busy=false; WEL.err=(e&&e.message&&!/popup_window_error|user_cancelled|popup_closed/i.test(e.message))?e.message:"Anmeldung abgebrochen."; render(); }
+  });
+  $$("[data-acc]",m).forEach(b=>b.onclick=async()=>{ ACC.current=b.dataset.acc; accStore(ACC); const a=currentAccount(); await enterAccount({provider:a.provider,sub:a.sub,name:a.name}); });
+  on("wLocal",async()=>{ const n=$("#wName",m).value.trim(); if(!n){ toast("Bitte gib deinen Namen ein"); return; } await enterAccount({provider:"local",sub:rid("local_"),name:n}); });
+  const wn=$("#wName",m); if(wn){ wn.focus(); wn.onkeydown=e=>{ if(e.key==="Enter") $("#wLocal",m).click(); }; }
+  const wr=$("#wizRoot",m); if(wr) mountWizard(wr,()=>{ WEL.step="start"; WEL.note=""; go("home"); toast("Alles eingerichtet – leg dein erstes Lernset an"); },{onboard:true});
+}
+
+/* ---------- Kontomenü ---------- */
+async function openAccountMenu(){
+  const a=currentAccount(); if(!a) return;
+  const name=a.provider==="claude"?(await claudeName())||"Claude-Konto":accountLabel(a);
+  modal(`<div class="row" style="gap:14px;align-items:center"><span class="avatar big">${esc((name||"?").slice(0,1).toUpperCase())}</span><div class="stack" style="gap:2px"><h2>${esc(name)}</h2><span class="small muted">${a.provider==="local"?"Konto auf diesem Gerät":"Angemeldet über "+esc(providerName(a.provider))}${a.email?" · "+esc(a.email):""}</span></div></div>
+    ${S.profile?`<div class="stack" style="gap:4px"><span class="label">${S.profile.track==="uni"?"Studium":"Schule"}</span><p>${esc(profileLabel(S.profile))}</p></div>`:""}
+    ${a.provider==="local"?`<p class="small muted">Lernsets, Termine und Profil liegen nur in diesem Browser.</p>`:a.provider==="claude"?`<p class="small muted">Deine Angaben werden mit deinem Claude-Konto auf deinen Geräten abgeglichen.</p>`:`<p class="small muted">Die Anmeldung erkennt dich wieder; Lernsets und Termine liegen in diesem Browser.</p>`}
+    <div class="stack" style="gap:8px">
+      <button class="btn" id="amProfile">Schule oder Studium ändern</button>
+      <button class="btn" id="amSwitch">Konto wechseln</button>
+      <button class="btn" id="amOut">Abmelden</button>
+      <button class="btn ghost danger" id="amDel">Konto von diesem Gerät entfernen</button>
+    </div>
+    <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    $("#amProfile",m).onclick=()=>{ close(); openWizard(); };
+    const out=async(step)=>{ close(); await syncUp(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step,mode:"login",err:""}); render(); };
+    $("#amSwitch",m).onclick=()=>out("auth");
+    $("#amOut",m).onclick=()=>out("start");
+    $("#amDel",m).onclick=async()=>{
+      close();
+      if(!await confirmBox(`Konto „${name}“ mit allen Lernsets und Terminen von diesem Gerät entfernen?`,"Entfernen")) return;
+      const st=storageFor(a);
+      try{ localStorage.removeItem(st.ls); localStorage.removeItem(st.ls+".sets"); }catch{}
+      if(idb._db){ try{idb._db.close();}catch{} idb._db=null; }
+      try{ indexedDB.deleteDatabase(st.db); }catch{}
+      removeAccount(a.id); await useAccountStorage(); Object.assign(WEL,{step:"start",err:""}); render(); toast("Konto entfernt");
+    };
+  });
+}
+function renderAccountChip(){
+  const c=$("#accountChip"); if(!c) return; const a=currentAccount();
+  document.body.classList.toggle("guest",!a);
+  if(!a){ c.hidden=true; return; }
+  c.hidden=false; c.onclick=openAccountMenu;
+  const set=n=>{ c.innerHTML=`<span class="avatar">${esc((n||"?").slice(0,1).toUpperCase())}</span><span class="acc-name">${esc(n)}</span>`; c.title="Konto: "+n; };
+  if(a.provider==="claude"){ set("Konto"); claudeName().then(n=>{ if(n) set(n); }); } else set(accountLabel(a));
+}
+
+const AUTH_ICON={
+  google:`<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9l3.7-2.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>`,
+  apple:`<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>`,
+  microsoft:`<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#F25022" d="M2 2h9.5v9.5H2z"/><path fill="#7FBA00" d="M12.5 2H22v9.5h-9.5z"/><path fill="#00A4EF" d="M2 12.5h9.5V22H2z"/><path fill="#FFB900" d="M12.5 12.5H22V22h-9.5z"/></svg>`,
+  claude:`<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+
+/* ---- 99_start.js ---- */
+/* ===================== Start (als letzte Datei, damit alle Ansichten definiert sind) ===================== */
 $$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
 (async()=>{
-  await loadSets();
+  // Rückkehr aus dem Anmeldefenster eines Anbieters: Das Hauptfenster liest das Ergebnis, hier nichts starten
+  if(window.opener&&/[#&?](code|error|id_token)=/.test(location.hash+location.search)) return;
+  if(currentAccount()) await loadSets();
   go(ROUTE.v||"home");
   initCaps();
 })();
