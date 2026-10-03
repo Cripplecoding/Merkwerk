@@ -15,6 +15,7 @@ REGELN
 1. Jede Karte hat "term": einen Fachbegriff, Namen oder eine kurze Bezeichnung aus dem Material (höchstens 6 Wörter), und "definition": eine Erklärung in 1 bis 2 Sätzen, nur mit Inhalten aus dem Material. Der Begriff selbst steht nicht in der Definition.
 2. Jede Karte hat "quote": ein wörtliches, zusammenhängendes Zitat aus dem Material (40 bis 300 Zeichen), das die Definition belegt. Exakt so geschrieben wie im Material, ohne Auslassungen, ohne "…".
 3. Etwa ${n} Karten, verteilt über das ganze Material. Jeder Begriff nur einmal, die wichtigsten zuerst.
+4. Prüfe jede Definition vor der Ausgabe Wort für Wort gegen das Material. Vertausche nie Begriffe oder Kategorien (zum Beispiel „glatter Preis“ und „gebrochener Preis“); im Zweifel lass die Karte weg.
 
 Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}
 
