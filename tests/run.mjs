@@ -7,13 +7,15 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","03_example.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","05c_generate.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
-const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder,
+const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
+// Bildungsplan-Daten wie im Browser als window.PLAN_DB
+vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,ACC:()=>ACC};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -159,6 +161,54 @@ okAsync("GoodNotes: kaputte oder leere Datei verweist auf den PDF-Export", async
   await assert.rejects(A.readGoodnotes({name:"x.goodnotes", arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}, null, null, null), /als PDF/);
   const buf = zip([["schema.pb",Uint8Array.from([8,35])]]);
   await assert.rejects(A.readGoodnotes({name:"leer.goodnotes", arrayBuffer:async()=>buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.length)}, null, null, null), /kein Text/);
+});
+ok("Bildungspläne: Realschule Bayern Klasse 7 bekommt die Fachlehrpläne der 7. Jahrgangsstufe", () => {
+  const p = {track:"schule",state:"BY",type:"real",grade:7};
+  const docs = A.plansForSubject(p,"Mathematik").docs;
+  assert.ok(docs.length >= 2 && docs.every(d=>/Realschule/.test(d.title) && /\/realschule\/7\//.test(d.url)), docs.map(d=>d.title).join(" | "));
+  assert.ok(A.plansFor(p).every(r=>r.land==="BY" && r.lo<=7 && r.hi>=7));
+});
+ok("Bildungspläne: Fächerliste kommt aus dem Plan, Kernfächer vorausgewählt", () => {
+  const o = A.subjectOptions({track:"schule",state:"NW",type:"gym",grade:7});
+  const core = o.filter(x=>x.core).map(x=>x.n);
+  for (const n of ["Deutsch","Mathematik","Englisch","Erdkunde"]) assert.ok(core.includes(n), core.join(", "));
+  assert.ok(o.some(x=>x.n==="Latein" && !x.core));
+  assert.ok(!core.includes("Deutsch als Zweitsprache"));
+});
+ok("Bildungspläne: außer Kraft gesetzte Pläne fehlen, Oberstufe Hessen findet das KCGO", () => {
+  const all = A.plansFor({track:"schule",state:"HE",type:"gym",grade:12});
+  assert.ok(all.length > 10);
+  assert.ok(A.plansForSubject({track:"schule",state:"HE",type:"gym",grade:12},"Mathematik").docs.some(d=>/KCGO/.test(d.title)));
+  assert.equal(A.plansFor({track:"schule",state:"BY",type:"grund",grade:3}).length, 0);
+});
+ok("Bildungspläne: Fachnamen werden zusammengeführt, aber nicht verwechselt", () => {
+  assert.ok(A.sameSubject("Erdkunde","Geographie"));
+  assert.ok(A.sameSubject("Mathematik","Mathematik"));
+  assert.ok(!A.sameSubject("Deutsch als Zweitsprache","Deutsch"));
+  assert.ok(!A.sameSubject("Informatik, Mathematik, Physik (IMP)","Informatik"));
+});
+ok("Konten: erstes Konto übernimmt die bisherigen Daten, weitere bekommen eigenen Speicher", () => {
+  assert.equal(A.currentAccount(), null);
+  assert.equal(A.storageFor(null).ls, "merkwerk.v2");
+  const a = A.upsertAccount({provider:"google",sub:"123",name:"Joshi"});
+  assert.ok(a.created); assert.equal(a.acc.ls, "merkwerk.v2"); assert.equal(a.acc.db, "merkwerk");
+  const again = A.upsertAccount({provider:"google",sub:"123",name:"Joshi P."});
+  assert.ok(!again.created); assert.equal(again.acc.id, a.acc.id); assert.equal(again.acc.name, "Joshi P.");
+  const b = A.upsertAccount({provider:"microsoft",sub:"abc",name:"Gast"});
+  assert.ok(b.created); assert.notEqual(b.acc.ls, "merkwerk.v2"); assert.notEqual(b.acc.db, "merkwerk");
+  assert.equal(A.currentAccount().id, b.acc.id);
+  A.removeAccount(b.acc.id); assert.equal(A.currentAccount(), null); assert.equal(A.ACC().list.length, 1);
+  A.removeAccount(a.acc.id);
+});
+ok("Konten: Apple-Kennung wird aus dem ID-Token gelesen", () => {
+  const tok = "x."+Buffer.from(JSON.stringify({sub:"001.abc",email:"a@b.de"})).toString("base64url")+".y";
+  assert.equal(A.jwtPayload(tok).sub, "001.abc");
+  assert.equal(Object.keys(A.jwtPayload("kaputt")).length, 0);
+});
+ok("Lerninhalte: Themenliste und Links zu Erklärungen und Videos", () => {
+  assert.ok(A.curatedTopics("Mathematik",{track:"schule",type:"real",grade:7}).includes("Lineare Funktionen"));
+  const l = A.learnLinks("Mathematik","Lineare Funktionen",{track:"schule",grade:7});
+  assert.ok(l.some(x=>x.kind==="Video" && x.url.startsWith("https://www.youtube.com/results?search_query=") && x.url.includes("Klasse%207")));
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

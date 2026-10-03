@@ -1,7 +1,8 @@
 // Baut Merkwerk aus src/ zu zwei Dateien:
 //   dist/index.html             – eigenständige Seite (Doppelklick im Browser oder GitHub Pages)
 //   dist/merkwerk-artifact.html – Inhalt für ein claude.ai-Artifact (ohne doctype/head/body; der Viewer ergänzt das Gerüst)
-import { readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
+//   dist/bildungsplaene.js      – Bildungsplan-Daten, lädt die Seite erst bei Bedarf (beim Artifact als zusätzliche Datei veröffentlichen)
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, copyFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,4 +27,5 @@ writeFileSync(join(root, "dist", "index.html"),
 ${body}</body>
 </html>
 `);
-console.log(`Gebaut aus ${scripts.length} Skriptdateien: dist/index.html, dist/merkwerk-artifact.html`);
+copyFileSync(join(root, "data", "bildungsplaene.js"), join(root, "dist", "bildungsplaene.js"));
+console.log(`Gebaut aus ${scripts.length} Skriptdateien: dist/index.html, dist/merkwerk-artifact.html, dist/bildungsplaene.js`);

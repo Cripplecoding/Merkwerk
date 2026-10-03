@@ -1,6 +1,6 @@
 # Merkwerk
 
-Merkwerk ist eine Lernseite: Du lädst dein Material hoch (PDF, DOCX, TXT, GoodNotes, Fotos, auch handschriftliche Mitschriften) und lernst es entweder als interaktive Abfrage mit 15 Prüfungsfragen pro Durchgang, jede mit einem wörtlichen Beleg aus deinen Dateien, oder mit Karteikarten. Dazu kommen eine Fächer-Bibliothek, ein Stundenplan mit Kalender, Abgaben und Klausuren mit Erinnerungen sowie ein Lernplan, der dein Material bis zum Termin aufteilt.
+Merkwerk ist eine Lernseite: Du lädst dein Material hoch (PDF, DOCX, TXT, GoodNotes, Fotos, auch handschriftliche Mitschriften) und lernst es entweder als interaktive Abfrage mit 15 Prüfungsfragen pro Durchgang, jede mit einem wörtlichen Beleg aus deinen Dateien, oder mit Karteikarten. Dazu kommen eine Fächer-Bibliothek, ein Stundenplan mit Kalender, Abgaben und Klausuren mit Erinnerungen sowie ein Lernplan, der dein Material bis zum Termin aufteilt. Nach der Anmeldung stimmt sich Merkwerk auf deine Schule ab, schlägt Fächer und Themen aus deinem Bildungsplan vor und kann Lerninhalte zu einem Thema selbst zusammenstellen.
 
 ## Schnellstart
 
@@ -15,7 +15,7 @@ Danach `dist/index.html` per Doppelklick in Chrome, Edge oder Firefox öffnen. N
 
 ## Zwei Betriebsarten
 
-Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewerten) und die gemeinsame Bibliothek gibt es nur, wenn die Seite als **claude.ai-Artifact** läuft. Dafür den Inhalt von `dist/merkwerk-artifact.html` als Artifact veröffentlichen, mit diesen Fähigkeiten:
+Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewerten) und die gemeinsame Bibliothek gibt es nur, wenn die Seite als **claude.ai-Artifact** läuft. Dafür den Inhalt von `dist/merkwerk-artifact.html` als Artifact veröffentlichen, `dist/bildungsplaene.js` als zusätzliche Datei unter demselben Namen, mit diesen Fähigkeiten:
 
 ```json
 {
@@ -37,7 +37,9 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 | PDF- und DOCX-Dateien einlesen | ja | ja, mit Internet |
 | Handschrift lesen (Fotos, Scans, handschriftliche PDF-Seiten) | ja (Claude) | eingeschränkt: Texterkennung im Browser (Tesseract), gut bei Druckschrift, schwach bei Handschrift |
 | GoodNotes-Dateien (.goodnotes) | ja | ja (übernimmt die Handschrifterkennung von GoodNotes) |
-| Profil, Fächer je Bundesland/Schulart/Klasse, Themen, Links zu Bildungsplänen | ja | ja |
+| Begrüßung, Konto, Abstimmung auf Schule oder Studium | ja (Claude-Konto) | ja (Google, Apple, Microsoft, sobald eingerichtet; sonst Konto auf diesem Gerät) |
+| Fächer aus dem Bildungsplan (4376 Pläne aller 16 Länder), Themenvorschläge beim Lernset | ja | ja, Themen aus der Themenliste |
+| Lerninhalte generieren | ja (Claude schreibt den Lerntext aus Wikipedia, gleicht mit dem Bildungsplan ab) | ja, Wikipedia-Text als Material, Abgleich nur mit der Themenliste |
 | Bibliothek: Einträge anderer ansehen und hochladen | ja (gemeinsame Datenbank) | nein |
 | Stundenplan von Hand und aus .ics (WebUntis, Uni-Portale) | ja | ja |
 | Stundenplan aus Screenshot | ja (Claude) | nein |
@@ -47,6 +49,12 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 | Daten auf mehreren Geräten | ja | nein, nur dieser Browser |
 
 ## Funktionen
+
+**Begrüßung und Konto.** Wer die Seite ohne Anmeldung öffnet, sieht „Herzlich Willkommen bei Merkwerk“ mit zwei Wegen: „Ich habe schon ein Konto“ (Anmelden mit Google, Apple oder Microsoft) und „Verändere mein Lernen“ (Registrieren). Nach dem Registrieren folgt „Lass uns Merkwerk auf deine Bedürfnisse abstimmen“: Schüler (links) oder Student (rechts), bei Schülern Bundesland, Schulart und Klassenstufe, dann die Fächer laut Bildungsplan. Jedes Konto hat auf dem Gerät eigene Lernsets und Termine; die Daten von vor der Kontofunktion übernimmt das erste Konto. Über den Namen oben rechts: Schule oder Studium ändern, Konto wechseln, abmelden, Konto vom Gerät entfernen.
+
+**Bildungspläne und neues Lernset.** `data/Master-Index_Bildungsplaene.json` ist der Index aller geltenden Bildungspläne der Sekundarstufen I und II (Stand 3. Oktober 2026, siehe `data/Bildungsplaene_README.md`). `node tools/bildungsplaene.mjs` macht daraus `data/bildungsplaene.js` (ca. 1 MB, gzip 120 KB), das die Seite erst lädt, wenn sie es braucht. Beim neuen Lernset schlägt Merkwerk die Fächer aus dem Profil und dem Bildungsplan vor, zeigt die passenden Pläne (zum Beispiel „LehrplanPLUS Realschule – Fachlehrplan Mathematik 7“) und typische Themen; mit Claude kommen Themen aus dem Plan dazu. Fach und Thema lassen sich auch frei eingeben.
+
+**Lerninhalte generieren.** Statt eigener Dateien: Merkwerk gleicht Fach und Thema mit dem Bildungsplan ab (mit Claude: passt es, was soll man auf dieser Stufe können), lädt passende Wikipedia-Artikel und legt Links zu Erklärvideos (YouTube-Suche) und Serlo an. In claude.ai schreibt Claude daraus einen Lerntext für die Klassenstufe; ohne Claude wird der Wikipedia-Text selbst das Material. Danach geht es wie gewohnt mit Karteikarten oder der interaktiven Abfrage weiter.
 
 **Lernen.** Nach dem Anlegen eines Lernsets gibt es zwei Lernmodi.
 
@@ -74,6 +82,8 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 src/
   01_head.html     Titel, Schriften, Styles (Hell/Dunkel), Kopfzeile mit Reitern
   02_data.js       Bundesländer, Schularten, Fächer, Themen, Studiengänge, Links zu Bildungsplänen
+  02b_plans.js     passende Bildungspläne zu Land, Schulart, Klasse und Fach
+  03b_account.js   Konten auf dem Gerät, Client-IDs der Anmeldedienste (AUTH_CONFIG)
   03_example.js    Beispieltext Photosynthese, 15 Beispielfragen und 12 Beispiel-Karteikarten
   04_core.js       Hilfsfunktionen, Speicher (localStorage + IndexedDB), Claude-Fähigkeiten, Navigation
   04b_handwriting.js  Texterkennung im Browser (Tesseract), ZIP- und GoodNotes-Leser
@@ -83,20 +93,38 @@ src/
   07_timetable.js  Stundenplan-Raster, Screenshot- und ICS-Import
   08_due.js        Abgaben, Klausuren, Erinnerungen, Lernplan
   09_calendar.js   Kalender mit FullCalendar
-  10_home.js       Ansicht „Heute“ und Start
+  05c_generate.js  neues Lernset mit Vorschlägen, „Lerninhalte generieren“
+  10_home.js       Ansicht „Heute“
+  11_account.js    Begrüßung, Anmeldung, Abstimmung, Kontomenü
+  99_start.js      Start
+data/              Master-Index der Bildungspläne und daraus erzeugtes bildungsplaene.js
+tools/             bildungsplaene.mjs: erzeugt data/bildungsplaene.js aus dem Index
 build.mjs          setzt src/ in Dateireihenfolge zu dist/ zusammen
-dist/              fertige Seiten (index.html lokal, merkwerk-artifact.html für claude.ai)
+dist/              fertige Seiten (index.html lokal, merkwerk-artifact.html für claude.ai, bildungsplaene.js)
 tests/run.mjs      Logik-Prüfungen ohne Browser
 ```
 
 Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit Sprachdaten für Deutsch und Englisch, ca. 10 MB beim ersten Mal). Schriften kommen von Google Fonts.
 
+## Anmeldung einrichten
+
+Die Anmeldung läuft ganz im Browser; die Client-IDs stehen in `AUTH_CONFIG` in `src/03b_account.js`. Solange ein Eintrag leer ist, legt Merkwerk beim Klick auf diesen Dienst ein Konto auf dem Gerät an und sagt das auch so. Als erlaubte Adresse jeweils `https://cripplecoding.github.io/Merkwerk/` eintragen.
+
+- **Google:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → Anmeldedaten → OAuth-Client-ID, Typ „Webanwendung“, autorisierter JavaScript-Ursprung `https://cripplecoding.github.io`. Die Client-ID unter `google.clientId` eintragen.
+- **Microsoft:** [Microsoft Entra](https://entra.microsoft.com/) → App-Registrierungen → Neu, Kontotypen „beliebiges Organisationsverzeichnis und persönliche Microsoft-Konten“, Plattform „Single-Page-Anwendung“ mit Umleitungs-URI `https://cripplecoding.github.io/Merkwerk/`. Die Anwendungs-ID unter `microsoft.clientId` eintragen.
+- **Apple:** braucht ein kostenpflichtiges Apple-Developer-Konto. Identifiers → Services ID anlegen, „Sign in with Apple“ aktivieren, Domain `cripplecoding.github.io` und Return-URL `https://cripplecoding.github.io/Merkwerk/` eintragen. Services ID unter `apple.clientId`, Return-URL unter `apple.redirectURI`.
+
+In claude.ai meldet Merkwerk dich über dein Claude-Konto an (Anmeldefenster fremder Dienste sind dort nicht möglich).
+
 ## Grenzen
+
+- **Konten:** Ohne eigenen Server erkennt die Anmeldung dich wieder, die Lernsets bleiben aber im jeweiligen Browser. Geräteübergreifend gibt es die Daten nur in claude.ai.
+- **Lerninhalte generieren:** YouTube lässt sich ohne eigenen API-Schlüssel nicht durchsuchen; Merkwerk legt deshalb einen Suchlink an, statt Videos auszuwählen. Ob die Wikipedia-Abfrage in claude.ai erlaubt ist, hängt von claude.ai ab; klappt sie nicht, schreibt Claude den Lerntext aus eigenem Wissen und sagt das dazu. Die Inhalte der Bildungspläne selbst (PDFs) liest Merkwerk nicht, sondern nutzt Titel, Geltungsbereich und Links aus dem Index.
 
 - **WebUntis:** keine direkte Anmeldung (WebUntis lässt fremde Webseiten nicht zu, und Passwörter gehören nicht in diese App). Stattdessen Screenshot- oder .ics-Import.
 - **Erinnerungen:** keine Push-Nachrichten. Fällige Erinnerungen erscheinen beim Öffnen; für Benachrichtigungen aufs Handy gibt es Links zu Google Kalender und Outlook. Keine Synchronisation in beide Richtungen.
 - **Bibliothek:** Mit einem privaten Claude-Konto können Personen über einen geteilten Link nur lesen; schreiben dürfen Mitglieder der Organisation bzw. als Mitwirkende Eingeladene. Für eine offene Bibliothek wäre ein eigener Server nötig.
-- **Lehrpläne:** Fächer für alle 16 Bundesländer; Themenlisten für Kernfächer sind eine Orientierung, kein vollständiger Auszug. Direkte Links zu den Plänen für Baden-Württemberg, Bayern, Hessen und Nordrhein-Westfalen, sonst zu den Portalen der Länder.
+- **Lehrpläne:** Fächer und direkte Links zu den geltenden Plänen für alle 16 Länder ab Klasse 5 aus dem Master-Index; Schleswig-Holstein ist dort unvollständig (Portal war beim Erstellen nicht erreichbar), Grundschulen fehlen im Index (dort gilt die bisherige Fächerliste). Themenlisten für Kernfächer sind eine Orientierung, kein vollständiger Auszug.
 - **Studium:** typische Module für 17 Studiengänge; maßgeblich ist das Modulhandbuch der Hochschule.
 - **Handschrift ohne Claude:** Tesseract ist für Druckschrift gebaut. Saubere Druckbuchstaben klappen teilweise, Schreibschrift und Formeln kaum. Für Mitschriften Merkwerk in claude.ai nutzen.
 - **GoodNotes:** Das Dateiformat ist nicht offen dokumentiert. Merkwerk liest die Handschrifterkennung, die GoodNotes gespeichert hat; ist die Erkennung in GoodNotes aus oder noch nicht gelaufen, fehlt die Handschrift. Die Striche selbst zeichnet Merkwerk nicht nach, Claude sieht in .goodnotes-Dateien also nur den erkannten Text. Am zuverlässigsten ist der PDF-Export aus GoodNotes (Teilen → Exportieren → PDF): Dann liest Claude jede Seite selbst.

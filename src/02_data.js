@@ -34,6 +34,7 @@ const SCHOOL_TYPES = [
   {k:"real",n:"Realschule",grades:[5,6,7,8,9,10]},
   {k:"gms",n:"Gesamt- / Gemeinschaftsschule",grades:[5,6,7,8,9,10,11,12,13]},
   {k:"gym",n:"Gymnasium",grades:[5,6,7,8,9,10,11,12,13]},
+  {k:"ws",n:"Wirtschaftsschule",grades:[6,7,8,9,10,11],only:["BY"]},
   {k:"bg",n:"Berufliches Gymnasium",grades:[11,12,13]},
   {k:"fos",n:"Fachoberschule / Berufsoberschule",grades:[11,12,13]},
   {k:"bs",n:"Berufsschule (Ausbildung)",grades:[1,2,3,4],gradeLabel:"Ausbildungsjahr"},

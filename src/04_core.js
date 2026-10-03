@@ -30,13 +30,13 @@ function confirmBox(text,okLabel="Löschen"){return new Promise(res=>{modal(`<h3
 async function copyText(t){try{await navigator.clipboard.writeText(t);toast("Kopiert");}catch{toast("Kopieren nicht möglich – bitte markieren und kopieren");}}
 
 /* ---------- Speicher: localStorage (App-Zustand) + IndexedDB (Material) ---------- */
-const LS_KEY="merkwerk.v2";
+let LS_KEY=storageFor(currentAccount()).ls;
 const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
 const idb={
-  _db:null,
+  _db:null, name:storageFor(currentAccount()).db,
   open(){ if(this._db) return Promise.resolve(this._db);
-    return new Promise((res,rej)=>{ try{ const r=indexedDB.open("merkwerk",1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
+    return new Promise((res,rej)=>{ try{ const r=indexedDB.open(this.name,1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
   async all(){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("sets").objectStore("sets").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}catch{ return lsGet(LS_KEY+".sets",[]); } },
   async put(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ const all=lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==v.id); all.push(v); if(!lsSet(LS_KEY+".sets",all)) toast("Speicher voll – sehr große Dateien müssen nach dem Neuladen evtl. neu hochgeladen werden"); } },
   async del(id){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ lsSet(LS_KEY+".sets",lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==id)); } },
@@ -57,6 +57,14 @@ const DEFAULT_STATE = () => ({
 });
 let S = Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {}));
 let SETS = []; // Lernsets inkl. Text (aus IndexedDB)
+// Nach An- oder Abmelden: Zustand und Lernsets des jeweiligen Kontos laden
+async function useAccountStorage(){
+  const st=storageFor(currentAccount());
+  clearTimeout(saveTimer);
+  LS_KEY=st.ls; if(idb._db){ try{idb._db.close();}catch{} } idb._db=null; idb.name=st.db;
+  S=Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {})); SETS=[];
+  await loadSets(); await syncDown();
+}
 
 let saveTimer=null;
 function save(remote=true){
@@ -92,14 +100,14 @@ const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Fu
 /* ---------- Geräteübergreifend: privater Bereich in der Datenbank ---------- */
 let syncing=false;
 async function syncDown(){
-  if(!CAP.db||!CAP.uid) return;
+  if(!CAP.db||!CAP.uid||!currentAccount()) return;
   try{
     const snap=await CAP.db.doc(`data/users/${CAP.uid}/app`).get();
     if(snap.exists){ const r=snap.data(); if(r && (r.updatedAt||0) > (S.updatedAt||0)){ S=Object.assign(DEFAULT_STATE(), r.state||{}); S.updatedAt=r.updatedAt; lsSet(LS_KEY,S); } }
   }catch{}
 }
 async function syncUp(){
-  if(!CAP.db||!CAP.uid||syncing) return; syncing=true;
+  if(!CAP.db||!CAP.uid||syncing||!currentAccount()) return; syncing=true;
   try{ const st=JSON.parse(JSON.stringify(S)); await CAP.db.doc(`data/users/${CAP.uid}/app`).set({updatedAt:S.updatedAt,state:st}); }catch(e){}
   syncing=false;
 }
@@ -116,13 +124,16 @@ function go(v,arg){
 }
 const ROUTE={v:S.lastView||"home",arg:null};
 function render(){
-  const m=$("#main"); const fn=VIEWS[ROUTE.v]||VIEWS.home;
+  const m=$("#main");
+  renderAccountChip();
+  if(!currentAccount()||WEL.step==="onboard"){ renderWelcome(m); return; }
+  const fn=VIEWS[ROUTE.v]||VIEWS.home;
   fn(m,ROUTE.arg);
   renderProfileChip();
 }
 function renderProfileChip(){
   const c=$("#profileChip"); const p=S.profile;
-  if(!p){c.hidden=true;return;}
+  if(!p||!currentAccount()){c.hidden=true;return;}
   c.hidden=false; c.textContent=profileLabel(p);
   c.onclick=()=>openWizard();
 }

@@ -293,7 +293,7 @@ VIEWS.learn = async function(m,arg){
   chips.innerHTML=SETS.map(s=>`<button class="chip" aria-pressed="${s.id===(set&&set.id)}" data-id="${s.id}">${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</button>`).join("")+
     `<button class="chip" id="newSet">+ Neues Lernset</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
   $$("[data-id]",chips).forEach(b=>b.onclick=()=>{S.activeSet=b.dataset.id;save(false);go("learn",{manage:true});});
-  $("#newSet").onclick=async()=>{const s=newSet("Lernset "+(SETS.length+1));await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});};
+  $("#newSet").onclick=()=>openNewSetDialog();
   const ex=$("#exBtn"); if(ex) ex.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
   renderSetPanel($("#setPanel"),set);
 };
@@ -305,9 +305,9 @@ function fcInfo(set){
   return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
 }
 function renderSetPanel(el,set){
-  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an und lade dein Material hoch – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
+  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Merkwerk passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
-    $("#e2").onclick=async()=>{const s=newSet("Lernset 1");await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});}; return; }
+    $("#e2").onclick=()=>openNewSetDialog(); return; }
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
   const last=(set.history||[]).slice(-1)[0];
   el.innerHTML=`<div class="grid2">
@@ -315,6 +315,7 @@ function renderSetPanel(el,set){
      ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
      <label class="f">Fach<input type="text" id="setSubj" list="subjList" value="${esc(set.subject||"")}" placeholder="z. B. Biologie"><datalist id="subjList">${subjOpts.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
+     ${set.example?"":`<label class="f">Thema<input type="text" id="setTopic" list="topicList" value="${esc(set.topic||"")}" placeholder="z. B. Lineare Funktionen"><datalist id="topicList">${curatedTopics(set.subject).map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>`}
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung</span><span class="spacer"></span><span class="mono small">${cov.done}/${cov.n} Abschnitte · ${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div><p class="small muted">Neue Fragen nehmen zuerst die Abschnitte dran, die noch nicht abgefragt wurden.</p></div>
      ${last?`<p class="small">Letzter Durchgang: <b class="mono">${last.pct} %</b> am ${new Date(last.at).toLocaleDateString("de-DE")}</p>`:""}
      <div id="roundStatus" hidden></div>
@@ -334,13 +335,18 @@ function renderSetPanel(el,set){
    <section class="sheet stack">
      <h3>Material</h3>
      ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, GoodNotes, Fotos und Screenshots – auch Handschrift · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept="${FILE_ACCEPT}" hidden></div>
-     <div id="upStatus" class="small"></div>`}
+     <div id="upStatus" class="small"></div>
+     <div class="row"><span class="small muted">oder</span><button class="btn" id="genBtn">Lerninhalte generieren</button><span class="small muted">${set.topic?`zu „${esc(set.topic)}“`:"Thema links eintragen"}</span></div>
+     <div id="genBox" hidden></div>
+     ${genInfoHTML(set)}`}
      <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?`· <span class="pill warn">${esc(ocrLabel(f))}</span>`:""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
      ${set.files.length?`<details id="readText"><summary>Gelesenen Text ansehen</summary><div class="stack" style="margin-top:10px">${set.files.map(f=>`<div class="stack" style="gap:6px"><span class="label">${esc(f.name)}</span>${set.example?`<div class="pre">${esc(f.text)}</div>`:`<textarea id="tx_${f.id}" style="min-height:200px">${esc(f.text)}</textarea><div><button class="btn sm" data-savetx="${f.id}">Korrektur speichern</button></div>`}</div>`).join("")}</div></details>`:""}
    </section></div>`;
   const nameIn=$("#setName"), subjIn=$("#setSubj");
   nameIn.onchange=async()=>{set.name=nameIn.value.trim()||"Lernset";await putSet(set);go("learn",{manage:true});};
-  subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);};
+  subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);go("learn",{manage:true});};
+  const topIn=$("#setTopic"); if(topIn) topIn.onchange=async()=>{set.topic=topIn.value.trim(); if(/^Lernset \d+$/.test(set.name)&&set.topic) set.name=set.topic; await putSet(set);go("learn",{manage:true});};
+  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } generateIntoSet(set); };
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
