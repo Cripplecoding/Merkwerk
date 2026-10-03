@@ -1081,7 +1081,7 @@ function renderRound(m,set){
       ${!res.correct||q.type==="text"?`<div><span class="label">Lösung</span><p>${sol}</p></div>`:""}
       ${q.explain&&!res.correct?`<p class="small">${esc(q.explain)}</p>`:""}
       <div><span class="label">Beleg aus ${esc(q.fileName)}</span><p class="quote">„${esc(q.quote)}“</p></div>
-      ${!res.correct?`<div class="row small"><span class="muted">Stimmt die Lösung nicht mit deinem Material überein?</span><button class="btn ghost sm" id="dispute">Lösung ist falsch – als richtig werten</button></div>`:""}
+      ${!res.correct?`<div class="row small"><span class="muted">Stimmt die Lösung nicht mit deinem Material überein?</span><button class="btn ghost sm" id="dispute">Werte als richtig</button></div>`:""}
       ${res.disputed?`<p class="small muted">Als fehlerhaft gemeldet: zählt als richtig und kommt bei „Dieselben Fragen“ nicht mehr dran.</p>`:""}
       <div class="row"><button class="btn primary" id="nextQ">${R.idx+1<R.qs.length?"Nächste Frage":"Auswertung ansehen"}</button></div></div>`;
     $("#nextQ").onclick=async()=>{ if(R.idx+1<R.qs.length){R.idx++;} else { R.phase="end"; const pctv=Math.round(R.results.filter(r=>r&&r.correct).length/R.qs.length*100); (set.history ||= []).push({at:Date.now(),pct:pctv,prompts:R.qs.map(q=>q.prompt)}); if(R.planRef) markPlanDone(R.planRef,pctv); } await putSet(set); renderRound(m,set); };
