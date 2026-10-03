@@ -1,0 +1,13 @@
+{
+  "name": "merkwerk",
+  "version": "1.0.0",
+  "description": "Lernseite mit belegten Prüfungsfragen aus eigenem Material, Fächer-Bibliothek, Stundenplan mit Kalender, Abgaben, Klausuren und Lernplan.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests/run.mjs",
+    "start": "node build.mjs && npx --yes serve dist"
+  }
+}

@@ -1,0 +1,29 @@
+// Baut Merkwerk aus src/ zu zwei Dateien:
+//   dist/index.html             – eigenständige Seite (Doppelklick im Browser oder GitHub Pages)
+//   dist/merkwerk-artifact.html – Inhalt für ein claude.ai-Artifact (ohne doctype/head/body; der Viewer ergänzt das Gerüst)
+import { readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = dirname(fileURLToPath(import.meta.url));
+const src = join(root, "src");
+const head = readFileSync(join(src, "01_head.html"), "utf8");
+const scripts = readdirSync(src).filter(f => f.endsWith(".js")).sort();
+const js = scripts.map(f => `/* ---- ${f} ---- */\n` + readFileSync(join(src, f), "utf8")).join("\n");
+const body = `${head}\n<script>\n${js}\n</script>\n`;
+
+mkdirSync(join(root, "dist"), { recursive: true });
+writeFileSync(join(root, "dist", "merkwerk-artifact.html"), body);
+writeFileSync(join(root, "dist", "index.html"),
+  `<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+${body}</body>
+</html>
+`);
+console.log(`Gebaut aus ${scripts.length} Skriptdateien: dist/index.html, dist/merkwerk-artifact.html`);
