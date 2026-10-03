@@ -193,7 +193,7 @@ function planForm(el,it,set){
   const candidates=SETS.filter(s=>!s.example);
   el.innerHTML=`<div class="stack">
     <label class="f">Material<select id="pSet"><option value="">Neues Lernset mit Dateien anlegen …</option>${candidates.map(s=>`<option value="${s.id}" ${set&&set.id===s.id?"selected":""}>${esc(s.name)} (${s.sections.length} Abschnitte)</option>`).join("")}</select></label>
-    <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT oder Fotos</span><input type="file" id="pFi" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div><div id="pSt" class="small"></div></div>
+    <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT, GoodNotes oder Fotos</span><input type="file" id="pFi" multiple accept="${FILE_ACCEPT}" hidden></div><div id="pSt" class="small"></div></div>
     <div class="stack" style="gap:6px"><span class="label">An diesen Tagen lernen</span><div class="row" style="gap:6px">${DAYS.map((d,i)=>`<button class="chip" data-wd="${i}" aria-pressed="${wds.includes(i)}">${d}</button>`).join("")}</div></div>
     <label class="f" style="max-width:280px">Wiederholungstage vor dem Termin<select id="pRev">${[0,1,2,3,4].map(n=>`<option ${n===rev?"selected":""}>${n}</option>`).join("")}</select></label>
     <div class="row"><button class="btn primary" id="pGo">Lernplan erstellen</button></div><div id="pErr"></div></div>`;
@@ -214,7 +214,7 @@ function planForm(el,it,set){
     if(!s){
       if(!pending.length){ err.innerHTML=`<div class="note bad">Wähle ein Lernset oder lade Material hoch.</div>`; return; }
       s=newSet(`${it.title}`,it.subject); const errs=[];
-      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
+      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
       if(!s.files.length){ err.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")||"Kein Text gefunden."}</div>`; return; }
       s.sections=makeSections(s.files); await putSet(s);
       if(errs.length) toast(errs.join(" "),5000);
