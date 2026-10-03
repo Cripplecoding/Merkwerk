@@ -203,9 +203,10 @@ VIEWS.learn = async function(m,arg){
   if(arg&&arg.setId) S.activeSet=arg.setId;
   if(!SETS.length) await loadSets();
   const set=setById(S.activeSet)||SETS[0];
+  if(set&&arg&&arg.cards) return renderCards(m,set);
   if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch. Jeder Durchgang hat 15 Prüfungsfragen, jede mit einem wörtlichen Beleg aus deinem Material.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
@@ -218,6 +219,12 @@ VIEWS.learn = async function(m,arg){
   renderSetPanel($("#setPanel"),set);
 };
 
+function fcInfo(set){
+  const F=set.fc;
+  if(F&&F.phase==="card"&&F.idx>0) return `Fortsetzen: ${F.idx} von ${F.ids.length} Karten durchgearbeitet`;
+  if(set.cards&&set.cards.length) return `${set.cards.length} Karten · Begriff vorne, Definition hinten`;
+  return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
+}
 function renderSetPanel(el,set){
   if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an und lade dein Material hoch – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
@@ -232,10 +239,16 @@ function renderSetPanel(el,set){
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung</span><span class="spacer"></span><span class="mono small">${cov.done}/${cov.n} Abschnitte · ${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div><p class="small muted">Neue Fragen nehmen zuerst die Abschnitte dran, die noch nicht abgefragt wurden.</p></div>
      ${last?`<p class="small">Letzter Durchgang: <b class="mono">${last.pct} %</b> am ${new Date(last.at).toLocaleDateString("de-DE")}</p>`:""}
      <div id="roundStatus" hidden></div>
-     <div class="row">
-       <button class="btn primary" id="startBtn" ${set.files.length?"":"disabled"}>Durchgang starten · 15 Fragen</button>
-       ${set.round&&set.round.qs?`<button class="btn" id="sameBtn">Letzte Fragen neu gemischt</button>`:""}
+     <div class="stack" style="gap:8px"><span class="label">Lernmodus wählen</span>
+       <div class="grid2" style="gap:10px">
+         <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
+         <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
+       </div>
      </div>
+     ${set.round&&set.round.qs||set.cards&&set.cards.length?`<div class="row">
+       ${set.round&&set.round.qs?`<button class="btn sm" id="sameBtn">Letzte Fragen neu gemischt</button>`:""}
+       ${set.cards&&set.cards.length&&!set.example?`<button class="btn sm" id="cardsNew">Karteikarten neu erstellen</button>`:""}
+     </div>`:""}
      ${set.example?"":needClaude()}
      <div class="row"><span class="spacer"></span><button class="btn ghost danger sm" id="delSet">Lernset löschen</button></div>
    </section>
@@ -251,9 +264,11 @@ function renderSetPanel(el,set){
   subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);};
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
+  $("#cardsBtn").onclick=()=>openCards(set);
+  const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
-  $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; await putSet(set); go("learn",{manage:true}); });
-  $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
+  $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
+  $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
   const dz=$("#dz"); if(dz){ const fi=$("#fileIn");
     dz.onclick=()=>fi.click(); dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click();}};
     dz.ondragover=e=>{e.preventDefault();dz.classList.add("over");}; dz.ondragleave=()=>dz.classList.remove("over");
@@ -268,7 +283,7 @@ async function addFiles(set,files){
       set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr});
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
   }
-  set.sections=makeSections(set.files); await putSet(set);
+  set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});
   if(errs.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")}</div>`;},50);
   else toast(`${files.length} Datei(en) gelesen`);

@@ -1,4 +1,4 @@
-// Prüft reine Logik ohne Browser: Beispielzitate, Abschnitte, Lernplan, ICS-Import, Stundenraster.
+// Prüft reine Logik ohne Browser: Beispielzitate, Karteikarten, Abschnitte, Lernplan, ICS-Import, Stundenraster.
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,19 +6,44 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","03_example.js","04_core.js","05_learn.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","03_example.js","04_core.js","05_learn.js","05b_cards.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
 const ctx = { console, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,relax,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,S:()=>S};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 
 ok("Alle Beispielzitate stehen wörtlich im Beispieltext", () => {
   for (const q of A.EXAMPLE_QUESTIONS) assert.ok(A.relax(A.EXAMPLE_TEXT).includes(A.relax(q.quote)), q.quote);
   assert.equal(A.EXAMPLE_QUESTIONS.length, 15);
+});
+ok("Alle Beispiel-Karteikarten sind wörtlich belegt", () => {
+  const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
+  for (const c of A.EXAMPLE_CARDS) assert.ok(A.validateCard(set, c), c.term);
+  assert.ok(A.EXAMPLE_CARDS.length >= 10);
+});
+ok("Karteikarten ohne Claude: Definitionssätze werden erkannt", () => {
+  const cards = A.extractCardsLocal({ files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] });
+  const terms = cards.map(c=>c.term);
+  assert.ok(terms.includes("Fotolyse"), terms.join(", "));
+  assert.ok(terms.includes("Photosynthese"), terms.join(", "));
+  assert.ok(terms.some(t=>/begrenzender Faktor/i.test(t)), terms.join(", "));
+  assert.ok(cards.every(c=>c.definition.length>5 && A.EXAMPLE_TEXT.includes(c.quote)));
+});
+ok("Karteikarten-Durchlauf zählt und wiederholt nicht gewusste", () => {
+  const set = {};
+  A.fcStart(set, ["a","b","c","d"]);
+  A.fcAssign(set,"known"); A.fcAssign(set,"practice"); A.fcAssign(set,"known");
+  assert.equal(set.fc.phase, "card"); assert.equal(set.fc.idx, 3);
+  A.fcAssign(set,"practice");
+  assert.equal(set.fc.phase, "end");
+  assert.equal(JSON.stringify(A.fcResult(set.fc)), JSON.stringify({n:4,known:2,practice:2,pct:50}));
+  const again = [...set.fc.practice];
+  A.fcStart(set, again, true);
+  assert.equal(set.fc.ids.length, 2); assert.ok(set.fc.ids.every(id=>again.includes(id))); assert.equal(set.fc.retry, true);
 });
 ok("Fragenmix 5/4/3/3", () => { assert.equal(JSON.stringify(A.mixFor(15)), JSON.stringify({mc:5,text:4,match:3,cloze:3})); });
 ok("Lernplan deckt alle Abschnitte vor dem Termin ab", () => {
