@@ -1,0 +1,1869 @@
+<title>Merkwerk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Heft-Raster. Eine Spalte Arbeitsfläche (max 1040px) unter einer festen Reiterleiste; Karopapier nur als Grund der Kopfzeile. */
+:root{
+  --paper:#f5f7f4; --sheet:#ffffff; --ink:#1b2130; --muted:#5d6577; --line:#dfe3e8; --grid:#e8ece9;
+  --accent:#2a46c4; --accent-ink:#ffffff; --accent-soft:#e6eafb;
+  --mark:#e9f26b; --mark-ink:#2b2f0a;
+  --ok:#1d7f52; --ok-soft:#e1f3ea; --bad:#b83a32; --bad-soft:#f9e4e2; --warn:#a86200; --warn-soft:#fbefd9;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px; --shadow:0 1px 2px rgba(20,30,60,.06), 0 4px 14px rgba(20,30,60,.06);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#11141b; --sheet:#181c25; --ink:#e7e9ef; --muted:#9aa2b4; --line:#2a303d; --grid:#1a1f29;
+  --accent:#8fa2ff; --accent-ink:#0d1330; --accent-soft:#232c52;
+  --mark:#c9d443; --mark-ink:#1a1d05;
+  --ok:#53c48e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#11141b; --sheet:#181c25; --ink:#e7e9ef; --muted:#9aa2b4; --line:#2a303d; --grid:#1a1f29;
+  --accent:#8fa2ff; --accent-ink:#0d1330; --accent-soft:#232c52;
+  --mark:#c9d443; --mark-ink:#1a1d05;
+  --ok:#53c48e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,3.6vw,2.3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.35rem;font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.label{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+/* Kopf mit Karopapier */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:18px 18px;border-bottom:1px solid var(--line)}
+.top-in{max-width:1040px;margin:0 auto;padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+.brand b span{background:var(--mark);color:var(--mark-ink);padding:0 .15em;border-radius:3px}
+.brand .who{margin-left:auto}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:1px solid transparent;border-bottom:none;background:none;padding:9px 14px;border-radius:9px 9px 0 0;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--sheet);color:var(--ink);border-color:var(--line);margin-bottom:-1px}
+.tab:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:22px 60px}
+.view{display:flex;flex-direction:column;gap:18px}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stack{display:flex;flex-direction:column;gap:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px}
+.spacer{flex:1}
+
+.btn{border:1px solid var(--line);background:var(--sheet);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;display:inline-flex;gap:6px;align-items:center;justify-content:center;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:none;border-color:transparent;color:var(--accent);padding-inline:6px}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:.88rem}
+.chip{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.9rem;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:700}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;font-weight:700;background:var(--accent-soft);color:var(--ink)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.mark{background:var(--mark);color:var(--mark-ink)}
+
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem;min-width:0}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=url],select,textarea{
+  border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px;width:100%;font-weight:400;min-width:0}
+textarea{min-height:110px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.93rem}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note.bad{border-color:var(--bad);background:var(--bad-soft)}
+.empty{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted)}
+.list{display:flex;flex-direction:column}
+.li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);min-width:0}
+.li:first-child{border-top:none}
+.li .grow{flex:1;min-width:0}
+.bar{height:10px;background:var(--grid);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.mark>i{background:var(--mark)}
+.dropzone{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;background:var(--paper)}
+.dropzone.over{border-color:var(--accent);background:var(--accent-soft)}
+.scrollx{overflow-x:auto}
+.pre{white-space:pre-wrap;font-size:.92rem;max-height:340px;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px}
+details>summary{cursor:pointer;font-weight:700}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;z-index:99;max-width:min(92vw,520px);font-weight:700;box-shadow:var(--shadow)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation-duration:3s}}
+
+/* Quiz */
+.q-head{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.q-prompt{font-size:1.15rem;font-weight:700;line-height:1.4}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--sheet);cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt .k{font-family:var(--f-mono);font-weight:600;color:var(--muted)}
+.feedback{border-radius:9px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.feedback.ok{background:var(--ok-soft);border:1px solid var(--ok)}
+.feedback.bad{background:var(--bad-soft);border:1px solid var(--bad)}
+.quote{border-left:3px solid var(--mark);padding:4px 10px;font-style:italic;background:var(--sheet);border-radius:0 6px 6px 0}
+.match-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+@media (max-width:520px){.match-row{grid-template-columns:1fr}}
+.cloze input{display:inline-block;width:auto;min-width:8ch;max-width:100%;padding:3px 8px;margin:2px}
+.cloze input.right{border-color:var(--ok);background:var(--ok-soft)}
+.cloze input.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.score{font-family:var(--f-display);font-weight:800;font-size:3.4rem;line-height:1;letter-spacing:-.03em}
+table.t{border-collapse:collapse;width:100%;font-size:.94rem}
+table.t th,table.t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.t td.n{font-family:var(--f-mono);text-align:right}
+
+/* Stundenplan */
+.tt{display:grid;gap:4px;min-width:640px}
+.tt .h{font-weight:700;font-size:.85rem;text-align:center;padding:4px;color:var(--muted)}
+.tt .time{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);padding:6px 4px;text-align:right;line-height:1.25}
+.tt .cell{min-height:54px;border:1px dashed var(--line);border-radius:7px;background:var(--paper);cursor:pointer;padding:5px 6px;font-size:.82rem;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0}
+.tt .cell.filled{border-style:solid;border-color:transparent;background:var(--c,var(--accent-soft))}
+.tt .cell b{font-size:.86rem;overflow-wrap:anywhere;color:var(--ink)}
+.tt .cell span{color:var(--muted);font-size:.74rem}
+.tt .cell.now{outline:2px solid var(--accent)}
+.daycol{display:flex;flex-direction:column;gap:6px}
+
+/* Termine */
+.due{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;padding:6px 4px;border-radius:8px;background:var(--paper);border:1px solid var(--line)}
+.due b{font-family:var(--f-display);font-size:1.35rem;line-height:1}
+.due span{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.plan-day{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.plan-day.today{background:var(--mark);color:var(--mark-ink);border-radius:8px;padding-inline:8px}
+.plan-day.today .muted{color:var(--mark-ink)}
+.plan-day.done .what{text-decoration:line-through;opacity:.6}
+@media (max-width:520px){.plan-day{grid-template-columns:1fr auto}.plan-day .d{grid-column:1/-1}}
+
+/* Bibliothek */
+.subj{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--sheet);cursor:pointer;min-width:0}
+.subj:hover{border-color:var(--accent)}
+.subj[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.subj b{overflow-wrap:anywhere}
+.wizard-opt{display:flex;flex-direction:column;gap:4px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--sheet);cursor:pointer;text-align:left}
+.wizard-opt:hover{border-color:var(--accent)}
+.entry-body{white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px}
+.overlay{position:fixed;inset:0;background:rgba(10,14,25,.45);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:calc(30px + env(safe-area-inset-top,0px)) 16px 20px;overflow:auto}
+.modal{background:var(--sheet);border:1px solid var(--line);border-radius:12px;max-width:640px;width:100%;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
+/* Kalender (FullCalendar) */
+#calBox{--fc-border-color:var(--line);--fc-page-bg-color:var(--sheet);--fc-neutral-bg-color:var(--paper);--fc-list-event-hover-bg-color:var(--accent-soft);
+  --fc-today-bg-color:color-mix(in oklab, var(--mark) 22%, transparent);--fc-now-indicator-color:var(--bad);
+  --fc-button-bg-color:var(--sheet);--fc-button-border-color:var(--line);--fc-button-text-color:var(--ink);
+  --fc-button-hover-bg-color:var(--accent-soft);--fc-button-hover-border-color:var(--accent);
+  --fc-button-active-bg-color:var(--accent);--fc-button-active-border-color:var(--accent);
+  --fc-event-bg-color:var(--accent);--fc-event-border-color:var(--accent);--fc-event-text-color:var(--accent-ink);
+  --fc-bg-event-color:var(--line);--fc-bg-event-opacity:.45;--fc-highlight-color:var(--accent-soft);
+  font-size:.9rem;min-width:0}
+#calBox .fc-toolbar-title{font-family:var(--f-display);font-size:1.2rem;font-weight:700}
+#calBox .fc .fc-button{font-weight:700;border-radius:8px;text-transform:none;padding:5px 10px;font-size:.88rem}
+#calBox .fc .fc-button-primary:not(:disabled).fc-button-active{color:var(--accent-ink)}
+#calBox .fc .fc-button:focus{box-shadow:0 0 0 2px var(--accent)}
+#calBox .fc-toolbar.fc-header-toolbar{flex-wrap:wrap;gap:8px}
+#calBox .fc-footer-toolbar{margin-top:10px}
+#calBox .fc-col-header-cell-cushion,#calBox .fc-daygrid-day-number,#calBox .fc-list-day-text,#calBox .fc-list-day-side-text{color:var(--ink);text-decoration:none}
+#calBox .fc-timegrid-slot-label,#calBox .fc-timegrid-axis{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+#calBox .fc-event{cursor:pointer;border-radius:6px}
+#calBox .fc-timegrid-event .fc-event-main{padding:2px 4px}
+#calBox .ev-lesson .fc-event-main,#calBox .ev-lesson .fc-event-time,#calBox .ev-lesson .fc-event-title{color:var(--ink)}
+#calBox .ev-cancel{opacity:.55}
+#calBox .ev-cancel .fc-event-title{text-decoration:line-through}
+#calBox .ev-klausur{--fc-event-bg-color:var(--warn);--fc-event-border-color:var(--warn);background:var(--warn);border-color:var(--warn)}
+#calBox .ev-klausur .fc-event-main{color:var(--sheet);font-weight:700}
+#calBox .ev-abgabe{background:var(--accent);border-color:var(--accent)}
+#calBox .ev-abgabe .fc-event-main{color:var(--accent-ink);font-weight:700}
+#calBox .ev-plan{background:var(--mark);border-color:var(--mark)}
+#calBox .ev-plan .fc-event-main,#calBox .ev-plan .fc-event-title{color:var(--mark-ink)}
+#calBox .ev-missed{outline:2px dashed var(--bad);outline-offset:-2px}
+#calBox .ev-termin{background:var(--ok);border-color:var(--ok)}
+#calBox .ev-termin .fc-event-main{color:var(--sheet)}
+#calBox .ev-frei{background:var(--line);border-color:var(--line)}
+#calBox .ev-frei .fc-event-main{color:var(--ink)}
+#calBox .ev-done{opacity:.5}
+#calBox .ev-done .fc-event-title{text-decoration:line-through}
+#calBox .fc-daygrid-dot-event .fc-event-title,#calBox .fc-daygrid-dot-event .fc-event-time{color:var(--ink)}
+#calBox .fc-list-event-title,#calBox .fc-list-event-time{color:var(--ink)}
+#calBox .fc-list-day-cushion{background:var(--paper)}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.lg-k{background:var(--warn)}.lg-a{background:var(--accent)}.lg-p{background:var(--mark)}.lg-t{background:var(--ok)}.lg-f{background:var(--line)}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <b>Merk<span>werk</span></b>
+      <span class="muted small">Belegte Prüfungsfragen aus deinem Material</span>
+      <button class="chip who" id="profileChip" type="button" hidden></button>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-v="home" id="tab-home">Heute</button>
+      <button class="tab" role="tab" data-v="learn" id="tab-learn">Lernen</button>
+      <button class="tab" role="tab" data-v="lib" id="tab-lib">Bibliothek</button>
+      <button class="tab" role="tab" data-v="tt" id="tab-tt">Kalender</button>
+      <button class="tab" role="tab" data-v="due" id="tab-due">Abgaben &amp; Klausuren</button>
+    </nav>
+  </div>
+</header>
+<main id="main"></main>
+<div id="modalRoot"></div>
+
+<script>
+/* ---- 02_data.js ---- */
+/* ===================== Kataloge: Bundesländer, Schularten, Fächer, Themen, Studiengänge ===================== */
+const STATES = [
+  {k:"BW",n:"Baden-Württemberg",url:"https://www.bildungsplaene-bw.de/",src:"Bildungsplan 2016 (KM / ZSL Baden-Württemberg)",deep:true},
+  {k:"BY",n:"Bayern",url:"https://www.lehrplanplus.bayern.de/",src:"LehrplanPLUS (ISB Bayern)",deep:true},
+  {k:"BE",n:"Berlin",url:"https://bildungsserver.berlin-brandenburg.de/rlp-online/",src:"Rahmenlehrplan Berlin-Brandenburg"},
+  {k:"BB",n:"Brandenburg",url:"https://bildungsserver.berlin-brandenburg.de/rlp-online/",src:"Rahmenlehrplan Berlin-Brandenburg"},
+  {k:"HB",n:"Bremen",url:"https://www.lis.bremen.de/schulqualitaet/curriculumentwicklung/bildungsplaene-15219",src:"Bildungspläne Bremen (LIS)"},
+  {k:"HH",n:"Hamburg",url:"https://www.hamburg.de/bsfb/bildungsplaene",src:"Bildungspläne Hamburg"},
+  {k:"HE",n:"Hessen",url:"https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula",src:"Kerncurricula Hessen (Kultusministerium)",deep:true},
+  {k:"MV",n:"Mecklenburg-Vorpommern",url:"https://www.bildung-mv.de/",src:"Rahmenpläne MV (Bildungsserver)"},
+  {k:"NI",n:"Niedersachsen",url:"https://cuvo.nibis.de/",src:"Kerncurricula Niedersachsen (NiBiS)"},
+  {k:"NW",n:"Nordrhein-Westfalen",url:"https://lehrplannavigator.nrw.de/",src:"Kernlehrpläne NRW (QUA-LiS, Lehrplannavigator)",deep:true},
+  {k:"RP",n:"Rheinland-Pfalz",url:"https://lehrplaene.bildung-rp.de/",src:"Lehrpläne Rheinland-Pfalz"},
+  {k:"SL",n:"Saarland",url:"https://www.saarland.de/mbk/DE/portale/bildungsserver/home/home_node.html",src:"Lehrpläne Saarland (Bildungsserver)"},
+  {k:"SN",n:"Sachsen",url:"https://www.schulportal.sachsen.de/lplandb/",src:"Lehrplandatenbank Sachsen"},
+  {k:"ST",n:"Sachsen-Anhalt",url:"https://lisa.sachsen-anhalt.de/unterricht/lehrplaene-rahmenrichtlinien",src:"Lehrpläne Sachsen-Anhalt (LISA)"},
+  {k:"SH",n:"Schleswig-Holstein",url:"https://fachportal.lernnetz.de/",src:"Fachanforderungen Schleswig-Holstein"},
+  {k:"TH",n:"Thüringen",url:"https://www.schulportal-thueringen.de/lehrplaene",src:"Lehrpläne Thüringen (Schulportal)"},
+];
+const stateByK = k => STATES.find(s=>s.k===k);
+
+/* Offizielle Einstiegsseiten je Land + Schulart (wo bekannt) */
+const PLAN_LINKS = {
+  BW:{grund:"https://www.bildungsplaene-bw.de/,Lde/LS/BP2016BW/ALLG/GS",haupt:"https://www.bildungsplaene-bw.de/,Lde/LS/BP2016BW/ALLG/SEK1",real:"https://www.bildungsplaene-bw.de/,Lde/LS/BP2016BW/ALLG/SEK1",gms:"https://www.bildungsplaene-bw.de/,Lde/LS/BP2016BW/ALLG/SEK1",gym:"https://www.bildungsplaene-bw.de/,Lde/LS/BP2016BW/ALLG/GYM",bg:"https://www.ls-bw.de/,Lde/Startseite/schulartuebergreifend/bildungsplaene-berufliche-schulen"},
+  BY:{grund:"https://www.lehrplanplus.bayern.de/schulart/grundschule",haupt:"https://www.lehrplanplus.bayern.de/schulart/mittelschule",real:"https://www.lehrplanplus.bayern.de/schulart/realschule",gym:"https://www.lehrplanplus.bayern.de/schulart/gymnasium",fos:"https://www.lehrplanplus.bayern.de/schulart/fachoberschule",bs:"https://www.lehrplanplus.bayern.de/schulart/berufsschule"},
+  NW:{grund:"https://lehrplannavigator.nrw.de/grundschule",haupt:"https://lehrplannavigator.nrw.de/sekundarstufe-i",real:"https://lehrplannavigator.nrw.de/sekundarstufe-i",gms:"https://lehrplannavigator.nrw.de/sekundarstufe-i",gym:"https://lehrplannavigator.nrw.de/sekundarstufe-i",os:"https://lehrplannavigator.nrw.de/sekundarstufe-ii",bs:"https://www.berufsbildung.nrw.de/"},
+  HE:{grund:"https://kultusministerium.hessen.de/Unterricht/Kerncurricula-Primarstufe",haupt:"https://kultusministerium.hessen.de/Unterricht/Sekundarstufe-I-Kerncurricula",real:"https://kultusministerium.hessen.de/Unterricht/Sekundarstufe-I-Kerncurricula",gms:"https://kultusministerium.hessen.de/Unterricht/Sekundarstufe-I-Kerncurricula",gym:"https://kultusministerium.hessen.de/Unterricht/Sekundarstufe-I-Kerncurricula",os:"https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/gymnasiale-oberstufe-ab-schuljahr-20242025-kerncurricula",bg:"https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/berufliches-gymnasium-ab-schuljahr-202425-kerncurricula",fos:"https://kultusministerium.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/fachoberschule"},
+};
+
+/* Schularten; Bezeichnungen je Land */
+const SCHOOL_TYPES = [
+  {k:"grund",n:"Grundschule",grades:[1,2,3,4]},
+  {k:"haupt",n:"Hauptschule",grades:[5,6,7,8,9,10]},
+  {k:"real",n:"Realschule",grades:[5,6,7,8,9,10]},
+  {k:"gms",n:"Gesamt- / Gemeinschaftsschule",grades:[5,6,7,8,9,10,11,12,13]},
+  {k:"gym",n:"Gymnasium",grades:[5,6,7,8,9,10,11,12,13]},
+  {k:"bg",n:"Berufliches Gymnasium",grades:[11,12,13]},
+  {k:"fos",n:"Fachoberschule / Berufsoberschule",grades:[11,12,13]},
+  {k:"bs",n:"Berufsschule (Ausbildung)",grades:[1,2,3,4],gradeLabel:"Ausbildungsjahr"},
+];
+function schoolTypeName(k,state){
+  const L={
+    haupt:{BW:"Werkrealschule / Hauptschule",BY:"Mittelschule",NW:"Hauptschule",HE:"Hauptschule",SN:"Oberschule",TH:"Regelschule",BE:"Integrierte Sekundarschule",HH:"Stadtteilschule"},
+    real:{SN:"Oberschule",TH:"Regelschule",BE:"Integrierte Sekundarschule",HH:"Stadtteilschule",RP:"Realschule plus",SL:"Gemeinschaftsschule"},
+    gms:{BW:"Gemeinschaftsschule",NW:"Gesamtschule / Sekundarschule",HE:"Integrierte Gesamtschule",BY:"Gesamtschule (Schulversuch)",NI:"Integrierte Gesamtschule",SH:"Gemeinschaftsschule",HH:"Stadtteilschule",BE:"Integrierte Sekundarschule"},
+    fos:{BY:"FOS / BOS",BW:"Berufskolleg / Berufsoberschule",NW:"Berufskolleg (Fachoberschule)"},
+    bg:{BY:"Berufliches Gymnasium (nicht in Bayern – siehe FOS/BOS)",NW:"Berufliches Gymnasium (Berufskolleg)"},
+  };
+  return (L[k]&&L[k][state]) || (SCHOOL_TYPES.find(t=>t.k===k)||{}).n || k;
+}
+function gradesFor(type,state){
+  const t=SCHOOL_TYPES.find(x=>x.k===type); if(!t) return [];
+  if(type==="grund" && (state==="BE"||state==="BB")) return [1,2,3,4,5,6];
+  if(type==="gym" && (state==="SN"||state==="TH"||state==="ST"||state==="MV"||state==="SL"||state==="HB"||state==="HH"||state==="BE"||state==="BB")) return [5,6,7,8,9,10,11,12].filter(g=>!(g<7&&(state==="BE"||state==="BB")));
+  if(type==="haupt" && state==="BY") return [5,6,7,8,9,10];
+  if(type==="real" && state==="BY") return [5,6,7,8,9,10];
+  return t.grades;
+}
+function planLink(p){
+  const s=stateByK(p.state); const l=PLAN_LINKS[p.state]||{};
+  const os = (p.type==="gym"||p.type==="gms") && p.grade>=11;
+  return {url:(os&&l.os)||l[p.type]||(s&&s.url)||"https://www.kmk.org/themen/qualitaetssicherung-in-schulen/bildungsstandards.html", src:s?s.src:"Bildungsstandards der KMK"};
+}
+
+/* Fächer-Normalisierung (gemeinsamer Schlüssel in der Bibliothek) */
+function subjKey(name){return String(name||"").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)||"fach";}
+
+/* Fächer je Land, Schulart, Stufe. core = vorausgewählt */
+function subjectsFor(p){
+  const st=p.state, t=p.type, g=Number(p.grade)||0;
+  const out=[]; const add=(n,core=false,topic=null)=>{ if(!out.find(x=>x.n===n)) out.push({n,core,topicKey:topic||n}); };
+  const relig = st==="BY"?["Katholische Religionslehre","Evangelische Religionslehre","Ethik"]: st==="NW"?["Katholische Religionslehre","Evangelische Religionslehre","Praktische Philosophie"]: ["Katholische Religion","Evangelische Religion","Ethik"];
+  const geo = (st==="NW"||st==="HE"||st==="RP"||st==="SL"||st==="NI"||st==="HB")?"Erdkunde":"Geographie";
+  const pol = {BW:"Gemeinschaftskunde",BY:"Politik und Gesellschaft",NW:"Wirtschaft-Politik",HE:"Politik und Wirtschaft",NI:"Politik-Wirtschaft",SN:"Gemeinschaftskunde/Rechtserziehung/Wirtschaft",TH:"Sozialkunde",ST:"Sozialkunde",RP:"Sozialkunde",SL:"Politik",BE:"Politische Bildung",BB:"Politische Bildung",HH:"PGW (Politik/Gesellschaft/Wirtschaft)",HB:"Politik",SH:"Wirtschaft/Politik",MV:"Sozialkunde"}[st]||"Politik";
+  if(t==="grund"){
+    add("Deutsch",true); add("Mathematik",true);
+    add(st==="BY"?"Heimat- und Sachunterricht":"Sachunterricht",true,"Sachunterricht");
+    if(g>=3 || st==="NW" || st==="HE" || st==="BW") add("Englisch",g>=3);
+    add("Kunst"); add("Musik"); add("Sport"); relig.forEach(r=>add(r)); if(st==="BY") add("Werken und Gestalten");
+    return out;
+  }
+  const os = ["gym","gms","bg","fos"].includes(t) && g>=11;
+  if(t==="bs"){
+    ["Deutsch","Englisch","Wirtschafts- und Sozialkunde","Politik / Gemeinschaftskunde","Lernfelder (Fachtheorie)","Fachpraxis","Mathematik / Fachrechnen","Religion / Ethik","Sport"].forEach((n,i)=>add(n,i<4));
+    return out;
+  }
+  add("Deutsch",true); add("Mathematik",true); add("Englisch",true);
+  if(t==="gym"||(t==="gms"&&g>=6)||t==="bg"){ add("Französisch",g>=6&&t==="gym"&&!os); add("Latein"); add("Spanisch"); }
+  if(t==="real"&&st==="BW"&&g>=6) add("Französisch");
+  if(t==="real"&&st==="BY"&&g>=6) add("Französisch");
+  if(os){
+    ["Biologie","Chemie","Physik","Informatik","Geschichte",geo,pol,"Wirtschaft","Philosophie","Psychologie","Pädagogik","Kunst","Musik","Sport"].forEach(n=>add(n, ["Biologie","Geschichte"].includes(n)));
+    if(st==="BW") { add("Literatur und Theater"); add("NwT (Naturwissenschaft und Technik)"); }
+    if(st==="BY") { add("Wirtschaft und Recht"); }
+    if(t==="bg"){ add("Profilfach (z. B. Wirtschaft, Technik, Ernährung, Soziales)",true); add("Volks- und Betriebswirtschaftslehre"); add("Technik"); }
+    if(t==="fos"){ add("Profilfach / Fachrichtung (z. B. Technik, Wirtschaft, Sozialwesen)",true); add("Betriebswirtschaftslehre mit Rechnungswesen"); add("Technologie"); }
+    relig.forEach(r=>add(r)); return out;
+  }
+  // Sekundarstufe I
+  if(g<=6 || (st==="BY" && g<=7)){
+    if(st==="BW") add("BNT (Biologie, Naturphänomene und Technik)",true,"Biologie");
+    else if(st==="BY") add("Natur und Technik",true,"Biologie");
+    else add(t==="gms"&&st==="NW"?"Naturwissenschaften":"Biologie",true,"Biologie");
+  }
+  const msBY = st==="BY"&&t==="haupt";
+  if(!msBY){
+    if(g>=7 || st!=="BW") add("Biologie",g>=7);
+    if(g>=7) add("Physik",true);
+    if(g>=8 || (st==="NW"&&g>=7)) add("Chemie",true);
+  } else if(g>=8) add("Natur und Technik",true,"Biologie");
+  const nwGe = t==="gms"&&st==="NW";
+  if(nwGe){ add("Gesellschaftslehre",true,"Geschichte"); add("Arbeitslehre"); }
+  if(st==="BY"&&t==="haupt"){ add("Geschichte/Politik/Geographie",true,"Geschichte"); add("Wirtschaft und Beruf",true); add("Technik"); add("Ernährung und Soziales"); add("Wirtschaft und Kommunikation"); }
+  else if(!nwGe) { add("Geschichte",g>=6); add(geo,true,"Geographie"); if(g>=7||st==="NW"||st==="HE") add(pol,g>=8,"Politik"); }
+  if(st==="BW"&&g>=7) add("Wirtschaft / Berufs- und Studienorientierung (WBS)",g>=8,"Wirtschaft");
+  if(st==="BY"&&(t==="gym"||t==="real")&&g>=8) add(t==="real"?"Betriebswirtschaftslehre/Rechnungswesen (BwR)":"Wirtschaft und Recht",g>=9,"Wirtschaft");
+  if(st==="BW"&&t==="gym"&&g>=8) { add("Profilfach NwT",false,"Physik"); add("Profilfach IMP (Informatik, Mathematik, Physik)",false,"Informatik"); }
+  if(st==="HE"&&t!=="gym") add("Arbeitslehre");
+  if(st==="BW"&&(t==="real"||t==="gms"||t==="haupt")&&g>=7){ add("Technik"); add("AES (Alltagskultur, Ernährung, Soziales)"); }
+  add("Informatik",(st==="NW"&&g<=6)||(st==="BY"&&t==="gym"&&g>=6&&g<=7)); add("Kunst"); add("Musik"); add("Sport");
+  relig.forEach(r=>add(r));
+  return out;
+}
+
+/* Typische Themen (Orientierung an den Bildungsplänen; Bänder 5-6, 7-8, 9-10, Oberstufe, Grundschule) */
+const TOPICS = {
+  "Mathematik":{
+    gs:["Zahlenraum bis 100 / 1000 / 1 Million","Addition und Subtraktion","Einmaleins","Schriftliche Rechenverfahren","Geometrische Formen und Körper","Größen: Geld, Längen, Zeit, Gewichte","Daten, Häufigkeit und Wahrscheinlichkeit","Muster und Strukturen"],
+    "5-6":["Natürliche Zahlen und Stellenwertsystem","Rechengesetze und Terme","Teilbarkeit, Primzahlen, ggT und kgV","Brüche und Bruchrechnung","Dezimalzahlen","Negative Zahlen","Geometrische Grundbegriffe, Winkel","Achsen- und Punktsymmetrie","Umfang und Flächeninhalt (Rechteck, Dreieck, Parallelogramm)","Quader und Würfel: Oberfläche und Volumen","Größen und Einheiten","Daten erfassen und darstellen"],
+    "7-8":["Terme und Termumformungen","Lineare Gleichungen und Ungleichungen","Prozent- und Zinsrechnung","Proportionale und antiproportionale Zuordnungen","Lineare Funktionen","Lineare Gleichungssysteme","Kongruenz und Dreieckskonstruktionen","Besondere Linien im Dreieck","Kreis: Umfang und Fläche","Prismen und Zylinder","Binomische Formeln","Wahrscheinlichkeit: Laplace-Experimente, Baumdiagramme"],
+    "9-10":["Reelle Zahlen, Wurzeln","Quadratische Funktionen und Gleichungen","Satz des Pythagoras, Satzgruppe","Ähnlichkeit und Strahlensätze","Potenzen und Potenzfunktionen","Exponentialfunktionen und Wachstum","Logarithmus","Trigonometrie (Sinus, Kosinus, Tangens)","Trigonometrische Funktionen","Pyramide, Kegel, Kugel","Mehrstufige Zufallsexperimente, bedingte Wahrscheinlichkeit","Ganzrationale Funktionen"],
+    os:["Grenzwerte und Ableitung","Ableitungsregeln (Produkt-, Ketten-, Quotientenregel)","Kurvendiskussion","Extremwertprobleme","Integralrechnung, Hauptsatz","Flächen zwischen Graphen, Rotationskörper","Exponential- und Logarithmusfunktionen (e-Funktion)","Funktionenscharen","Vektoren, Geraden und Ebenen","Lagebeziehungen, Abstände und Winkel","Matrizen und Übergangsprozesse","Binomialverteilung","Normalverteilung","Hypothesentests"]},
+  "Deutsch":{
+    gs:["Lesen und Leseverstehen","Rechtschreibstrategien","Wortarten: Nomen, Verb, Adjektiv","Satzglieder","Texte planen und schreiben","Erzählen","Gedichte"],
+    "5-6":["Erzählen (Erlebnis-, Fantasieerzählung)","Beschreiben (Vorgang, Gegenstand, Person)","Märchen und Sagen","Fabeln","Gedichte: Reim, Strophe, Metrum","Jugendbuch","Wortarten und Satzglieder","Zeitformen","Rechtschreibung: Groß-/Kleinschreibung, s-Laute","Kommasetzung"],
+    "7-8":["Inhaltsangabe","Argumentieren und Erörtern (einfach)","Bericht","Balladen","Kurzgeschichten","Novellen und Jugendroman","Sachtexte analysieren","Aktiv und Passiv","Konjunktiv I und II, indirekte Rede","Satzgefüge und Nebensätze","Zeitung und Medien"],
+    "9-10":["Textgebundene Erörterung","Interpretation epischer Texte","Gedichtanalyse","Dramenanalyse (z. B. klassisches Drama)","Sachtextanalyse","Rhetorische Mittel","Literaturepochen: Aufklärung bis Romantik","Bewerbung und Lebenslauf","Sprachwandel und Medien"],
+    os:["Interpretation epischer Texte","Gedichtvergleich","Dramenanalyse","Erörterung literarischer Texte","Sachtextanalyse und Erörterung","Literaturepochen (Barock bis Gegenwart)","Sprachreflexion: Spracherwerb, Sprachwandel, Kommunikation","Pflichtlektüren des Abiturs","Rhetorik und politische Rede"]},
+  "Englisch":{
+    gs:["Begrüßung und Vorstellung","Farben, Zahlen, Familie","Schule und Freizeit","Tiere und Natur","Feste im Jahreslauf"],
+    "5-6":["Simple Present","Present Progressive","Simple Past","Going-to-Future und will-Future","Plural und Possessivbegleiter","Adjektive und Steigerung","Fragen mit Fragewörtern","Wortschatz: Schule, Familie, Freizeit","UK: London und Alltag"],
+    "7-8":["Present Perfect vs. Simple Past","Past Progressive","Conditional Clauses I und II","Relative Clauses","Passive","Reported Speech","Gerund und Infinitive","Adverbs","Landeskunde: USA, Schottland, Irland"],
+    "9-10":["Conditional III","Participle Constructions","Past Perfect","Mediation","Comment und Argumentative Essay","Analysing fiction","Landeskunde: Australien, Indien, Kanada","Jugend und Medien"],
+    os:["Globalisierung","The American Dream","Großbritannien: Identity and Brexit","Post-colonial Englishes (z. B. Indien, Nigeria)","Science and Technology / Ethics","Shakespeare","Dystopian Fiction","Text Analysis and Comment","Mediation","Film Analysis"]},
+  "Biologie":{
+    gs:["Pflanzen und Tiere","Körper und Gesundheit","Wasser"],
+    "5-6":["Kennzeichen des Lebendigen","Bau und Funktion von Blütenpflanzen","Fotosynthese (einfach)","Säugetiere und Haustiere","Wirbeltierklassen","Vögel und Fliegen","Ernährung und Verdauung","Atmung und Blutkreislauf","Sinnesorgane","Pubertät und Entwicklung","Ökosystem Wald / Wiese"],
+    "7-8":["Zelle und Mikroskopieren","Einzeller und Vielzeller","Wirbellose: Insekten","Ökosystem See","Nahrungsketten und -netze","Bakterien und Viren","Immunsystem","Sexualität und Verhütung"],
+    "9-10":["Nervensystem und Hormone","Sinnesorgane: Auge und Ohr","Genetik: DNA, Mitose, Meiose","Mendelsche Regeln","Evolution: Darwin, Selektion","Ökologie: Populationen","Stoffwechsel: Enzyme"],
+    os:["Zellbiologie und Biomembranen","Enzyme","Zellatmung","Fotosynthese","Molekulargenetik: Proteinbiosynthese, Genregulation","Gentechnik","Klassische Genetik und Stammbäume","Neurobiologie: Ruhe- und Aktionspotenzial, Synapse","Hormone","Immunbiologie","Ökologie","Evolution und Artbildung"]},
+  "Chemie":{
+    "7-8":["Stoffe und ihre Eigenschaften","Reinstoffe und Gemische, Trennverfahren","Chemische Reaktion und Energie","Verbrennung und Oxidation","Atombau (Dalton, Kern-Hülle-Modell)","Elemente und Periodensystem"],
+    "9-10":["Atombau und Periodensystem","Ionenbindung und Salze","Elektronenpaarbindung und Moleküle","Polarität und Wasserstoffbrücken","Säuren und Basen, pH-Wert","Redoxreaktionen","Kohlenwasserstoffe (Alkane, Alkene)","Alkohole und Carbonsäuren","Stöchiometrie: Stoffmenge und Molare Masse"],
+    os:["Reaktionsgeschwindigkeit","Chemisches Gleichgewicht, Massenwirkungsgesetz","Säure-Base-Gleichgewichte, Titration, Puffer","Elektrochemie: Galvanische Zellen, Elektrolyse","Organische Chemie: Stoffklassen und Reaktionsmechanismen","Aromaten","Kunststoffe","Fette, Kohlenhydrate, Proteine","Energetik: Enthalpie, Entropie"]},
+  "Physik":{
+    "5-6":["Magnetismus","Einfache Stromkreise","Wärme und Temperatur","Licht und Schatten","Schall"],
+    "7-8":["Optik: Reflexion, Brechung, Linsen","Elektrischer Stromkreis: Stromstärke, Spannung","Widerstand und ohmsches Gesetz","Mechanik: Geschwindigkeit","Kraft und Masse","Dichte","Druck","Energie und Energieerhaltung"],
+    "9-10":["Gleichförmige und beschleunigte Bewegung","Newtonsche Gesetze","Arbeit, Energie, Leistung","Elektromagnetismus und Induktion","Kernphysik: Radioaktivität","Thermodynamik: Wärme und innere Energie","Schwingungen und Wellen"],
+    os:["Kinematik und Dynamik","Impuls und Stoßprozesse","Kreisbewegung und Gravitation","Elektrisches Feld, Kondensator","Magnetisches Feld, Lorentzkraft","Induktion","Mechanische und elektromagnetische Schwingungen","Wellen, Interferenz","Quantenobjekte: Photoeffekt, Doppelspalt","Atomphysik","Kernphysik","Spezielle Relativitätstheorie"]},
+  "Geschichte":{
+    "5-6":["Was ist Geschichte? Quellen und Zeitrechnung","Ur- und Frühgeschichte","Ägypten als Hochkultur","Antikes Griechenland","Römisches Reich"],
+    "7-8":["Frühes Mittelalter und Frankenreich","Lehnswesen und Grundherrschaft","Stadt im Mittelalter","Kreuzzüge","Renaissance und Humanismus","Entdeckungen und Eroberungen","Reformation","Dreißigjähriger Krieg","Absolutismus","Aufklärung","Amerikanische Revolution","Französische Revolution"],
+    "9-10":["Napoleon und Wiener Kongress","Revolution 1848/49","Industrialisierung und soziale Frage","Reichsgründung 1871 und Kaiserreich","Imperialismus","Erster Weltkrieg","Weimarer Republik","Nationalsozialismus","Zweiter Weltkrieg und Holocaust","Kalter Krieg","Deutsche Teilung und Wiedervereinigung"],
+    os:["Modernisierung im 19. Jahrhundert","Nationalismus und Nationalstaatsbildung","Weimarer Republik: Krisen und Scheitern","NS-Herrschaft und Holocaust","Bipolare Welt nach 1945","Bundesrepublik und DDR","Europäische Einigung","Erinnerungskultur","Antike und Mittelalter als Grundlagen Europas"]},
+  "Geographie":{
+    "5-6":["Orientierung: Gradnetz, Karten, Atlas","Deutschland: Landschaften","Leben in der Stadt und auf dem Land","Landwirtschaft","Wetter und Klima (Grundlagen)","Tourismus"],
+    "7-8":["Klima- und Vegetationszonen","Plattentektonik, Vulkanismus und Erdbeben","Tropischer Regenwald","Wüsten und Desertifikation","Polargebiete","Europa: Räume und Wirtschaft"],
+    "9-10":["Bevölkerungsentwicklung und Migration","Globalisierung und Welthandel","Entwicklungsländer und Entwicklungszusammenarbeit","Klimawandel","Stadtentwicklung","Ressourcen und Energie"],
+    os:["Endogene und exogene Kräfte","Klimasystem und Klimawandel","Wirtschaftsräume im Wandel","Globalisierung","Stadtgeographie","Bevölkerung und Migration","Nachhaltige Raumnutzung","Entwicklungstheorien"]},
+  "Politik":{
+    "7-8":["Zusammenleben in der Familie und Schule","Kinderrechte","Gemeinde und kommunale Politik","Medien und Meinungsbildung"],
+    "9-10":["Grundgesetz und Grundrechte","Politisches System der Bundesrepublik","Wahlen und Parteien","Gesetzgebung","Rechtsstaat und Rechtsprechung","Sozialstaat","Europäische Union","Internationale Konflikte"],
+    os:["Verfassungsorgane und Gewaltenteilung","Demokratietheorien","Parteien und Wahlen","Föderalismus","Europäische Union: Institutionen und Politik","Internationale Beziehungen, UNO, NATO","Soziale Marktwirtschaft","Wirtschaftspolitik und Konjunktur","Sozialstruktur und soziale Ungleichheit"]},
+  "Wirtschaft":{
+    "7-8":["Bedürfnisse und Güter","Verbraucher und Konsum","Taschengeld und Budget"],
+    "9-10":["Markt und Preisbildung","Wirtschaftskreislauf","Unternehmen und Betriebe","Berufsorientierung und Arbeitswelt","Geld und Banken","Verträge und Recht"],
+    os:["Marktformen und Preisbildung","Konjunktur und Wirtschaftspolitik","Geldpolitik der EZB","Außenhandel und Globalisierung","Unternehmensgründung und Rechtsformen","Investition und Finanzierung","Rechnungswesen"]},
+  "Informatik":{
+    "5-6":["Daten und Codierung","Algorithmen im Alltag","Einführung in Scratch / blockbasiertes Programmieren","Sicherer Umgang mit dem Internet","Dateien und Ordner"],
+    "7-8":["Variablen, Verzweigungen, Schleifen","Objekte und Klassen (Grundlagen)","Tabellenkalkulation","Datenschutz","Netzwerke und Internet"],
+    "9-10":["Programmieren mit Python","Datenbanken und SQL","Verschlüsselung","Rechneraufbau und Binärzahlen","Automaten"],
+    os:["Objektorientierte Modellierung (UML)","Datenstrukturen: Listen, Bäume, Graphen","Sortier- und Suchalgorithmen","Rekursion","Relationale Datenbanken und SQL","Formale Sprachen und Automaten","Kryptologie","Rechnernetze und Protokolle","Theoretische Informatik: Berechenbarkeit"]},
+  "Sachunterricht":{gs:["Körper und Gesundheit","Pflanzen und Tiere","Wetter und Jahreszeiten","Wasser","Strom und Magnetismus","Verkehrserziehung","Heimat, Orientierung und Karten","Früher und heute"]},
+  "Französisch":{"5-6":["Présent: être, avoir, -er-Verben","Artikel und Plural","Zahlen, Uhrzeit, Datum","Wortschatz: Familie, Schule, Freizeit"],"7-8":["Passé composé","Imparfait","Futur composé und simple","Objektpronomen","Relativsätze"],"9-10":["Subjonctif","Conditionnel","Passiv","Landeskunde: Frankreich und Frankophonie"],os:["Vivre ensemble / Banlieues","Relations franco-allemandes","La Francophonie","Analyse de texte","Médiation"]},
+  "Latein":{"5-6":["a- und o-Deklination","Präsens und Imperfekt","Kasuslehre"],"7-8":["Perfekt und Plusquamperfekt","Partizipien und PC","Ablativus absolutus","AcI"],"9-10":["Konjunktiv und Gliedsätze","nd-Formen (Gerundium, Gerundiv)","Ovid, Caesar"],os:["Cicero","Seneca","Vergil: Aeneis","Rhetorik und Philosophie in Rom"]},
+};
+/* Schlüssel für Themenbänder */
+function topicBand(p){
+  if(!p||p.track!=="schule") return null;
+  if(p.type==="grund") return "gs";
+  const g=Number(p.grade)||0;
+  if(p.type==="bs") return "os";
+  if(g>=11) return "os"; if(g>=9) return "9-10"; if(g>=7) return "7-8"; return "5-6";
+}
+function topicAlias(subject){
+  const s=subject.toLowerCase();
+  if(s.includes("mathe")) return "Mathematik";
+  if(s.startsWith("deutsch")) return "Deutsch";
+  if(s.startsWith("englisch")) return "Englisch";
+  if(s.includes("biolog")||s.startsWith("bnt")||s.includes("natur und technik")||s==="naturwissenschaften") return "Biologie";
+  if(s.startsWith("chemie")) return "Chemie";
+  if(s.startsWith("physik")||s.includes("nwt")) return "Physik";
+  if(s.startsWith("geschicht")||s.startsWith("gesellschaftslehre")) return "Geschichte";
+  if(s.startsWith("geograph")||s.startsWith("erdkunde")) return "Geographie";
+  if(s.includes("politik")||s.includes("gemeinschaftskunde")||s.includes("sozialkunde")||s.startsWith("pgw")) return "Politik";
+  if(s.includes("wirtschaft")||s.includes("wbs")||s.includes("bwr")) return "Wirtschaft";
+  if(s.includes("informatik")||s.startsWith("profilfach imp")) return "Informatik";
+  if(s.includes("sachunterricht")) return "Sachunterricht";
+  if(s.startsWith("franz")) return "Französisch";
+  if(s.startsWith("latein")) return "Latein";
+  return null;
+}
+
+/* Studium: typische Module (Orientierung; das Modulhandbuch deiner Hochschule ist maßgeblich) */
+const PROGRAMS = {
+  "Informatik":["Grundlagen der Programmierung","Algorithmen und Datenstrukturen","Analysis","Lineare Algebra","Diskrete Mathematik / Logik","Theoretische Informatik: Automaten und formale Sprachen","Berechenbarkeit und Komplexität","Rechnerarchitektur und Digitaltechnik","Betriebssysteme","Rechnernetze","Datenbanksysteme","Softwaretechnik","IT-Sicherheit","Wahrscheinlichkeitstheorie und Statistik","Künstliche Intelligenz","Programmierparadigmen"],
+  "Wirtschaftsinformatik":["Einführung in die Wirtschaftsinformatik","Programmierung","Datenbanken","Geschäftsprozessmanagement","Einführung in die BWL","Volkswirtschaftslehre","Mathematik für Wirtschaftswissenschaften","Statistik","Externes Rechnungswesen","Informationsmanagement","Softwareentwicklung","ERP-Systeme","IT-Projektmanagement"],
+  "Betriebswirtschaftslehre":["Einführung in die BWL","Buchführung / Externes Rechnungswesen","Kosten- und Leistungsrechnung","Mikroökonomik","Makroökonomik","Wirtschaftsmathematik","Statistik","Marketing","Investition und Finanzierung","Personal und Organisation","Wirtschaftsprivatrecht","Produktion und Logistik","Controlling","Betriebliche Steuerlehre"],
+  "Volkswirtschaftslehre":["Mikroökonomik","Makroökonomik","Mathematik für Ökonomen","Statistik","Ökonometrie","Finanzwissenschaft","Geld und Währung","Internationale Wirtschaft","Spieltheorie","Wirtschaftspolitik"],
+  "Maschinenbau":["Höhere Mathematik I–III","Technische Mechanik: Statik","Technische Mechanik: Elastostatik","Technische Mechanik: Dynamik","Konstruktionslehre / Maschinenelemente","Werkstoffkunde","Technische Thermodynamik","Strömungslehre","Elektrotechnik für Maschinenbauer","Fertigungstechnik","Regelungstechnik","Messtechnik","Informatik für Ingenieure"],
+  "Elektrotechnik":["Höhere Mathematik","Grundlagen der Elektrotechnik I–III","Physik","Digitaltechnik","Elektronische Bauelemente","Signale und Systeme","Elektromagnetische Felder","Regelungstechnik","Messtechnik","Nachrichtentechnik","Programmieren in C","Leistungselektronik"],
+  "Mathematik":["Analysis I","Analysis II","Lineare Algebra I","Lineare Algebra II","Algebra","Stochastik","Numerik","Funktionentheorie","Gewöhnliche Differentialgleichungen","Topologie","Maß- und Integrationstheorie","Programmieren für Mathematiker"],
+  "Physik":["Experimentalphysik I: Mechanik","Experimentalphysik II: Elektrodynamik und Optik","Experimentalphysik III: Atom- und Quantenphysik","Theoretische Mechanik","Theoretische Elektrodynamik","Quantenmechanik","Thermodynamik und Statistische Physik","Mathematische Methoden der Physik","Festkörperphysik","Kern- und Teilchenphysik","Physikalisches Praktikum"],
+  "Chemie":["Allgemeine und Anorganische Chemie","Organische Chemie","Physikalische Chemie","Analytische Chemie","Mathematik für Chemiker","Physik für Chemiker","Biochemie","Theoretische Chemie","Makromolekulare Chemie","Toxikologie und Rechtskunde"],
+  "Biologie":["Zellbiologie","Genetik","Botanik","Zoologie","Mikrobiologie","Biochemie","Ökologie","Evolutionsbiologie","Tier- und Pflanzenphysiologie","Molekularbiologie","Allgemeine Chemie","Organische Chemie","Physik für Biologen","Statistik für Biologen"],
+  "Psychologie":["Einführung in die Psychologie","Allgemeine Psychologie I: Wahrnehmung und Kognition","Allgemeine Psychologie II: Lernen, Emotion, Motivation","Biologische Psychologie","Entwicklungspsychologie","Sozialpsychologie","Differentielle und Persönlichkeitspsychologie","Statistik I","Statistik II","Forschungsmethoden","Psychologische Diagnostik","Klinische Psychologie","Arbeits- und Organisationspsychologie","Pädagogische Psychologie"],
+  "Rechtswissenschaft":["BGB Allgemeiner Teil","Schuldrecht AT","Schuldrecht BT","Sachenrecht","Familien- und Erbrecht","Handels- und Gesellschaftsrecht","Arbeitsrecht","Zivilprozessrecht","Strafrecht AT","Strafrecht BT","Strafprozessrecht","Staatsorganisationsrecht","Grundrechte","Allgemeines Verwaltungsrecht","Verwaltungsprozessrecht","Europarecht","Rechtsgeschichte"],
+  "Medizin":["Anatomie","Histologie","Physiologie","Biochemie / Molekularbiologie","Medizinische Psychologie und Soziologie","Physik für Mediziner","Chemie für Mediziner","Biologie für Mediziner","Pathologie","Pharmakologie","Mikrobiologie","Innere Medizin","Chirurgie","Neurologie"],
+  "Lehramt (Bildungswissenschaften)":["Einführung in die Bildungswissenschaften","Schulpädagogik","Pädagogische Psychologie","Entwicklungspsychologie","Diagnostik und Förderung","Inklusion und Heterogenität","Fachdidaktik","Deutsch als Zweitsprache","Schulpraktikum (Reflexion)"],
+  "Soziale Arbeit":["Theorien der Sozialen Arbeit","Recht in der Sozialen Arbeit","Psychologie","Soziologie","Methoden der Sozialen Arbeit","Sozialpolitik","Kinder- und Jugendhilfe","Empirische Sozialforschung"],
+  "Germanistik":["Einführung in die Literaturwissenschaft","Einführung in die Sprachwissenschaft","Ältere deutsche Literatur","Neuere deutsche Literatur","Grammatik des Deutschen","Literaturgeschichte"],
+  "Pflege / Gesundheit":["Anatomie und Physiologie","Pflegewissenschaft","Krankheitslehre","Pharmakologie","Hygiene","Kommunikation und Beratung","Gesundheitsökonomie","Ethik"],
+};
+
+/* ---- 03_example.js ---- */
+/* ===================== Beispiel: Photosynthese (selbst geschrieben, als Beispiel gekennzeichnet) ===================== */
+const EXAMPLE_TEXT = `Photosynthese – Grundlagen
+
+Die Photosynthese ist der Prozess, bei dem grüne Pflanzen, Algen und Cyanobakterien Lichtenergie in chemische Energie umwandeln. Aus Kohlenstoffdioxid und Wasser entstehen dabei Glucose und Sauerstoff. Die vereinfachte Summengleichung lautet: 6 CO2 + 6 H2O → C6H12O6 + 6 O2.
+
+Ort der Photosynthese
+
+Die Photosynthese findet in den Chloroplasten statt. Chloroplasten sind von einer Doppelmembran umgeben. Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma. Der grüne Farbstoff Chlorophyll sitzt in den Thylakoidmembranen und absorbiert vor allem rotes und blaues Licht. Grünes Licht wird größtenteils reflektiert, deshalb erscheinen Blätter grün.
+
+Lichtabhängige Reaktionen
+
+Die lichtabhängigen Reaktionen laufen an den Thylakoidmembranen ab. Dort wird Wasser unter Lichteinwirkung gespalten; diesen Vorgang nennt man Fotolyse. Der dabei frei werdende Sauerstoff stammt also aus dem Wasser und nicht aus dem Kohlenstoffdioxid. Die Energie des Lichts wird in Form von ATP und NADPH gespeichert, die anschließend für den Aufbau von Zucker gebraucht werden.
+
+Lichtunabhängige Reaktionen (Calvin-Zyklus)
+
+Im Stroma läuft der Calvin-Zyklus ab. Das Enzym Rubisco bindet dabei Kohlenstoffdioxid an ein Akzeptormolekül. Mithilfe von ATP und NADPH aus den lichtabhängigen Reaktionen wird daraus schrittweise Zucker aufgebaut. Der Calvin-Zyklus braucht kein Licht direkt, ist aber auf die Produkte der lichtabhängigen Reaktionen angewiesen und kommt im Dunkeln deshalb bald zum Erliegen.
+
+Einflussfaktoren
+
+Die Photosyntheserate hängt von der Lichtintensität, der Kohlenstoffdioxid-Konzentration und der Temperatur ab. Steigt die Lichtintensität, nimmt die Rate zunächst zu, bis ein anderer Faktor begrenzt. Dieser Faktor wird als begrenzender Faktor bezeichnet. Bei zu hohen Temperaturen sinkt die Rate wieder, weil Enzyme wie Rubisco ihre Struktur verlieren.
+
+Bedeutung
+
+Die Photosynthese liefert den Sauerstoff, den die meisten Lebewesen zur Zellatmung brauchen. Gleichzeitig bildet die produzierte Glucose die Grundlage fast aller Nahrungsketten. Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird.`;
+
+const EXAMPLE_QUESTIONS = [
+ {type:"mc",afb:"I",prompt:"Wo genau sitzt das Chlorophyll in der Pflanzenzelle?",options:["In den Thylakoidmembranen","Im Stroma","In der äußeren Doppelmembran","Im Zellkern"],answer:0,quote:"Der grüne Farbstoff Chlorophyll sitzt in den Thylakoidmembranen",explain:"Chlorophyll ist in die Thylakoidmembranen eingelagert."},
+ {type:"mc",afb:"I",prompt:"Welche Produkte entstehen laut Summengleichung bei der Photosynthese?",options:["Glucose und Sauerstoff","Kohlenstoffdioxid und Wasser","ATP und Wasser","Sauerstoff und Kohlenstoffdioxid"],answer:0,quote:"Aus Kohlenstoffdioxid und Wasser entstehen dabei Glucose und Sauerstoff.",explain:"Edukte sind CO2 und H2O, Produkte Glucose und O2."},
+ {type:"mc",afb:"II",prompt:"Woher stammt der bei der Photosynthese frei werdende Sauerstoff?",options:["Aus dem Wasser","Aus dem Kohlenstoffdioxid","Aus der Glucose","Aus dem Chlorophyll"],answer:0,quote:"Der dabei frei werdende Sauerstoff stammt also aus dem Wasser und nicht aus dem Kohlenstoffdioxid.",explain:"Bei der Fotolyse wird Wasser gespalten."},
+ {type:"mc",afb:"II",prompt:"Warum kommt der Calvin-Zyklus im Dunkeln bald zum Erliegen?",options:["Weil ihm ATP und NADPH aus den lichtabhängigen Reaktionen fehlen","Weil Rubisco nur bei Licht gebildet wird","Weil im Dunkeln kein Kohlenstoffdioxid vorhanden ist","Weil das Stroma im Dunkeln zerfällt"],answer:0,quote:"ist aber auf die Produkte der lichtabhängigen Reaktionen angewiesen und kommt im Dunkeln deshalb bald zum Erliegen",explain:"Der Zyklus braucht ATP und NADPH, die nur bei Licht entstehen."},
+ {type:"mc",afb:"III",prompt:"Eine Pflanze steht bei optimalem Licht und optimaler Temperatur, aber wenig Kohlenstoffdioxid. Was beschreibt die Situation am besten?",options:["Kohlenstoffdioxid ist der begrenzende Faktor","Licht ist der begrenzende Faktor","Die Temperatur ist der begrenzende Faktor","Es gibt keinen begrenzenden Faktor"],answer:0,quote:"Dieser Faktor wird als begrenzender Faktor bezeichnet.",explain:"Der Faktor, der knapp ist, begrenzt die Rate."},
+ {type:"text",afb:"I",prompt:"Nenne die drei Faktoren, von denen die Photosyntheserate abhängt.",model_answer:"Lichtintensität, Kohlenstoffdioxid-Konzentration und Temperatur.",key_points:["Lichtintensität","Kohlenstoffdioxid-Konzentration","Temperatur"],quote:"Die Photosyntheserate hängt von der Lichtintensität, der Kohlenstoffdioxid-Konzentration und der Temperatur ab."},
+ {type:"text",afb:"II",prompt:"Erkläre, warum Blätter grün erscheinen.",model_answer:"Chlorophyll absorbiert vor allem rotes und blaues Licht; grünes Licht wird größtenteils reflektiert und gelangt so ins Auge.",key_points:["Chlorophyll absorbiert rot und blau","grünes Licht wird reflektiert"],quote:"Grünes Licht wird größtenteils reflektiert, deshalb erscheinen Blätter grün."},
+ {type:"text",afb:"II",prompt:"Beschreibe den Zusammenhang zwischen lichtabhängigen Reaktionen und Calvin-Zyklus.",model_answer:"Die lichtabhängigen Reaktionen speichern Lichtenergie in ATP und NADPH. Der Calvin-Zyklus nutzt diese Stoffe, um aus Kohlenstoffdioxid Zucker aufzubauen.",key_points:["ATP und NADPH entstehen in den lichtabhängigen Reaktionen","Calvin-Zyklus verbraucht ATP und NADPH zum Zuckeraufbau"],quote:"Mithilfe von ATP und NADPH aus den lichtabhängigen Reaktionen wird daraus schrittweise Zucker aufgebaut."},
+ {type:"text",afb:"III",prompt:"Beurteile die Aussage: „Bei sehr hohen Temperaturen betreiben Pflanzen besonders viel Photosynthese.“",model_answer:"Die Aussage ist falsch. Bei zu hohen Temperaturen sinkt die Rate, weil Enzyme wie Rubisco ihre Struktur verlieren.",key_points:["Aussage ist falsch","Rate sinkt bei zu hohen Temperaturen","Enzyme wie Rubisco verlieren ihre Struktur"],quote:"Bei zu hohen Temperaturen sinkt die Rate wieder, weil Enzyme wie Rubisco ihre Struktur verlieren."},
+ {type:"match",afb:"I",prompt:"Ordne jedem Begriff die passende Beschreibung zu.",pairs:[{left:"Thylakoide",right:"gestapelte Membransäckchen im Chloroplasten"},{left:"Stroma",right:"Grundsubstanz, in der der Calvin-Zyklus abläuft"},{left:"Fotolyse",right:"Spaltung von Wasser unter Lichteinwirkung"},{left:"Rubisco",right:"Enzym, das Kohlenstoffdioxid bindet"}],quote:"Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma."},
+ {type:"match",afb:"II",prompt:"Ordne jedem Vorgang den Ort zu, an dem er abläuft.",pairs:[{left:"Lichtabhängige Reaktionen",right:"Thylakoidmembranen"},{left:"Calvin-Zyklus",right:"Stroma"},{left:"Photosynthese insgesamt",right:"Chloroplasten"}],quote:"Die lichtabhängigen Reaktionen laufen an den Thylakoidmembranen ab."},
+ {type:"match",afb:"II",prompt:"Ordne zu: Was wird verbraucht, was entsteht?",pairs:[{left:"Photosynthese verbraucht",right:"Kohlenstoffdioxid und Wasser"},{left:"Photosynthese erzeugt",right:"Glucose und Sauerstoff"},{left:"Zellatmung erzeugt",right:"Kohlenstoffdioxid, Wasser und Energie"}],quote:"Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird."},
+ {type:"cloze",afb:"I",prompt:"Die Photosynthese findet in den ___ statt. Diese sind von einer ___ umgeben.",blanks:[["Chloroplasten"],["Doppelmembran"]],quote:"Die Photosynthese findet in den Chloroplasten statt. Chloroplasten sind von einer Doppelmembran umgeben."},
+ {type:"cloze",afb:"I",prompt:"Die Energie des Lichts wird in Form von ___ und ___ gespeichert.",blanks:[["ATP"],["NADPH"]],quote:"Die Energie des Lichts wird in Form von ATP und NADPH gespeichert"},
+ {type:"cloze",afb:"II",prompt:"Die ___ kehrt die Summengleichung der Photosynthese im Prinzip um. Die produzierte ___ bildet die Grundlage fast aller Nahrungsketten.",blanks:[["Zellatmung"],["Glucose","Glukose"]],quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um"},
+];
+
+/* ---- 04_core.js ---- */
+/* ===================== Grundlagen ===================== */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rid = (p="") => p+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const DAYS=["Mo","Di","Mi","Do","Fr","Sa","So"];
+const DAYS_LONG=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+const pad=n=>String(n).padStart(2,"0");
+const isoDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseISO=s=>{const [y,m,d]=String(s).split("-").map(Number);return new Date(y,(m||1)-1,d||1);};
+const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
+const daysBetween=(a,b)=>Math.round((parseISO(isoDate(b))-parseISO(isoDate(a)))/864e5);
+const fmtDate=(s,opt={weekday:"short",day:"numeric",month:"short"})=>parseISO(s).toLocaleDateString("de-DE",opt);
+const wd=d=>(d.getDay()+6)%7; // Mo=0
+const toMin=t=>{const [h,m]=String(t||"0:0").split(":").map(Number);return (h||0)*60+(m||0);};
+const fromMin=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+
+function toast(msg,ms=2600){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms);}
+function modal(html,onMount){
+  const root=$("#modalRoot"); root.innerHTML=`<div class="overlay" id="ov"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const close=()=>{root.innerHTML="";};
+  $("#ov").addEventListener("click",e=>{if(e.target.id==="ov")close();});
+  root.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",close));
+  onMount&&onMount(root.querySelector(".modal"),close);
+  return close;
+}
+function confirmBox(text,okLabel="Löschen"){return new Promise(res=>{modal(`<h3>${esc(text)}</h3><div class="row"><button class="btn danger" id="cOk">${esc(okLabel)}</button><button class="btn" data-close>Abbrechen</button></div>`,(m,close)=>{$("#cOk",m).onclick=()=>{close();res(true)};m.querySelector("[data-close]").addEventListener("click",()=>res(false));});});}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast("Kopiert");}catch{toast("Kopieren nicht möglich – bitte markieren und kopieren");}}
+
+/* ---------- Speicher: localStorage (App-Zustand) + IndexedDB (Material) ---------- */
+const LS_KEY="merkwerk.v2";
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;}};
+const idb={
+  _db:null,
+  open(){ if(this._db) return Promise.resolve(this._db);
+    return new Promise((res,rej)=>{ try{ const r=indexedDB.open("merkwerk",1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
+  async all(){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("sets").objectStore("sets").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}catch{ return lsGet(LS_KEY+".sets",[]); } },
+  async put(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ const all=lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==v.id); all.push(v); if(!lsSet(LS_KEY+".sets",all)) toast("Speicher voll – sehr große Dateien müssen nach dem Neuladen evtl. neu hochgeladen werden"); } },
+  async del(id){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ lsSet(LS_KEY+".sets",lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==id)); } },
+};
+
+const DEFAULT_STATE = () => ({
+  v:2, updatedAt:0,
+  profile:null,            // {track:'schule'|'uni', state, type, grade, uni, program, semester}
+  mySubjects:[],           // Namen
+  activeSet:null,
+  timetable:{ days:5, slots:null, entries:[] }, // entries: {id, day, start, end, subject, room, teacher, week:'' | 'A' | 'B'}
+  items:[],                // Abgaben/Klausuren
+  events:[],               // eigene Termine und freie Tage (Kalender)
+  ttMode:"cal",
+  remind:{ klausur:true, abgabe:true, klausurDays:[14,7,1], abgabeDays:[3,1,0] },
+  dismissed:{},            // Erinnerung-ID -> true
+  lastView:"home",
+});
+let S = Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {}));
+let SETS = []; // Lernsets inkl. Text (aus IndexedDB)
+
+let saveTimer=null;
+function save(remote=true){
+  S.updatedAt=Date.now(); lsSet(LS_KEY,S);
+  if(remote){ clearTimeout(saveTimer); saveTimer=setTimeout(syncUp,1500); }
+}
+
+/* ---------- Claude-Fähigkeiten ---------- */
+const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false};
+async function initCaps(){
+  if(!window.claude||!window.claude.use){ CAP.ready=true; return; }
+  const [sample,db,user,downloads]=await Promise.all(["sample","db","user","downloads"].map(n=>window.claude.use(n).catch(()=>null)));
+  Object.assign(CAP,{sample,db,user,downloads});
+  if(sample){ try{ const l=await sample.limits(); CAP.images=l.images||null; }catch{} }
+  if(user){ try{ CAP.uid=await user.id(); CAP.isOwner=await user.isOwner(); CAP.canWrite=await user.can("data.write"); }catch{} }
+  CAP.ready=true;
+  await syncDown();
+  render();
+}
+function sampleErr(e){
+  const c=e&&e.code;
+  if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Merkwerk in claude.ai und erlaube die Nutzung.";
+  if(c==="rate_limited") return "Zu viele Anfragen oder Nutzungslimit erreicht. Versuch es in ein paar Minuten noch einmal.";
+  if(c==="prompt_too_large") return "Das Material ist für eine Anfrage zu groß. Teile es in kleinere Lernsets auf.";
+  if(c==="invalid_json") return "Claudes Antwort war nicht lesbar. Versuch es noch einmal.";
+  if(c==="images_unavailable"||c==="image_rejected") return "Bilder können hier nicht gelesen werden. Versuch ein anderes Format (JPG oder PNG).";
+  if(c==="refused") return "Claude hat diese Anfrage abgelehnt. Prüfe das Material.";
+  if(c==="session_expired") return "Bitte melde dich bei claude.ai erneut an.";
+  return "Verbindung zu Claude unterbrochen. Versuch es noch einmal.";
+}
+const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Funktion braucht Merkwerk Claude. Das funktioniert nur, wenn du die Seite in claude.ai öffnest. Beim ersten Mal fragt sie nach einer Freigabe; die Nutzung zählt zu deinem Claude-Kontingent.</div>`;
+
+/* ---------- Geräteübergreifend: privater Bereich in der Datenbank ---------- */
+let syncing=false;
+async function syncDown(){
+  if(!CAP.db||!CAP.uid) return;
+  try{
+    const snap=await CAP.db.doc(`data/users/${CAP.uid}/app`).get();
+    if(snap.exists){ const r=snap.data(); if(r && (r.updatedAt||0) > (S.updatedAt||0)){ S=Object.assign(DEFAULT_STATE(), r.state||{}); S.updatedAt=r.updatedAt; lsSet(LS_KEY,S); } }
+  }catch{}
+}
+async function syncUp(){
+  if(!CAP.db||!CAP.uid||syncing) return; syncing=true;
+  try{ const st=JSON.parse(JSON.stringify(S)); await CAP.db.doc(`data/users/${CAP.uid}/app`).set({updatedAt:S.updatedAt,state:st}); }catch(e){}
+  syncing=false;
+}
+
+/* ---------- Ansichten / Navigation ---------- */
+const VIEWS={};
+let cleanup=[];
+function go(v,arg){
+  cleanup.forEach(f=>{try{f()}catch{}}); cleanup=[];
+  S.lastView=v; save(false);
+  $$(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.v===v)));
+  ROUTE.v=v; ROUTE.arg=arg; render();
+  window.scrollTo({top:0});
+}
+const ROUTE={v:S.lastView||"home",arg:null};
+function render(){
+  const m=$("#main"); const fn=VIEWS[ROUTE.v]||VIEWS.home;
+  fn(m,ROUTE.arg);
+  renderProfileChip();
+}
+function renderProfileChip(){
+  const c=$("#profileChip"); const p=S.profile;
+  if(!p){c.hidden=true;return;}
+  c.hidden=false; c.textContent=profileLabel(p);
+  c.onclick=()=>openWizard();
+}
+function profileLabel(p){
+  if(!p) return "";
+  if(p.track==="uni") return [p.uni||"Studium",p.program,p.semester?p.semester+". Sem.":""].filter(Boolean).join(" · ");
+  const t=SCHOOL_TYPES.find(x=>x.k===p.type);
+  return [schoolTypeName(p.type,p.state),(stateByK(p.state)||{}).n,(t&&t.gradeLabel? p.grade+". "+t.gradeLabel : "Klasse "+p.grade)].join(" · ");
+}
+
+/* ---- 05_learn.js ---- */
+/* ===================== Lernen (Merkwerk-Kern) ===================== */
+const TYPE_LABEL={mc:"Multiple Choice",text:"Schriftliche Antwort",match:"Zuordnung",cloze:"Lückentext"};
+const AFB_LABEL={I:"AFB I · Wiedergeben",II:"AFB II · Zusammenhänge herstellen",III:"AFB III · Anwenden und Beurteilen"};
+const BASE_MIX={mc:5,text:4,match:3,cloze:3};
+function mixFor(n){ if(n>=15) return {...BASE_MIX}; const k=n/15; const m={mc:Math.max(1,Math.round(5*k)),text:Math.max(1,Math.round(4*k)),match:Math.max(1,Math.round(3*k)),cloze:Math.max(1,Math.round(3*k))}; let s=m.mc+m.text+m.match+m.cloze; while(s>n){ const t=["mc","match","cloze","text"].find(x=>m[x]>1); if(!t)break; m[t]--; s--; } return m; }
+
+/* ---------- Text-Normalisierung für die Zitatprüfung ---------- */
+const norm=s=>String(s||"").normalize("NFKC").toLowerCase().replace(/­/g,"");
+const relax=s=>norm(s).replace(/ß/g,"ss").replace(/[^a-z0-9äöü]+/g,"");
+
+/* ---------- Abschnitte bilden ---------- */
+function makeSections(files){
+  const out=[];
+  files.forEach((f,fi)=>{
+    const paras=String(f.text||"").replace(/\r/g,"").split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+    let buf="";
+    const flush=()=>{ if(buf.trim()) out.push({id:"S"+(out.length+1),fileId:f.id,fileName:f.name,text:buf.trim()}); buf=""; };
+    for(const p of paras){
+      if(p.length>1500){ flush(); const sents=p.split(/(?<=[.!?])\s+/); for(const s of sents){ if((buf+" "+s).length>900) flush(); buf+=(buf?" ":"")+s; } flush(); continue; }
+      if(buf && (buf.length+p.length)>900) flush();
+      buf+=(buf?"\n\n":"")+p;
+      if(buf.length>=420) flush();
+    }
+    flush();
+  });
+  return out;
+}
+function coverageOf(set){ const n=set.sections.length; if(!n) return {pct:0,done:0,n:0}; const done=set.sections.filter(s=>(set.coverage||{})[s.id]>0).length; return {pct:Math.round(done/n*100),done,n}; }
+function locateQuote(set,quote){
+  const rq=relax(quote); if(rq.length<12) return null;
+  for(const f of set.files){ if(relax(f.text).includes(rq)){
+      const head=rq.slice(0,40); const secs=set.sections.filter(s=>s.fileId===f.id && (relax(s.text).includes(head)||relax(s.text).includes(rq.slice(-40))));
+      return {fileName:f.name,sectionIds:secs.map(s=>s.id)}; } }
+  return null;
+}
+
+/* ---------- Dateien lesen ---------- */
+const scriptCache={};
+function loadScript(src){ return scriptCache[src] ||= new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Bibliothek konnte nicht geladen werden"));document.head.appendChild(s);}); }
+const PDFJS="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+const PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+const MAMMOTH="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
+
+async function ocrImages(blobs,progress){
+  if(!CAP.sample) throw {code:"not_granted"};
+  if(!CAP.images) throw {code:"images_unavailable"};
+  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); let out=[];
+  for(let i=0;i<blobs.length;i+=per){
+    const part=blobs.slice(i,i+per); progress&&progress(`Claude schreibt Seite ${i+1}–${i+part.length} von ${blobs.length} ab …`);
+    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial (Scan, Foto oder Screenshot). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
+    out.push(text.trim());
+  }
+  return out.join("\n\n");
+}
+async function readFile(file,progress){
+  const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
+  if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
+  if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
+  if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const r=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,ocr:false,kind:"docx"}; }
+  if(ext==="pdf"){
+    progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
+    const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+    const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+    const pages=[]; const scans=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p); const tc=await page.getTextContent();
+      let t=""; for(const it of tc.items){ t+=it.str+(it.hasEOL?"\n":" "); }
+      t=t.replace(/[ \t]+\n/g,"\n").replace(/ {2,}/g," ").trim();
+      if(t.replace(/\s/g,"").length<25){
+        const vp=page.getViewport({scale:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+        await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+        const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b}); pages.push(null);
+      } else pages.push(t);
+    }
+    let ocr=false;
+    if(scans.length){ const txt=await ocrImages(scans.map(s=>s.b),progress); const parts=txt.split(/\n=====\n?/); scans.forEach((s,i)=>{pages[s.p-1]=(parts[i]||"").trim();}); if(parts.length!==scans.length) pages[scans[0].p-1]=txt; ocr=true; }
+    return {text:pages.filter(Boolean).join("\n\n"),ocr,kind:"pdf"};
+  }
+  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ return {text:await ocrImages([file],progress),ocr:true,kind:"bild"}; }
+  throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT oder Bild).`);
+}
+
+/* ---------- Lernsets ---------- */
+async function loadSets(){ SETS=(await idb.all()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); }
+async function putSet(set){ set.sections ||= makeSections(set.files); await idb.put(set); const i=SETS.findIndex(s=>s.id===set.id); if(i<0) SETS.unshift(set); else SETS[i]=set; }
+function newSet(name,subject){ return {id:rid("set_"),name:name||"Neues Lernset",subject:subject||"",createdAt:Date.now(),files:[],sections:[],coverage:{},round:null,history:[]}; }
+const setById=id=>SETS.find(s=>s.id===id);
+async function makeExampleSet(){
+  let ex=SETS.find(s=>s.example); if(ex) return ex;
+  ex=newSet("Beispiel: Photosynthese","Biologie"); ex.example=true;
+  ex.files=[{id:"f_ex",name:"Beispieltext Photosynthese",kind:"text",text:EXAMPLE_TEXT,ocr:false}];
+  ex.sections=makeSections(ex.files); await putSet(ex); return ex;
+}
+
+/* ---------- Fragen erzeugen ---------- */
+function buildPrompt(set,mix,restrict,avoid){
+  const total=Object.values(mix).reduce((a,b)=>a+b,0);
+  let secs=set.sections; if(restrict&&restrict.length) secs=secs.filter(s=>restrict.includes(s.id));
+  const cov=set.coverage||{};
+  const ranked=[...secs].sort((a,b)=>(cov[a.id]||0)-(cov[b.id]||0));
+  let budget=110000, chosen=new Set();
+  for(const s of ranked){ if(budget-s.text.length<0) break; budget-=s.text.length; chosen.add(s.id); }
+  const listed=secs.filter(s=>chosen.has(s.id));
+  const uncovered=listed.filter(s=>!(cov[s.id]>0)).map(s=>s.id);
+  const material=listed.map(s=>`[${s.id} | ${s.fileName}]\n${s.text}`).join("\n\n");
+  return `Du erstellst Prüfungsfragen für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das Material unten.
+
+REGELN
+1. Jede Frage muss sich vollständig aus dem Material beantworten lassen. Keine Inhalte, Zahlen oder Fachbegriffe, die nicht im Material stehen – auch nicht in falschen Antwortmöglichkeiten.
+2. Jede Frage hat ein Feld "quote": ein wörtliches, zusammenhängendes Zitat aus dem Material (ein bis zwei Sätze, 40 bis 300 Zeichen), das die Lösung belegt. Exakt so geschrieben wie im Material, ohne Auslassungen, ohne "…".
+3. Jede Frage hat "afb" ("I" Wiedergeben, "II" Zusammenhänge herstellen, "III" Anwenden und Beurteilen) wie im Abitur. Verteilung etwa 40 % I, 40 % II, 20 % III.
+4. Mindestens ${Math.max(1,Math.round(total/4))} Fragen verknüpfen zwei oder mehr verschiedene Abschnitte. "sections" nennt alle verwendeten Abschnitts-IDs.
+5. Genau diese Anzahl je Format: ${mix.mc||0}× "mc", ${mix.text||0}× "text", ${mix.match||0}× "match", ${mix.cloze||0}× "cloze".
+${uncovered.length?`6. Diese Abschnitte wurden noch nie abgefragt und haben Vorrang: ${uncovered.slice(0,40).join(", ")}.`:""}
+${avoid&&avoid.length?`7. Diese Fragen gab es schon, stelle andere:\n- ${avoid.slice(0,40).join("\n- ")}`:""}
+
+FORMATE (Felder)
+- mc: {"type":"mc","afb","prompt","options":[4 Antworten],"answer":Index der richtigen (0-3),"explain":"1 Satz","quote","sections"}
+- text: {"type":"text","afb","prompt","model_answer":"Musterlösung, 1-3 Sätze","key_points":["Kernpunkt",...],"quote","sections"}
+- match: {"type":"match","afb","prompt","pairs":[{"left","right"}, 3 bis 5 Paare],"quote","sections"}
+- cloze: {"type":"cloze","afb","prompt":"Satz/Sätze mit ___ für jede Lücke (1-3 Lücken)","blanks":[["Lösung","erlaubte Variante"],...] in Reihenfolge der Lücken,"quote","sections"}
+
+Antworte nur mit JSON: {"questions":[...]}
+
+MATERIAL
+${material}`;
+}
+function validateQ(set,q){
+  if(!q||!TYPE_LABEL[q.type]||!q.prompt||!q.quote) return null;
+  const loc=locateQuote(set,q.quote); if(!loc) return null;
+  const afb=["I","II","III"].includes(q.afb)?q.afb:"II";
+  const base={id:rid("q"),type:q.type,afb,prompt:String(q.prompt),quote:String(q.quote),fileName:loc.fileName,sections:[...new Set([...(loc.sectionIds||[]),...((q.sections||[]).filter(id=>set.sections.some(s=>s.id===id)))])]};
+  if(q.type==="mc"){ const o=(q.options||[]).map(String).filter(Boolean); const a=Number(q.answer); if(o.length<3||!(a>=0&&a<o.length)) return null; return {...base,options:o,answer:a,explain:q.explain||""}; }
+  if(q.type==="text"){ if(!q.model_answer) return null; return {...base,model_answer:String(q.model_answer),key_points:(q.key_points||[]).map(String)}; }
+  if(q.type==="match"){ const p=(q.pairs||[]).filter(x=>x&&x.left&&x.right).map(x=>({left:String(x.left),right:String(x.right)})); if(p.length<2||new Set(p.map(x=>x.right)).size!==p.length) return null; return {...base,pairs:p}; }
+  if(q.type==="cloze"){ const n=(String(q.prompt).match(/___/g)||[]).length; const b=(q.blanks||[]).map(x=>Array.isArray(x)?x.map(String):[String(x)]); if(!n||b.length!==n) return null; return {...base,blanks:b}; }
+  return null;
+}
+async function generateQuestions(set,{n=15,restrict=null,onStatus,signal}={}){
+  const want=mixFor(n); const got={mc:[],text:[],match:[],cloze:[]}; let dropped=0;
+  const avoid=(set.history||[]).flatMap(h=>h.prompts||[]).slice(-60);
+  for(let attempt=0;attempt<2;attempt++){
+    const need={}; let any=false; for(const k in want){ need[k]=Math.max(0,want[k]-got[k].length); if(need[k]) any=true; }
+    if(!any) break;
+    onStatus&&onStatus(attempt?"Ersetze verworfene Fragen …":"Claude erstellt die Fragen. Das dauert meist 20–60 Sekunden …");
+    const res=await CAP.sample.json(buildPrompt(set,need,restrict,[...avoid,...Object.values(got).flat().map(q=>q.prompt)]),{modelTier:"default",cache:false,signal});
+    const list=Array.isArray(res)?res:(res&&res.questions)||[];
+    for(const raw of list){ const q=validateQ(set,raw); if(!q){dropped++;continue;} if(got[q.type].length<want[q.type]) got[q.type].push(q); }
+  }
+  const qs=[...got.mc,...got.text,...got.match,...got.cloze];
+  return {qs:shuffle(qs),dropped};
+}
+function exampleQuestions(set){ return shuffle(EXAMPLE_QUESTIONS.map(q=>{ const v=validateQ(set,q); return v; }).filter(Boolean)); }
+
+/* ---------- Durchgang ---------- */
+function prepQuestion(q){
+  const d={...q};
+  if(q.type==="mc"){ const idx=shuffle(q.options.map((_,i)=>i)); d.view={order:idx}; }
+  if(q.type==="match"){ d.view={rights:shuffle(q.pairs.map(p=>p.right))}; }
+  return d;
+}
+async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef=null,fresh=false}={}){
+  let qs;
+  if(reuse && set.round){ qs=shuffle(set.round.qs.map(q=>prepQuestion(q))); }
+  else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
+  else{
+    if(!CAP.sample){ toast("Dafür braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
+    const box=$("#roundStatus"); const ctl=new AbortController();
+    if(box){ box.hidden=false; box.innerHTML=`<div class="row"><span class="spin"></span><span id="rsTxt">Starte …</span><span class="spacer"></span><button class="btn sm" id="rsStop">Abbrechen</button></div>`; $("#rsStop").onclick=()=>ctl.abort(); }
+    try{
+      const r=await generateQuestions(set,{n,restrict,signal:ctl.signal,onStatus:t=>{const e=$("#rsTxt"); if(e) e.textContent=t;}});
+      if(!r.qs.length){ if(box) box.innerHTML=`<div class="note bad">Es konnte keine belegte Frage erzeugt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.</div>`; return; }
+      qs=r.qs.map(prepQuestion);
+      if(r.qs.length<n) toast(`${r.qs.length} von ${n} Fragen belegt – ${r.dropped} ohne gültiges Zitat verworfen`,4200);
+      else if(r.dropped) toast(`${r.dropped} Fragen ohne gültiges Zitat verworfen und ersetzt`,3500);
+    }catch(e){ if(box){ if(e&&e.code==="cancelled"){box.hidden=true;} else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
+    qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; }));
+  }
+  set.round={qs,idx:0,results:[],phase:"q",label,restrict,planRef,startedAt:Date.now()};
+  await putSet(set); S.activeSet=set.id; save(); go("learn",{setId:set.id});
+}
+
+/* ---------- Bewertung ---------- */
+const cmp=s=>norm(s).replace(/ß/g,"ss").replace(/[^a-z0-9äöü]+/g," ").trim();
+async function gradeText(q,answer){
+  if(!CAP.sample) return null;
+  const r=await CAP.sample.json(`Bewerte die Antwort eines Lernenden auf eine Prüfungsfrage. Bewerte nur inhaltlich anhand der Musterlösung und des Belegs, Rechtschreibung zählt nicht.
+
+Frage: ${q.prompt}
+Musterlösung: ${q.model_answer}
+Kernpunkte: ${(q.key_points||[]).join("; ")}
+Beleg aus dem Material: "${q.quote}"
+
+Antwort des Lernenden: """${answer.slice(0,3000)}"""
+
+Antworte nur mit JSON: {"verdict":"richtig"|"teilweise"|"falsch","score":Zahl 0 bis 1,"feedback":"2 bis 3 Sätze auf Deutsch, direkt an den Lernenden, was stimmt und was fehlt"}`,{modelTier:"default",cache:false});
+  const score=clamp(Number(r.score)||0,0,1);
+  return {correct: r.verdict==="richtig" || score>=0.6, verdict:r.verdict||"", score, feedback:String(r.feedback||"")};
+}
+
+/* ---------- Ansicht Lernen ---------- */
+VIEWS.learn = async function(m,arg){
+  if(arg&&arg.setId) S.activeSet=arg.setId;
+  if(!SETS.length) await loadSets();
+  const set=setById(S.activeSet)||SETS[0];
+  if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
+  m.innerHTML=`<div class="view">
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch. Jeder Durchgang hat 15 Prüfungsfragen, jede mit einem wörtlichen Beleg aus deinem Material.</p></div></div>
+    <div class="row" id="setChips"></div>
+    <div id="setPanel"></div>
+  </div>`;
+  const chips=$("#setChips");
+  chips.innerHTML=SETS.map(s=>`<button class="chip" aria-pressed="${s.id===(set&&set.id)}" data-id="${s.id}">${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</button>`).join("")+
+    `<button class="chip" id="newSet">+ Neues Lernset</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
+  $$("[data-id]",chips).forEach(b=>b.onclick=()=>{S.activeSet=b.dataset.id;save(false);go("learn",{manage:true});});
+  $("#newSet").onclick=async()=>{const s=newSet("Lernset "+(SETS.length+1));await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});};
+  const ex=$("#exBtn"); if(ex) ex.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
+  renderSetPanel($("#setPanel"),set);
+};
+
+function renderSetPanel(el,set){
+  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an und lade dein Material hoch – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
+    $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
+    $("#e2").onclick=async()=>{const s=newSet("Lernset 1");await putSet(s);S.activeSet=s.id;save();go("learn",{manage:true});}; return; }
+  const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
+  const last=(set.history||[]).slice(-1)[0];
+  el.innerHTML=`<div class="grid2">
+   <section class="sheet stack">
+     ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
+     <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
+     <label class="f">Fach<input type="text" id="setSubj" list="subjList" value="${esc(set.subject||"")}" placeholder="z. B. Biologie"><datalist id="subjList">${subjOpts.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
+     <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung</span><span class="spacer"></span><span class="mono small">${cov.done}/${cov.n} Abschnitte · ${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div><p class="small muted">Neue Fragen nehmen zuerst die Abschnitte dran, die noch nicht abgefragt wurden.</p></div>
+     ${last?`<p class="small">Letzter Durchgang: <b class="mono">${last.pct} %</b> am ${new Date(last.at).toLocaleDateString("de-DE")}</p>`:""}
+     <div id="roundStatus" hidden></div>
+     <div class="row">
+       <button class="btn primary" id="startBtn" ${set.files.length?"":"disabled"}>Durchgang starten · 15 Fragen</button>
+       ${set.round&&set.round.qs?`<button class="btn" id="sameBtn">Letzte Fragen neu gemischt</button>`:""}
+     </div>
+     ${set.example?"":needClaude()}
+     <div class="row"><span class="spacer"></span><button class="btn ghost danger sm" id="delSet">Lernset löschen</button></div>
+   </section>
+   <section class="sheet stack">
+     <h3>Material</h3>
+     ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, Fotos und Screenshots · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div>
+     <div id="upStatus" class="small"></div>`}
+     <div class="list">${set.files.map(f=>`<div class="li"><div class="grow"><b>${esc(f.name)}</b><div class="small muted">${f.text.length.toLocaleString("de-DE")} Zeichen · ${set.sections.filter(s=>s.fileId===f.id).length} Abschnitte ${f.ocr?'· <span class="pill warn">von Claude abgeschrieben – bitte prüfen</span>':""}</div></div>${set.example?"":`<button class="btn ghost sm danger" data-rm="${f.id}">Entfernen</button>`}</div>`).join("")||`<p class="muted small">Noch keine Dateien.</p>`}</div>
+     ${set.files.length?`<details id="readText"><summary>Gelesenen Text ansehen</summary><div class="stack" style="margin-top:10px">${set.files.map(f=>`<div class="stack" style="gap:6px"><span class="label">${esc(f.name)}</span>${set.example?`<div class="pre">${esc(f.text)}</div>`:`<textarea id="tx_${f.id}" style="min-height:200px">${esc(f.text)}</textarea><div><button class="btn sm" data-savetx="${f.id}">Korrektur speichern</button></div>`}</div>`).join("")}</div></details>`:""}
+   </section></div>`;
+  const nameIn=$("#setName"), subjIn=$("#setSubj");
+  nameIn.onchange=async()=>{set.name=nameIn.value.trim()||"Lernset";await putSet(set);go("learn",{manage:true});};
+  subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);};
+  $("#startBtn").onclick=()=>startRound(set,{n:15});
+  const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
+  $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
+  $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; await putSet(set); go("learn",{manage:true}); });
+  $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
+  const dz=$("#dz"); if(dz){ const fi=$("#fileIn");
+    dz.onclick=()=>fi.click(); dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click();}};
+    dz.ondragover=e=>{e.preventDefault();dz.classList.add("over");}; dz.ondragleave=()=>dz.classList.remove("over");
+    dz.ondrop=e=>{e.preventDefault();dz.classList.remove("over");addFiles(set,[...e.dataTransfer.files]);};
+    fi.onchange=()=>addFiles(set,[...fi.files]); }
+}
+async function addFiles(set,files){
+  const st=$("#upStatus"); const errs=[];
+  for(const f of files){
+    try{ const r=await readFile(f,t=>{st.innerHTML=`<span class="spin"></span> ${esc(t)}`;});
+      if(!r.text.trim()){ errs.push(`„${f.name}“: Kein Text gefunden.`); continue; }
+      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr});
+    }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
+  }
+  set.sections=makeSections(set.files); await putSet(set);
+  go("learn",{manage:true});
+  if(errs.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")}</div>`;},50);
+  else toast(`${files.length} Datei(en) gelesen`);
+}
+
+function renderRound(m,set){
+  const R=set.round; if(R.phase==="end") return renderEnd(m,set);
+  const q=R.qs[R.idx]; const res=R.results[R.idx];
+  const pct=Math.round(R.idx/R.qs.length*100);
+  m.innerHTML=`<div class="view">
+   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${R.label?`<span class="pill mark">${esc(R.label)}</span>`:""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   <section class="sheet stack" style="gap:16px">
+     <div class="q-head"><span class="mono small">Frage ${R.idx+1} / ${R.qs.length}</span><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">${AFB_LABEL[q.afb]}</span></div>
+     <div class="bar"><i style="width:${pct}%"></i></div>
+     <p class="q-prompt">${q.type==="cloze"?"Fülle die Lücken.":esc(q.prompt)}</p>
+     <div id="qBody" class="stack"></div>
+     <div id="qFb"></div>
+   </section></div>`;
+  $("#backSets").onclick=()=>go("learn",{manage:true});
+  const body=$("#qBody"); const fb=$("#qFb");
+  const done=!!res;
+  const finish=async(r)=>{ R.results[R.idx]=r; await putSet(set); renderRound(m,set); };
+  if(q.type==="mc"){
+    body.innerHTML=q.view.order.map((oi,k)=>{ let cls=""; if(done){ if(oi===q.answer) cls="right"; else if(res.given===oi) cls="wrong"; } return `<button class="opt ${cls}" data-oi="${oi}" ${done?"disabled":""}><span class="k">${"ABCD"[k]||k+1}</span><span>${esc(q.options[oi])}</span></button>`;}).join("");
+    if(!done) $$(".opt",body).forEach(b=>b.onclick=()=>{ const oi=Number(b.dataset.oi); finish({correct:oi===q.answer,given:oi}); });
+  }
+  if(q.type==="text"){
+    body.innerHTML=`<textarea id="ans" placeholder="Deine Antwort …" ${done?"disabled":""}>${esc(done?res.given:"")}</textarea>${done?"":`<div class="row"><button class="btn primary" id="chk">Antwort prüfen</button><span id="gs" class="small muted"></span></div>`}`;
+    if(!done) $("#chk").onclick=async()=>{ const a=$("#ans").value.trim(); if(!a){toast("Schreib zuerst eine Antwort");return;}
+      if(!CAP.sample){ // Selbsteinschätzung
+        $("#gs").innerHTML=""; fb.innerHTML=`<div class="feedback" style="border:1px solid var(--line)"><b>Musterlösung</b><p>${esc(q.model_answer)}</p><p class="small muted">Ohne Claude kann Merkwerk schriftliche Antworten nicht bewerten. Vergleiche selbst:</p><div class="row"><button class="btn" id="selfOk">Hatte ich richtig</button><button class="btn" id="selfBad">Hatte ich nicht richtig</button></div></div>`;
+        $("#selfOk").onclick=()=>finish({correct:true,given:a,feedback:"Selbst eingeschätzt."}); $("#selfBad").onclick=()=>finish({correct:false,given:a,feedback:"Selbst eingeschätzt."}); return; }
+      $("#chk").disabled=true; $("#gs").innerHTML=`<span class="spin"></span> Claude prüft deine Antwort …`;
+      try{ const g=await gradeText(q,a); finish({correct:g.correct,given:a,feedback:g.feedback,verdict:g.verdict}); }
+      catch(e){ $("#gs").textContent=sampleErr(e); $("#chk").disabled=false; } };
+  }
+  if(q.type==="match"){
+    body.innerHTML=q.pairs.map((p,i)=>{ const g=done?res.given[i]:""; const ok=done&&g===p.right; return `<div class="match-row"><b>${esc(p.left)}</b><select id="m${i}" ${done?"disabled":""} class="${done?(ok?"right":"wrong"):""}" style="${done?`border-color:var(--${ok?"ok":"bad"})`:""}"><option value="">– zuordnen –</option>${q.view.rights.map(r=>`<option ${g===r?"selected":""}>${esc(r)}</option>`).join("")}</select></div>`;}).join("")+(done?"":`<div><button class="btn primary" id="chk">Zuordnung prüfen</button></div>`);
+    if(!done) $("#chk").onclick=()=>{ const given=q.pairs.map((_,i)=>$("#m"+i).value); if(given.some(x=>!x)){toast("Ordne zuerst alles zu");return;} const n=given.filter((g,i)=>g===q.pairs[i].right).length; finish({correct:n===q.pairs.length,given,partial:`${n}/${q.pairs.length}`}); };
+  }
+  if(q.type==="cloze"){
+    let k=0; const html=esc(q.prompt).replace(/___/g,()=>{ const i=k++; const g=done?res.given[i]:""; const ok=done&&q.blanks[i].some(b=>cmp(b)===cmp(g)); return `<input type="text" id="c${i}" aria-label="Lücke ${i+1}" value="${esc(g)}" ${done?"disabled":""} class="${done?(ok?"right":"wrong"):""}" size="${Math.max(8,(q.blanks[i][0]||"").length+2)}">`; });
+    body.innerHTML=`<p class="cloze" style="font-size:1.1rem;line-height:2.1">${html}</p>${done?"":`<div><button class="btn primary" id="chk">Lücken prüfen</button></div>`}`;
+    if(!done){ $("#chk").onclick=()=>{ const given=q.blanks.map((_,i)=>$("#c"+i).value.trim()); if(given.some(x=>!x)){toast("Fülle zuerst alle Lücken");return;} const okAll=given.every((g,i)=>q.blanks[i].some(b=>cmp(b)===cmp(g))); finish({correct:okAll,given}); };
+      body.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();$("#chk").click();}}); }
+  }
+  if(done){
+    const sol = q.type==="mc"?esc(q.options[q.answer]) : q.type==="text"?esc(q.model_answer) : q.type==="match"? q.pairs.map(p=>`${esc(p.left)} → ${esc(p.right)}`).join("<br>") : q.blanks.map((b,i)=>`Lücke ${i+1}: ${esc(b[0])}`).join("<br>");
+    fb.innerHTML=`<div class="feedback ${res.correct?"ok":"bad"}" role="status">
+      <b>${res.correct?"Richtig":res.verdict==="teilweise"?"Teilweise richtig – noch nicht ganz":"Leider falsch"}${res.partial&&!res.correct?` · ${res.partial} richtig zugeordnet`:""}</b>
+      ${res.feedback?`<p>${esc(res.feedback)}</p>`:""}
+      ${!res.correct||q.type==="text"?`<div><span class="label">Lösung</span><p>${sol}</p></div>`:""}
+      ${q.explain&&!res.correct?`<p class="small">${esc(q.explain)}</p>`:""}
+      <div><span class="label">Beleg aus ${esc(q.fileName)}</span><p class="quote">„${esc(q.quote)}“</p></div>
+      <div class="row"><button class="btn primary" id="nextQ">${R.idx+1<R.qs.length?"Nächste Frage":"Auswertung ansehen"}</button></div></div>`;
+    $("#nextQ").onclick=async()=>{ if(R.idx+1<R.qs.length){R.idx++;} else { R.phase="end"; const pctv=Math.round(R.results.filter(r=>r&&r.correct).length/R.qs.length*100); (set.history ||= []).push({at:Date.now(),pct:pctv,prompts:R.qs.map(q=>q.prompt)}); if(R.planRef) markPlanDone(R.planRef,pctv); } await putSet(set); renderRound(m,set); };
+    $("#nextQ").focus();
+  }
+}
+function renderEnd(m,set){
+  const R=set.round; const n=R.qs.length; const right=R.results.filter(r=>r&&r.correct).length; const pct=Math.round(right/n*100);
+  const by={}; R.qs.forEach((q,i)=>{ by[q.type] ||= {n:0,r:0}; by[q.type].n++; if(R.results[i]&&R.results[i].correct) by[q.type].r++; });
+  const wrong=R.qs.map((q,i)=>({q,r:R.results[i]})).filter(x=>!x.r||!x.r.correct);
+  const cov=coverageOf(set);
+  m.innerHTML=`<div class="view">
+   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button></div>
+   <section class="sheet stack" style="gap:18px">
+     <div class="row" style="align-items:flex-end;gap:18px"><div class="score mono">${pct}<span style="font-size:1.6rem"> %</span></div><div class="stack" style="gap:2px"><h2>Durchgang beendet</h2><p class="muted">${right} von ${n} Fragen richtig${R.label?` · ${esc(R.label)}`:""}</p></div></div>
+     <div class="scrollx"><table class="t"><thead><tr><th>Aufgabenformat</th><th style="text-align:right">Richtig</th><th style="text-align:right">Quote</th></tr></thead><tbody>
+      ${Object.keys(TYPE_LABEL).filter(k=>by[k]).map(k=>`<tr><td>${TYPE_LABEL[k]}</td><td class="n">${by[k].r} / ${by[k].n}</td><td class="n">${Math.round(by[k].r/by[k].n*100)} %</td></tr>`).join("")}
+     </tbody></table></div>
+     <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung des Materials</span><span class="spacer"></span><span class="mono small">${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div></div>
+     <div class="row"><button class="btn primary" id="again">Dieselben Fragen in neuer Reihenfolge</button><button class="btn" id="fresh">15 neue Fragen</button></div>
+     <div id="roundStatus" hidden></div>
+   </section>
+   ${wrong.length?`<section class="sheet stack"><h3>Falsch beantwortet (${wrong.length})</h3><div class="list">${wrong.map(({q})=>`<div class="li"><div class="grow stack" style="gap:4px"><div class="row"><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">AFB ${q.afb}</span></div><b>${esc(q.type==="cloze"?q.prompt.replace(/___/g,"_____"):q.prompt)}</b><p class="small">${q.type==="mc"?"Lösung: "+esc(q.options[q.answer]):q.type==="text"?"Musterlösung: "+esc(q.model_answer):q.type==="match"?q.pairs.map(p=>esc(p.left)+" → "+esc(p.right)).join(" · "):"Lösung: "+q.blanks.map(b=>esc(b[0])).join(", ")}</p><p class="quote small">„${esc(q.quote)}“ <span class="muted">– ${esc(q.fileName)}</span></p></div></div>`).join("")}</div></section>`:`<div class="note">Alles richtig. Mit „15 neue Fragen“ gehst du an Abschnitte, die noch nicht abgefragt wurden.</div>`}
+  </div>`;
+  $("#backSets").onclick=()=>{ set.round.phase="done"; putSet(set); go("learn",{manage:true}); };
+  $("#again").onclick=()=>startRound(set,{reuse:true,restrict:R.restrict,label:R.label});
+  $("#fresh").onclick=()=>startRound(set,{n:R.qs.length>=15?15:Math.max(6,R.qs.length),restrict:R.restrict,label:R.label,planRef:R.planRef,fresh:true});
+}
+
+/* ---- 06_library.js ---- */
+/* ===================== Profil-Abfrage ===================== */
+function wizardHTML(p){
+  p=p||{};
+  const track=p.track||"";
+  return `<div class="stack" style="gap:16px" id="wiz">
+   <div class="stack" style="gap:4px"><h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p></div>
+   <div class="grid2">
+     <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${track==="schule"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich gehe zur Schule</b><span class="small muted">Grundschule bis Abitur, Berufsschule</span></button>
+     <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${track==="uni"?"border-color:var(--accent);background:var(--accent-soft)":""}"><b>Ich studiere</b><span class="small muted">Universität, Hochschule, Duale Hochschule</span></button>
+   </div>
+   <div id="wizFields"></div>
+  </div>`;
+}
+function mountWizard(root,onDone){
+  const draft={...(S.profile||{})};
+  const fields=$("#wizFields",root);
+  const draw=()=>{
+    $$("[data-track]",root).forEach(b=>{const on=b.dataset.track===draft.track; b.style.borderColor=on?"var(--accent)":""; b.style.background=on?"var(--accent-soft)":""; b.setAttribute("aria-pressed",on);});
+    if(draft.track==="schule"){
+      const grades=draft.type?gradesFor(draft.type,draft.state):[];
+      const tdef=SCHOOL_TYPES.find(t=>t.k===draft.type);
+      fields.innerHTML=`<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
+        <label class="f">Bundesland<select id="wState"><option value="">Bitte wählen</option>${STATES.map(s=>`<option value="${s.k}" ${draft.state===s.k?"selected":""}>${esc(s.n)}</option>`).join("")}</select></label>
+        <label class="f">Schulart<select id="wType" ${draft.state?"":"disabled"}><option value="">Bitte wählen</option>${SCHOOL_TYPES.filter(t=>!(t.k==="bg"&&draft.state==="BY")).map(t=>`<option value="${t.k}" ${draft.type===t.k?"selected":""}>${esc(schoolTypeName(t.k,draft.state))}</option>`).join("")}</select></label>
+        <label class="f">${tdef&&tdef.gradeLabel?tdef.gradeLabel:"Klassenstufe"}<select id="wGrade" ${grades.length?"":"disabled"}><option value="">Bitte wählen</option>${grades.map(g=>`<option ${Number(draft.grade)===g?"selected":""}>${g}</option>`).join("")}</select></label>
+      </div>
+      ${draft.state==="BW"&&draft.type==="gym"?`<p class="small muted">Baden-Württemberg kehrt zu G9 zurück: Seit 2025/26 lernen die Klassen 5 und 6 nach G9, höhere Jahrgänge machen das Abitur noch nach Klasse 12.</p>`:""}
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="wNext" ${draft.state&&draft.type&&draft.grade?"":"disabled"}>Weiter zu den Fächern</button></div>`;
+      $("#wState",root).onchange=e=>{draft.state=e.target.value; if(draft.type&&!gradesFor(draft.type,draft.state).includes(Number(draft.grade))) draft.grade=""; draw();};
+      $("#wType",root).onchange=e=>{draft.type=e.target.value; draft.grade=""; draw();};
+      $("#wGrade",root).onchange=e=>{draft.grade=Number(e.target.value)||""; draw();};
+    } else if(draft.track==="uni"){
+      fields.innerHTML=`<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">
+        <label class="f">Hochschule<input type="text" id="wUni" value="${esc(draft.uni||"")}" placeholder="z. B. Universität Stuttgart"></label>
+        <label class="f">Studiengang<input type="text" id="wProg" list="progList" value="${esc(draft.program||"")}" placeholder="z. B. Informatik"><datalist id="progList">${Object.keys(PROGRAMS).map(k=>`<option value="${esc(k)}">`).join("")}</datalist></label>
+        <label class="f">Semester<input type="number" id="wSem" min="1" max="20" value="${esc(draft.semester||"")}"></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="wNext">Weiter zu den Modulen</button></div>`;
+      const upd=()=>{draft.uni=$("#wUni",root).value.trim();draft.program=$("#wProg",root).value.trim();draft.semester=Number($("#wSem",root).value)||"";$("#wNext",root).disabled=!(draft.uni&&draft.program);};
+      ["#wUni","#wProg","#wSem"].forEach(s=>$(s,root).oninput=upd); upd();
+    } else fields.innerHTML="";
+    const nx=$("#wNext",root); if(nx) nx.onclick=()=>subjectStep();
+  };
+  const subjectStep=()=>{
+    const p={...draft};
+    let opts;
+    if(p.track==="schule") opts=subjectsFor(p);
+    else{ const key=Object.keys(PROGRAMS).find(k=>k.toLowerCase()===String(p.program).toLowerCase()) || Object.keys(PROGRAMS).find(k=>String(p.program).toLowerCase().includes(k.toLowerCase().split(" ")[0])); opts=(key?PROGRAMS[key]:[]).map(n=>({n,core:false})); }
+    const same=S.profile&&JSON.stringify(S.profile)===JSON.stringify(p);
+    let sel=new Set(same&&S.mySubjects.length?S.mySubjects:opts.filter(o=>o.core).map(o=>o.n));
+    S.mySubjects.forEach(x=>{ if(same) sel.add(x); });
+    const extra=[...sel].filter(x=>!opts.some(o=>o.n===x)).map(n=>({n}));
+    const all=[...opts,...extra];
+    const link=p.track==="schule"?planLink(p):null;
+    root.innerHTML=`<div class="stack" style="gap:14px">
+      <div class="stack" style="gap:4px"><h2>${p.track==="schule"?"Deine Fächer":"Deine Module"}</h2>
+      <p class="muted">${p.track==="schule"?`Fächerangebot für ${esc(profileLabel(p))}. Wähle aus, was du hast – Wahlfächer und Profile unterscheiden sich je Schule.`:`Typische Module für ${esc(p.program)}. Maßgeblich ist das Modulhandbuch deiner Hochschule – ergänze oder entferne Module.`}</p>
+      ${link?`<p class="small">Quelle: <a href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)}</a></p>`:`<p class="small"><a href="https://www.google.com/search?q=${encodeURIComponent("Modulhandbuch "+(p.uni||"")+" "+(p.program||""))}" target="_blank" rel="noopener">Modulhandbuch von ${esc(p.uni)} suchen</a></p>`}</div>
+      <div class="grid3" id="subjGrid">${all.map(o=>`<button class="subj" aria-pressed="${sel.has(o.n)}" data-n="${esc(o.n)}"><b>${esc(o.n)}</b>${o.core?'<span class="small muted">Kernfach</span>':""}</button>`).join("")}</div>
+      <div class="row"><input type="text" id="addSubj" placeholder="${p.track==="schule"?"Fach hinzufügen":"Modul hinzufügen"}" style="max-width:320px"><button class="btn" id="addSubjBtn">Hinzufügen</button>${p.track==="uni"?`<button class="btn" id="suggestMods">Module von Claude vorschlagen lassen</button>`:""}</div>
+      <div id="modSug"></div>
+      <div class="row"><button class="btn primary" id="wSave">Speichern</button><button class="btn ghost" id="wBack">Zurück</button></div></div>`;
+    const grid=$("#subjGrid",root);
+    const bind=()=>$$(".subj",grid).forEach(b=>b.onclick=()=>{const n=b.dataset.n; sel.has(n)?sel.delete(n):sel.add(n); b.setAttribute("aria-pressed",sel.has(n));});
+    bind();
+    const addOne=n=>{ n=n.trim(); if(!n) return; if(!$$(".subj",grid).some(b=>b.dataset.n===n)){ grid.insertAdjacentHTML("beforeend",`<button class="subj" aria-pressed="true" data-n="${esc(n)}"><b>${esc(n)}</b></button>`); } sel.add(n); $$(".subj",grid).forEach(b=>b.setAttribute("aria-pressed",sel.has(b.dataset.n))); bind(); };
+    $("#addSubjBtn",root).onclick=()=>{addOne($("#addSubj",root).value); $("#addSubj",root).value="";};
+    $("#addSubj",root).onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("#addSubjBtn",root).click();}};
+    const sm=$("#suggestMods",root); if(sm){ if(!CAP.sample) sm.hidden=true; sm.onclick=async()=>{ const box=$("#modSug",root); box.innerHTML=`<span class="spin"></span> Claude sammelt typische Module …`; sm.disabled=true;
+      try{ const arr=await CAP.sample.json(`Nenne die typischen Pflicht- und Wahlpflichtmodule im Studiengang "${p.program}" an der Hochschule "${p.uni}"${p.semester?` (aktuell ${p.semester}. Semester)`:""}. Nutze dein Wissen über das Modulhandbuch dieser Hochschule; wenn du es nicht sicher kennst, nenne die an deutschen Hochschulen üblichen Module dieses Studiengangs. Antworte nur mit JSON: {"modules":["Modulname",...],"sicher":true|false} mit 10 bis 20 Modulen.`,{modelTier:"default",cache:{gcTime:864e5}});
+        const mods=(arr.modules||[]).map(String).slice(0,25);
+        box.innerHTML=`<div class="note ${arr.sicher?"":"warn"} small">${arr.sicher?"Vorschläge von Claude.":"Claude kennt das Modulhandbuch dieser Hochschule nicht sicher – das sind übliche Module."} Bitte mit dem Modulhandbuch abgleichen. Antippen zum Übernehmen.</div><div class="row" style="margin-top:8px">${mods.map(x=>`<button class="chip" data-addm="${esc(x)}">+ ${esc(x)}</button>`).join("")}</div>`;
+        $$("[data-addm]",box).forEach(b=>b.onclick=()=>{addOne(b.dataset.addm); b.remove();});
+      }catch(e){ box.innerHTML=`<p class="small">${esc(sampleErr(e))}</p>`; } sm.disabled=false; }; }
+    $("#wBack",root).onclick=()=>{ root.innerHTML=wizardHTML(draft); mountWizard(root,onDone); };
+    $("#wSave",root).onclick=()=>{ S.profile=p; S.mySubjects=[...sel]; save(); onDone&&onDone(); };
+  };
+  $$("[data-track]",root).forEach(b=>b.onclick=()=>{draft.track=b.dataset.track; draw();});
+  draw();
+}
+function openWizard(){ modal(`<div id="wizRoot">${wizardHTML(S.profile)}</div><div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{ mountWizard($("#wizRoot",m),()=>{close();render();toast("Profil gespeichert");}); }); }
+
+/* ===================== Bibliothek ===================== */
+const KINDS=["Zusammenfassung","Merkblatt","Karteikarten","Übungsaufgaben mit Lösung","Mitschrift","Klausurvorbereitung"];
+let VOTES={counts:{},mine:[]}; let voteUnsub=null;
+function watchVotes(){
+  if(voteUnsub||!CAP.db) return;
+  voteUnsub=CAP.db.collection("votes").onSnapshot(snap=>{ const c={}; let mine=[]; snap.docs.forEach(d=>{ const ids=(d.data()||{}).ids||[]; ids.forEach(id=>c[id]=(c[id]||0)+1); if(d.id===CAP.uid) mine=ids; }); VOTES={counts:c,mine}; $$("[data-votes]").forEach(el=>el.textContent=c[el.dataset.votes]||0); },()=>{voteUnsub=null;});
+}
+async function toggleVote(id){
+  if(!CAP.db||!CAP.uid) return;
+  const mine=new Set(VOTES.mine); mine.has(id)?mine.delete(id):mine.add(id);
+  try{ await CAP.db.doc("votes/"+CAP.uid).set({ids:[...mine].slice(-500)}); VOTES.mine=[...mine]; }catch{ toast("Konnte nicht gespeichert werden"); }
+}
+function levelLabel(e){ return e.track==="uni" ? [e.uni,e.program].filter(Boolean).join(" · ") : [schoolTypeName(e.schoolType,e.state),e.state,e.grade?("Kl. "+e.grade):""].filter(Boolean).join(" · "); }
+
+VIEWS.lib = function(m,arg){
+  if(!S.profile){
+    m.innerHTML=`<div class="view"><div class="stack" style="gap:4px"><h1>Bibliothek</h1><p class="muted">Zusammenfassungen, Merkblätter und Übungsaufgaben von anderen Lernenden – sortiert nach Fach und Thema. Du kannst eigene Einträge beisteuern.</p></div><section class="sheet" id="wizRoot">${wizardHTML(null)}</section></div>`;
+    mountWizard($("#wizRoot"),()=>{render();}); return;
+  }
+  if(arg&&arg.subject) return renderSubject(m,arg.subject,arg.topic||"");
+  const p=S.profile; const link=p.track==="schule"?planLink(p):null;
+  m.innerHTML=`<div class="view">
+   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Bibliothek</h1><p class="muted">${esc(profileLabel(p))}</p></div><span class="spacer"></span><button class="btn" id="editProf">Angaben ändern</button></div>
+   ${CAP.db?"":`<div class="note warn">Die Bibliothek ist eine gemeinsame Datenbank. Einträge siehst du, wenn Merkwerk in claude.ai geöffnet ist und du angemeldet bist.</div>`}
+   <section class="sheet stack">
+     <div class="row"><h3>${p.track==="schule"?"Meine Fächer":"Meine Module"}</h3><span class="spacer"></span>${link?`<a class="small" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)} ↗</a>`:""}</div>
+     ${S.mySubjects.length?`<div class="grid3">${S.mySubjects.map(n=>`<button class="subj" data-s="${esc(n)}"><b>${esc(n)}</b><span class="small muted" data-cnt="${esc(subjKey(n))}">Themen und Einträge</span></button>`).join("")}</div>`:`<div class="empty">Noch keine Fächer gewählt. <button class="btn ghost" id="pickS">Fächer wählen</button></div>`}
+   </section>
+   <section class="sheet stack"><h3>So funktioniert die Bibliothek</h3>
+     <div class="grid2 small"><p><b>1. Fach wählen</b><br>Du siehst die Themen aus dem Bildungsplan bzw. Modulhandbuch und alles, was andere schon geteilt haben.</p><p><b>2. Thema eingeben</b><br>Wähle ein Thema aus der Liste oder tippe dein eigenes ein. Dann Einträge ansehen oder selbst einen hochladen.</p><p><b>3. Mit Merkwerk lernen</b><br>Jeden Eintrag kannst du mit einem Klick als Lernset übernehmen und dir belegte Prüfungsfragen dazu stellen lassen.</p></div></section>
+  </div>`;
+  $("#editProf").onclick=openWizard; const ps=$("#pickS"); if(ps) ps.onclick=openWizard;
+  $$("[data-s]").forEach(b=>b.onclick=()=>go("lib",{subject:b.dataset.s}));
+  if(CAP.db){ const tr=p.track; CAP.db.collection("entries").where("track","==",tr).limit(1000).get().then(snap=>{ const c={}; snap.docs.forEach(d=>{const k=(d.data()||{}).subjectKey; c[k]=(c[k]||0)+1;}); $$("[data-cnt]").forEach(el=>{const n=c[el.dataset.cnt]||0; el.textContent=n?`${n} Einträge`:"Noch keine Einträge";}); }).catch(()=>{}); }
+};
+
+function renderSubject(m,subject,topic){
+  const p=S.profile; const key=subjKey(subject);
+  const band=topicBand(p); const alias=topicAlias(subject);
+  const curated=p.track==="schule"&&alias&&TOPICS[alias]? (TOPICS[alias][band]||[]) : [];
+  const link=p.track==="schule"?planLink(p):null;
+  let entries=[]; let unsub=null;
+  const filt={mine:p.track==="schule"?"grade":"all"};
+  m.innerHTML=`<div class="view">
+    <div class="row"><button class="btn ghost sm" id="backLib">← Bibliothek</button></div>
+    <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><span class="label">${esc(profileLabel(p))}</span><h1>${esc(subject)}</h1></div><span class="spacer"></span>${link?`<a class="btn sm" href="${esc(link.url)}" target="_blank" rel="noopener">Offizieller Plan ↗</a>`:""}</div>
+    <section class="sheet stack">
+      <label class="f" for="topicIn">Thema</label>
+      <div class="row"><input type="text" id="topicIn" list="topicList" value="${esc(topic)}" placeholder="z. B. ${esc(curated[0]||"Thema eingeben")}" style="flex:1;min-width:200px"><datalist id="topicList"></datalist><button class="btn" id="topicClear" ${topic?"":"hidden"}>Alle Themen</button></div>
+      <div class="stack" style="gap:6px">
+        ${curated.length?`<span class="small muted">Typische Themen${band==="os"?" der Oberstufe":band==="gs"?" der Grundschule":` der Klassen ${band}`} – Orientierung am Bildungsplan, Reihenfolge und Umfang unterscheiden sich je Land:</span><div class="row" id="curTopics">${curated.map(t=>`<button class="chip" data-t="${esc(t)}" aria-pressed="${t===topic}">${esc(t)}</button>`).join("")}</div>`:""}
+        <div class="row" id="libTopics"></div>
+        <div class="row"><button class="btn sm" id="claudeTopics" ${CAP.sample?"":"hidden"}>Themen aus dem Bildungsplan von Claude vorschlagen lassen</button></div>
+        <div id="ctBox"></div>
+      </div>
+    </section>
+    <div class="grid2">
+      <button class="wizard-opt" id="actView"><b>Einträge ansehen</b><span class="small muted" id="cntLbl">Lädt …</span></button>
+      <button class="wizard-opt" id="actUp"><b>Eintrag hochladen</b><span class="small muted">Teile deine Zusammenfassung, dein Merkblatt oder Übungsaufgaben${topic?` zu „${esc(topic)}“`:""}.</span></button>
+    </div>
+    <section class="sheet stack" id="entriesBox">
+      <div class="row"><h3 id="entTitle">Einträge</h3><span class="spacer"></span>
+        ${p.track==="schule"?`<select id="scope" style="width:auto"><option value="grade">Meine Klassenstufe & Schulart</option><option value="state">Mein Bundesland</option><option value="all">Alle</option></select>`:`<select id="scope" style="width:auto"><option value="all">Alle Hochschulen</option><option value="uni">Nur ${esc(p.uni||"meine Hochschule")}</option></select>`}</div>
+      <div class="list" id="entList"><p class="muted small">${CAP.db?"Lädt …":"Einträge sind nur in claude.ai verfügbar."}</p></div>
+    </section>
+  </div>`;
+  $("#backLib").onclick=()=>go("lib");
+  const tIn=$("#topicIn");
+  const setTopic=t=>{ topic=t; tIn.value=t; ROUTE.arg={subject,topic:t}; $("#topicClear").hidden=!t; $$("[data-t]").forEach(c=>c.setAttribute("aria-pressed",c.dataset.t===t)); $("#actUp .small").textContent=`Teile deine Zusammenfassung, dein Merkblatt oder Übungsaufgaben${t?` zu „${t}“`:""}.`; draw(); };
+  const bindChips=root=>$$("[data-t]",root).forEach(c=>c.onclick=()=>setTopic(c.dataset.t===topic?"":c.dataset.t));
+  bindChips(m);
+  tIn.onchange=()=>setTopic(tIn.value.trim());
+  tIn.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();setTopic(tIn.value.trim());}};
+  $("#topicClear").onclick=()=>setTopic("");
+  $("#actView").onclick=()=>$("#entriesBox").scrollIntoView({behavior:"smooth"});
+  $("#actUp").onclick=()=>openEntryForm(subject,topic);
+  const sc=$("#scope"); sc.value=filt.mine; sc.onchange=()=>{filt.mine=sc.value;draw();};
+  $("#claudeTopics").onclick=async()=>{ const b=$("#claudeTopics"), box=$("#ctBox"); b.disabled=true; box.innerHTML=`<span class="spin"></span> Claude sammelt Themen …`;
+    const ctx=p.track==="schule"?`im Fach "${subject}" für ${profileLabel(p)} laut dem dort geltenden offiziellen Bildungsplan bzw. Lehrplan (${link?link.src:""})`:`im Modul "${subject}" des Studiengangs ${p.program} an der ${p.uni}`;
+    try{ const r=await CAP.sample.json(`Nenne die Themen ${ctx}. Antworte nur mit JSON: {"topics":["Thema",...],"sicher":true|false} mit 8 bis 16 kurzen Themenbezeichnungen in der Reihenfolge des Plans. "sicher" ist false, wenn du den konkreten Plan nicht genau kennst.`,{modelTier:"default",cache:{gcTime:864e5}});
+      const ts=(r.topics||[]).map(String).filter(t=>!curated.includes(t)).slice(0,20);
+      box.innerHTML=`<p class="small muted">${r.sicher?"Vorschläge von Claude":"Vorschläge von Claude (Plan nicht sicher bekannt)"} – bitte mit dem offiziellen Plan abgleichen.</p><div class="row">${ts.map(t=>`<button class="chip" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>`; bindChips(box);
+    }catch(e){ box.innerHTML=`<p class="small">${esc(sampleErr(e))}</p>`; } b.disabled=false; };
+
+  function visible(){
+    return entries.filter(e=>{
+      if(topic && subjKey(e.topic)!==subjKey(topic)) return false;
+      if(p.track==="schule"){ if(filt.mine==="grade") return e.schoolType===p.type&&Number(e.grade)===Number(p.grade); if(filt.mine==="state") return e.state===p.state; }
+      else if(filt.mine==="uni") return subjKey(e.uni)===subjKey(p.uni);
+      return true;
+    }).sort((a,b)=>(VOTES.counts[b._id]||0)-(VOTES.counts[a._id]||0)||(b.createdAt||0)-(a.createdAt||0));
+  }
+  async function draw(){
+    const list=$("#entList"); if(!list) return;
+    const libT=[...new Set(entries.map(e=>e.topic).filter(t=>t&&!curated.includes(t)))];
+    $("#libTopics").innerHTML=libT.length?`<span class="small muted" style="width:100%">Themen aus der Bibliothek:</span>`+libT.map(t=>`<button class="chip" data-t="${esc(t)}" aria-pressed="${t===topic}">${esc(t)}</button>`).join(""):"";
+    bindChips($("#libTopics"));
+    $("#topicList").innerHTML=[...curated,...libT].map(t=>`<option value="${esc(t)}">`).join("");
+    if(!CAP.db){ $("#cntLbl").textContent="Nur in claude.ai verfügbar"; return; }
+    const vis=visible();
+    $("#cntLbl").textContent=`${vis.length} ${vis.length===1?"Eintrag":"Einträge"}${topic?` zu „${topic}“`:""}`;
+    $("#entTitle").textContent=topic?`Einträge zu „${topic}“`:"Alle Einträge";
+    if(!vis.length){ list.innerHTML=`<div class="empty">Zu ${topic?`„${esc(topic)}“`:"diesem Fach"} gibt es hier noch nichts. <button class="btn ghost" id="firstUp">Lade den ersten Eintrag hoch</button>${filt.mine!=="all"?`<br><span class="small">Oder stelle oben „Alle“ ein.</span>`:""}</div>`; $("#firstUp").onclick=()=>openEntryForm(subject,topic); return; }
+    let names={}; try{ if(CAP.user){ const ps=await CAP.user.profiles([...new Set(vis.map(e=>e.authorId).filter(Boolean))]); for(const id in ps) names[id]=ps[id].name; } }catch{}
+    list.innerHTML=vis.map(e=>`<div class="li"><div class="grow stack" style="gap:3px"><div class="row" style="gap:6px"><span class="pill">${esc(e.kind)}</span><span class="small muted">${esc(e.topic||"")}</span></div><b>${esc(e.title)}</b><span class="small muted">${esc(levelLabel(e))} · ${esc(names[e.authorId]||"Jemand")} · ${new Date(e.createdAt).toLocaleDateString("de-DE")}</span></div><div class="stack" style="gap:6px;align-items:flex-end"><button class="btn sm" data-open="${e._id}">Öffnen</button><span class="small muted">▲ <span data-votes="${e._id}">${VOTES.counts[e._id]||0}</span> hilfreich</span></div></div>`).join("");
+    $$("[data-open]",list).forEach(b=>b.onclick=()=>openEntry(entries.find(e=>e._id===b.dataset.open),names));
+  }
+  if(CAP.db){
+    watchVotes();
+    unsub=CAP.db.collection("entries").where("subjectKey","==",key).where("track","==",p.track).limit(500).onSnapshot(snap=>{ entries=snap.docs.map(d=>({...d.data(),_id:d.id})); draw(); },()=>{ const l=$("#entList"); if(l) l.innerHTML=`<p class="small">Die Bibliothek ist gerade nicht erreichbar.</p>`; });
+    cleanup.push(()=>unsub&&unsub());
+  }
+  draw();
+}
+
+function openEntry(e,names={}){
+  if(!e) return;
+  const mineOrOwner = (CAP.uid&&e.authorId===CAP.uid)||CAP.isOwner;
+  modal(`<div class="stack" style="gap:6px"><div class="row" style="gap:6px"><span class="pill">${esc(e.kind)}</span><span class="small muted">${esc(e.subject)} · ${esc(e.topic||"")}</span></div><h2>${esc(e.title)}</h2><span class="small muted">${esc(levelLabel(e))} · ${esc(names[e.authorId]||"Jemand")} · ${new Date(e.createdAt).toLocaleDateString("de-DE")}</span></div>
+    <div class="note warn small">Inhalte sind von Nutzerinnen und Nutzern erstellt und nicht geprüft.</div>
+    <div class="entry-body">${esc(e.content)}</div>
+    <div class="row"><button class="btn primary" id="eLearn">Mit Merkwerk lernen</button><button class="btn" id="eVote">${VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"}</button><button class="btn" id="eCopy">Text kopieren</button><span class="spacer"></span>${mineOrOwner?`<button class="btn ghost danger" id="eDel">Löschen</button>`:""}<button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    $("#eLearn",m).onclick=async()=>{ const s=newSet(e.title,e.subject); s.files=[{id:rid("f_"),name:`Bibliothek: ${e.title}`,kind:"bibliothek",text:e.content,ocr:false}]; s.sections=makeSections(s.files); await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true}); toast("Als Lernset übernommen"); };
+    $("#eVote",m).onclick=async()=>{ await toggleVote(e._id); $("#eVote",m).textContent=VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"; };
+    $("#eCopy",m).onclick=()=>copyText(e.content);
+    const d=$("#eDel",m); if(d) d.onclick=async()=>{ try{ await CAP.db.doc("entries/"+e._id).delete(); close(); toast("Eintrag gelöscht"); }catch{ toast("Löschen nicht möglich"); } };
+  });
+}
+
+function openEntryForm(subject,topic){
+  const p=S.profile;
+  if(!CAP.db){ toast("Hochladen geht nur in claude.ai mit Anmeldung"); return; }
+  if(CAP.canWrite===false){ modal(`<h3>Hochladen nicht freigeschaltet</h3><p>Du kannst die Bibliothek lesen, aber noch keine Einträge beisteuern. Bitte die Person, die Merkwerk geteilt hat, dich als Mitwirkende/n einzuladen.</p><div class="row"><button class="btn" data-close>OK</button></div>`); return; }
+  modal(`<h2>Eintrag hochladen</h2><p class="small muted">${esc(subject)} · ${esc(profileLabel(p))}</p>
+    <label class="f">Thema<input type="text" id="eTopic" value="${esc(topic||"")}" placeholder="z. B. Quadratische Funktionen"></label>
+    <label class="f">Titel<input type="text" id="eTitle" placeholder="z. B. Spickzettel Scheitelpunktform"></label>
+    <label class="f">Art<select id="eKind">${KINDS.map(k=>`<option>${k}</option>`).join("")}</select></label>
+    <label class="f">Inhalt<textarea id="eContent" style="min-height:200px" placeholder="Schreib oder füge deinen Text ein – oder übernimm eine Datei bzw. ein Lernset."></textarea></label>
+    <div class="row"><button class="btn sm" id="eFileBtn">Datei übernehmen</button><input type="file" id="eFile" accept=".pdf,.docx,.txt,.md,image/*" hidden>${SETS.length?`<select id="eSet" style="width:auto"><option value="">Aus Lernset übernehmen …</option>${SETS.filter(s=>!s.example).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select>`:""}<span id="eSt" class="small"></span></div>
+    <label class="row small" style="gap:8px;align-items:flex-start"><input type="checkbox" id="eOk" style="margin-top:4px"><span>Das ist mein eigener Inhalt (eigene Notizen, eigene Zusammenfassung) – keine abfotografierten Buchseiten oder fremden Lösungen. Er wird für alle Nutzer der Bibliothek sichtbar.</span></label>
+    <div class="row"><button class="btn primary" id="ePost">Veröffentlichen</button><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    const fi=$("#eFile",m); $("#eFileBtn",m).onclick=()=>fi.click();
+    fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return; try{ const r=await readFile(f,t=>{$("#eSt",m).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); $("#eContent",m).value=r.text; if(!$("#eTitle",m).value) $("#eTitle",m).value=f.name.replace(/\.[^.]+$/,""); $("#eSt",m).textContent=r.ocr?"Von Claude abgeschrieben – bitte prüfen.":""; }catch(e){ $("#eSt",m).textContent=e&&e.code?sampleErr(e):String(e.message||e); } };
+    const es=$("#eSet",m); if(es) es.onchange=()=>{ const s=setById(es.value); if(s){ $("#eContent",m).value=s.files.map(f=>f.text).join("\n\n"); if(!$("#eTitle",m).value) $("#eTitle",m).value=s.name; } };
+    $("#ePost",m).onclick=async()=>{
+      const t=$("#eTopic",m).value.trim(), ti=$("#eTitle",m).value.trim(), c=$("#eContent",m).value.trim();
+      if(!t||!ti||c.length<40){ toast("Bitte Thema, Titel und mindestens ein paar Sätze Inhalt angeben"); return; }
+      if(!$("#eOk",m).checked){ toast("Bitte bestätige, dass es dein eigener Inhalt ist"); return; }
+      const doc={track:p.track,subject,subjectKey:subjKey(subject),topic:t,topicKey:subjKey(t),title:ti.slice(0,140),kind:$("#eKind",m).value,content:c.slice(0,120000),authorId:CAP.uid||null,createdAt:Date.now(),
+        state:p.state||null,schoolType:p.type||null,grade:p.grade||null,uni:p.uni||null,program:p.program||null};
+      $("#ePost",m).disabled=true;
+      try{ await CAP.db.collection("entries").add(doc); close(); toast("Eintrag veröffentlicht"); }
+      catch(e){ $("#ePost",m).disabled=false; toast(e&&e.code==="quota_exceeded"?"Die Bibliothek ist voll":e&&e.code==="invalid_argument"?"Du darfst hier keine Einträge veröffentlichen":"Veröffentlichen fehlgeschlagen – versuch es noch einmal"); }
+    };
+  });
+}
+
+/* ---- 07_timetable.js ---- */
+/* ===================== Stundenplan ===================== */
+const SLOTS_SCHOOL=[["07:45","08:30"],["08:35","09:20"],["09:40","10:25"],["10:30","11:15"],["11:35","12:20"],["12:25","13:10"],["13:15","14:00"],["14:00","14:45"],["14:45","15:30"],["15:30","16:15"]].map(([start,end])=>({start,end}));
+const SLOTS_UNI=[["08:00","09:30"],["09:45","11:15"],["11:30","13:00"],["14:00","15:30"],["15:45","17:15"],["17:30","19:00"]].map(([start,end])=>({start,end}));
+function ttSlots(){ const t=S.timetable; if(!t.slots||!t.slots.length) t.slots=(S.profile&&S.profile.track==="uni")?SLOTS_UNI:SLOTS_SCHOOL; return t.slots; }
+function hueOf(s){ let h=0; for(const c of String(s)) h=(h*31+c.charCodeAt(0))%360; return h; }
+const subjColor=s=>`color-mix(in oklab, hsl(${hueOf(s)} 70% 55%) 24%, var(--sheet))`;
+function deriveSlots(entries){
+  const pairs=[...new Map(entries.map(e=>[e.start+"-"+e.end,{start:e.start,end:e.end}])).values()].sort((a,b)=>toMin(a.start)-toMin(b.start)||toMin(a.end)-toMin(b.end));
+  const out=[]; for(const p of pairs){ const last=out[out.length-1]; if(last && toMin(p.start)<toMin(last.end)) continue; out.push({...p}); }
+  return out;
+}
+function entriesAt(day,slot){ return S.timetable.entries.filter(e=>e.day===day && toMin(e.start)<toMin(slot.end) && toMin(e.end)>toMin(slot.start)); }
+function lessonsOn(date){
+  const iso=isoDate(date); if(freeDates().has(iso)) return [];
+  const t=calStore(); const wl=weekLetter(date);
+  const res=t.entries.filter(e=>e.day===wd(date)&&!(e.week&&wl&&e.week!==wl)&&!t.moves[e.id+"|"+iso]).map(e=>({...e,cancelled:!!t.cancel[e.id+"|"+iso]}));
+  for(const k in t.moves){ const mv=t.moves[k]; if(mv.date!==iso) continue; const l=t.entries.find(x=>x.id===k.split("|")[0]); if(l) res.push({...l,start:mv.start,end:mv.end,moved:true}); }
+  return res.sort((a,b)=>toMin(a.start)-toMin(b.start));
+}
+
+let TT_DAY=null;
+VIEWS.tt = function(m,arg){
+  const mode=S.ttMode||"cal";
+  const t=S.timetable; const slots=ttSlots(); const nd=t.days||5;
+  const now=new Date(); const nowD=wd(now), nowM=now.getHours()*60+now.getMinutes();
+  const narrow=window.innerWidth<620; if(TT_DAY===null||TT_DAY>=nd) TT_DAY=nowD<nd?nowD:0;
+  const cols=narrow?[TT_DAY]:[...Array(nd).keys()];
+  m.innerHTML=`<div class="view">
+   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Stundenplan & Kalender</h1><p class="muted">${mode==="cal"?"Unterricht, Klausuren, Abgaben, Lerneinheiten und eigene Termine in einem Kalender. Zieh im Kalender über eine freie Zeit, um etwas einzutragen.":"Tippe auf ein Feld, um eine Stunde einzutragen – oder importiere deinen Plan."}</p></div></div>
+   <div class="row" style="gap:6px" role="group" aria-label="Ansicht"><button class="chip" data-mode="cal" aria-pressed="${mode==="cal"}">Kalender</button><button class="chip" data-mode="grid" aria-pressed="${mode==="grid"}">Wochenraster</button></div>
+   <div class="row">
+     <button class="btn primary" id="impShot">Aus Screenshot übernehmen</button>
+     <button class="btn" id="impIcs">WebUntis / Kalenderdatei (.ics)</button>
+     <button class="btn" id="slotsBtn">Zeiten anpassen</button>
+     <label class="row small" style="gap:6px"><input type="checkbox" id="satChk" ${nd>5?"checked":""}> Samstag</label>
+     <span class="spacer"></span>${t.entries.length?`<button class="btn ghost danger sm" id="clearTT">Plan leeren</button>`:""}
+   </div>
+   <input type="file" id="shotIn" accept="image/*" hidden><input type="file" id="icsIn" accept=".ics,text/calendar" hidden>
+   <div id="impBox"></div>
+   ${mode==="cal"?`<section class="sheet stack" id="calWrap"><div class="row small" id="calBar"></div><div id="calBox"><p class="muted"><span class="spin"></span> Kalender wird geladen …</p></div></section>`:`
+   ${narrow?`<div class="row" style="gap:6px">${DAYS.slice(0,nd).map((d,i)=>`<button class="chip" data-tday="${i}" aria-pressed="${i===TT_DAY}">${d}${i===nowD?" ·":""}</button>`).join("")}</div>`:""}
+   <section class="sheet ${narrow?"":"scrollx"}">
+     <div class="tt" style="grid-template-columns:62px repeat(${cols.length},minmax(0,1fr));${narrow?"min-width:0":""}">
+       <div></div>${cols.map(i=>`<div class="h" ${i===nowD?'style="color:var(--accent)"':""}>${DAYS_LONG[i]}</div>`).join("")}
+       ${slots.map((s,si)=>`<div class="time">${si+1}.<br>${s.start}<br>${s.end}</div>`+cols.map(di=>{ const es=entriesAt(di,s); const e=es[0]; const isNow=di===nowD&&nowM>=toMin(s.start)&&nowM<toMin(s.end);
+          return e?`<button class="cell filled ${isNow?"now":""}" style="--c:${subjColor(e.subject)}" data-d="${di}" data-s="${si}" data-id="${e.id}"><b>${esc(e.subject)}</b><span>${esc([e.room,e.teacher].filter(Boolean).join(" · "))}${e.week?` · Woche ${e.week}`:""}${es.length>1?` · +${es.length-1}`:""}</span></button>`
+                  :`<button class="cell ${isNow?"now":""}" data-d="${di}" data-s="${si}" aria-label="${DAYS_LONG[di]} ${si+1}. Stunde eintragen"></button>`; }).join("")).join("")}
+     </div>
+   </section>`}
+   ${t.entries.length?"":`<div class="empty">Dein Stundenplan ist noch leer. Am schnellsten geht es mit einem Screenshot aus WebUntis oder deinem Uni-Portal.</div>`}
+  </div>`;
+  $$("[data-mode]").forEach(b=>b.onclick=()=>{S.ttMode=b.dataset.mode;save(false);render();});
+  if(mode==="cal") mountCalendar($("#calBox"),$("#calBar"),arg&&arg.date);
+  $$("[data-tday]").forEach(b=>b.onclick=()=>{TT_DAY=Number(b.dataset.tday);render();});
+  $("#satChk").onchange=e=>{t.days=e.target.checked?6:5;save();render();};
+  $$(".tt .cell").forEach(c=>c.onclick=()=>editLesson(Number(c.dataset.d),slots[Number(c.dataset.s)],c.dataset.id));
+  $("#impShot").onclick=()=>{ if(!CAP.sample||!CAP.images){ $("#impBox").innerHTML=needClaude()||`<div class="note warn">Bilder kann Claude in dieser Ansicht nicht lesen.</div>`; return; } $("#shotIn").click(); };
+  $("#shotIn").onchange=e=>{ const f=e.target.files[0]; if(f) importShot(f); };
+  $("#impIcs").onclick=()=>showIcsHelp();
+  $("#icsIn").onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const list=parseIcsTimetable(await f.text()); previewImport(list,"Kalenderdatei"); }catch(err){ $("#impBox").innerHTML=`<div class="note bad">${esc(err.message||err)}</div>`; } };
+  $("#slotsBtn").onclick=editSlots;
+  const ct=$("#clearTT"); if(ct) ct.onclick=async()=>{ if(await confirmBox("Ganzen Stundenplan leeren?","Leeren")){ t.entries=[]; save(); render(); } };
+};
+
+function editLesson(day,slot,id){
+  const t=S.timetable; const e=id?t.entries.find(x=>x.id===id):null;
+  const others=id?entriesAt(day,slot).filter(x=>x.id!==id):[];
+  const subs=[...new Set([...(S.mySubjects||[]),...t.entries.map(x=>x.subject)])];
+  modal(`<h2>${DAYS_LONG[day]}, ${esc(slot.start)}–${esc(slot.end)}</h2>
+   ${others.length?`<p class="small muted">Außerdem in diesem Feld: ${others.map(o=>`<button class="chip" data-other="${o.id}">${esc(o.subject)}${o.week?" (Woche "+o.week+")":""}</button>`).join(" ")}</p>`:""}
+   <label class="f">Fach / Veranstaltung<input type="text" id="lS" list="lSl" value="${esc(e?e.subject:"")}"><datalist id="lSl">${subs.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
+   <div class="grid2"><label class="f">Raum<input type="text" id="lR" value="${esc(e?e.room:"")}"></label><label class="f">${S.profile&&S.profile.track==="uni"?"Dozent/in":"Lehrkraft"}<input type="text" id="lT" value="${esc(e?e.teacher:"")}"></label></div>
+   <div class="grid2"><label class="f">Beginn<input type="time" id="lA" value="${esc(e?e.start:slot.start)}"></label><label class="f">Ende<input type="time" id="lB" value="${esc(e?e.end:slot.end)}"></label></div>
+   <label class="f">Rhythmus<select id="lW"><option value="">Jede Woche</option><option value="A" ${e&&e.week==="A"?"selected":""}>Nur Woche A</option><option value="B" ${e&&e.week==="B"?"selected":""}>Nur Woche B</option></select></label>
+   <div class="row"><button class="btn primary" id="lSave">Speichern</button>${e?`<button class="btn danger" id="lDel">Entfernen</button>`:""}<button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    $("#lS",m).focus();
+    $$("[data-other]",m).forEach(b=>b.onclick=()=>{close();editLesson(day,slot,b.dataset.other);});
+    $("#lSave",m).onclick=()=>{ const subject=$("#lS",m).value.trim(); if(!subject){toast("Bitte ein Fach eintragen");return;}
+      const v={day,subject,room:$("#lR",m).value.trim(),teacher:$("#lT",m).value.trim(),start:$("#lA",m).value||slot.start,end:$("#lB",m).value||slot.end,week:$("#lW",m).value};
+      if(toMin(v.end)<=toMin(v.start)){toast("Das Ende muss nach dem Beginn liegen");return;}
+      if(e) Object.assign(e,v); else t.entries.push({id:rid("l"),...v});
+      save(); close(); render(); };
+    const d=$("#lDel",m); if(d) d.onclick=()=>{ t.entries=t.entries.filter(x=>x.id!==e.id); save(); close(); render(); };
+  });
+}
+function editSlots(){
+  const slots=ttSlots().map(s=>({...s}));
+  const draw=m=>{ $("#slotList",m).innerHTML=slots.map((s,i)=>`<div class="row"><span class="mono small" style="width:2.5em">${i+1}.</span><input type="time" data-a="${i}" value="${s.start}" style="width:auto"><span>–</span><input type="time" data-b="${i}" value="${s.end}" style="width:auto"><button class="btn ghost sm danger" data-x="${i}">Entfernen</button></div>`).join("");
+    $$("[data-a]",m).forEach(x=>x.onchange=()=>slots[x.dataset.a].start=x.value); $$("[data-b]",m).forEach(x=>x.onchange=()=>slots[x.dataset.b].end=x.value);
+    $$("[data-x]",m).forEach(x=>x.onclick=()=>{slots.splice(Number(x.dataset.x),1);draw(m);}); };
+  modal(`<h2>Stundenzeiten</h2><p class="small muted">Lege fest, welche Zeilen der Plan hat. Einträge bleiben erhalten.</p><div class="stack" id="slotList"></div>
+    <div class="row"><button class="btn sm" id="slAdd">+ Stunde</button><button class="btn sm" id="slSchool">Schul-Raster (45 Min.)</button><button class="btn sm" id="slUni">Uni-Raster (90 Min.)</button><button class="btn sm" id="slFit">Aus Einträgen ableiten</button></div>
+    <div class="row"><button class="btn primary" id="slSave">Speichern</button><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    draw(m);
+    $("#slAdd",m).onclick=()=>{const l=slots[slots.length-1]; const st=l?toMin(l.end)+5:480; slots.push({start:fromMin(st),end:fromMin(st+45)}); draw(m);};
+    $("#slSchool",m).onclick=()=>{slots.splice(0,slots.length,...SLOTS_SCHOOL.map(s=>({...s})));draw(m);};
+    $("#slUni",m).onclick=()=>{slots.splice(0,slots.length,...SLOTS_UNI.map(s=>({...s})));draw(m);};
+    $("#slFit",m).onclick=()=>{ const d=deriveSlots(S.timetable.entries); if(d.length){slots.splice(0,slots.length,...d);draw(m);} else toast("Noch keine Einträge"); };
+    $("#slSave",m).onclick=()=>{ S.timetable.slots=slots.filter(s=>s.start&&s.end&&toMin(s.end)>toMin(s.start)).sort((a,b)=>toMin(a.start)-toMin(b.start)); save(); close(); render(); };
+  });
+}
+
+async function importShot(file){
+  const box=$("#impBox"); const ctl=new AbortController();
+  box.innerHTML=`<div class="sheet row"><span class="spin"></span><span>Claude liest deinen Stundenplan …</span><span class="spacer"></span><button class="btn sm" id="stopShot">Abbrechen</button></div>`;
+  $("#stopShot").onclick=()=>ctl.abort();
+  try{
+    const r=await CAP.sample.json(`Das Bild ist ein Stundenplan (z. B. Screenshot aus WebUntis, einem Uni-Portal oder ein Foto). Lies jede Unterrichtsstunde bzw. Veranstaltung aus und ordne sie dem Wochentag und der Uhrzeit zu.
+- Wenn nur Stundennummern sichtbar sind, nutze diese typischen Zeiten: 1. 07:45–08:30, 2. 08:35–09:20, 3. 09:40–10:25, 4. 10:30–11:15, 5. 11:35–12:20, 6. 12:25–13:10, 7. 13:15–14:00, 8. 14:00–14:45, 9. 14:45–15:30, 10. 15:30–16:15 – außer im Bild stehen eigene Zeiten.
+- Doppelstunden als ein Eintrag mit durchgehender Zeit.
+- Abkürzungen von Fächern ausschreiben, wenn eindeutig (z. B. M → Mathematik, D → Deutsch, E → Englisch, BIO → Biologie, G/GE → Geschichte, PH → Physik, CH → Chemie, GEO/EK → Geographie, SP → Sport, MU → Musik, BK/KU → Kunst, ETH → Ethik, REV/EV → Evangelische Religion, RK/KR → Katholische Religion, INF → Informatik). Sonst Abkürzung übernehmen.
+- Ausgefallene oder durchgestrichene Stunden normal übernehmen (es geht um den regulären Plan).
+Antworte nur mit JSON: {"lessons":[{"day":"Mo|Di|Mi|Do|Fr|Sa","start":"HH:MM","end":"HH:MM","subject":"…","room":"…","teacher":"…","week":""}],"hinweis":"kurzer Hinweis, falls etwas unsicher war"}`,{images:[file],modelTier:"default",cache:false,signal:ctl.signal});
+    const list=(r.lessons||[]).map(l=>({day:DAYS.indexOf(String(l.day).slice(0,2)),start:String(l.start||"").slice(0,5),end:String(l.end||"").slice(0,5),subject:String(l.subject||"").trim(),room:String(l.room||"").trim(),teacher:String(l.teacher||"").trim(),week:["A","B"].includes(l.week)?l.week:""})).filter(l=>l.day>=0&&l.subject&&/^\d\d:\d\d$/.test(l.start)&&/^\d\d:\d\d$/.test(l.end));
+    previewImport(list,"Screenshot",r.hinweis);
+  }catch(e){ box.innerHTML=e&&e.code==="cancelled"?"":`<div class="note bad">${esc(sampleErr(e))}</div>`; }
+}
+function showIcsHelp(){
+  modal(`<h2>WebUntis & Kalenderdateien</h2>
+   <p>Eine direkte Anmeldung bei WebUntis ist aus Merkwerk heraus nicht möglich: WebUntis lässt fremde Webseiten nicht zu, und dein Passwort soll nicht in einer anderen App landen. So kommt dein Plan trotzdem rein:</p>
+   <div class="stack small">
+     <p><b>Variante 1 – Screenshot (am schnellsten):</b> In der WebUntis-App die Wochenansicht öffnen, Screenshot machen, hier „Aus Screenshot übernehmen“ wählen. Claude ordnet die Fächer den Zeiten zu, du prüfst die Vorschau.</p>
+     <p><b>Variante 2 – Kalenderdatei:</b> In WebUntis im Browser „Mein Stundenplan“ öffnen und über das Teilen-/Export-Symbol eine iCal-Datei (.ics) herunterladen (Abo-Links und Export sind je nach Schule freigeschaltet). Uni-Portale wie HISinOne, CAMPUSonline oder Stud.IP bieten ebenfalls einen iCal-Export. Die Datei hier auswählen.</p>
+   </div>
+   <div class="row"><button class="btn primary" id="pickIcs">.ics-Datei auswählen</button><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{ $("#pickIcs",m).onclick=()=>{close();$("#icsIn").click();}; });
+}
+function parseIcsTimetable(txt){
+  const lines=txt.replace(/\r\n[ \t]/g,"").replace(/\n[ \t]/g,"").split(/\r?\n/);
+  const evs=[]; let cur=null;
+  const parseDT=(v,params)=>{ const m=v.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/); if(!m) return null; if(!m[4]) return {date:new Date(+m[1],+m[2]-1,+m[3]),allday:true};
+    const d= m[7]? new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5])) : new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]); return {date:d,allday:false}; };
+  const unesc=s=>s.replace(/\\n/gi," ").replace(/\\,/g,",").replace(/\\;/g,";").replace(/\\\\/g,"\\");
+  for(const ln of lines){
+    if(ln==="BEGIN:VEVENT"){cur={};continue;} if(ln==="END:VEVENT"){ if(cur) evs.push(cur); cur=null; continue; } if(!cur) continue;
+    const i=ln.indexOf(":"); if(i<0) continue; const head=ln.slice(0,i), val=ln.slice(i+1); const name=head.split(";")[0].toUpperCase();
+    if(name==="DTSTART") cur.s=parseDT(val); else if(name==="DTEND") cur.e=parseDT(val); else if(name==="SUMMARY") cur.sum=unesc(val); else if(name==="LOCATION") cur.loc=unesc(val); else if(name==="DESCRIPTION") cur.desc=unesc(val); else if(name==="RRULE") cur.rrule=val; else if(name==="STATUS") cur.status=val;
+  }
+  const timed=evs.filter(e=>e.s&&!e.s.allday&&e.e&&e.sum&&e.status!=="CANCELLED");
+  if(!timed.length) throw new Error("In der Datei wurden keine Termine mit Uhrzeit gefunden.");
+  let pick=timed.filter(e=>e.rrule&&/FREQ=WEEKLY/.test(e.rrule));
+  if(!pick.length){ const wk={}; const key=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-wd(x));return isoDate(x);};
+    timed.forEach(e=>{const k=key(e.s.date);(wk[k] ||= []).push(e);});
+    const best=Object.values(wk).sort((a,b)=>new Set(b.map(e=>e.sum)).size-new Set(a.map(e=>e.sum)).size||b.length-a.length)[0]; pick=best; }
+  const seen=new Set(); const out=[];
+  for(const e of pick){ const d=e.s.date, en=e.e.date; const v={day:wd(d),start:fromMin(d.getHours()*60+d.getMinutes()),end:fromMin(en.getHours()*60+en.getMinutes()),subject:e.sum.trim(),room:(e.loc||"").trim(),teacher:"",week:""};
+    const k=[v.day,v.start,v.subject].join("|"); if(seen.has(k)||v.day>5) continue; seen.add(k); out.push(v); }
+  return out;
+}
+function previewImport(list,src,hint){
+  const box=$("#impBox");
+  if(!list.length){ box.innerHTML=`<div class="note bad">Im ${esc(src)} wurden keine Stunden erkannt. Versuch einen schärferen Screenshot der Wochenansicht.</div>`; return; }
+  list.sort((a,b)=>a.day-b.day||toMin(a.start)-toMin(b.start));
+  box.innerHTML=`<section class="sheet stack"><div class="row"><h3>Vorschau: ${list.length} Stunden aus ${esc(src)}</h3></div>${hint?`<p class="small muted">${esc(hint)}</p>`:""}
+    <p class="small">Prüfe die Zuordnung. Einzelne Zeilen kannst du abwählen und später im Plan korrigieren.</p>
+    <div class="scrollx"><table class="t"><thead><tr><th></th><th>Tag</th><th>Zeit</th><th>Fach</th><th>Raum</th><th>Lehrkraft</th></tr></thead><tbody>${list.map((l,i)=>`<tr><td><input type="checkbox" data-i="${i}" checked aria-label="übernehmen"></td><td>${DAYS[l.day]}</td><td class="mono">${l.start}–${l.end}</td><td><b>${esc(l.subject)}</b></td><td>${esc(l.room)}</td><td>${esc(l.teacher)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="row"><button class="btn primary" id="impReplace">Plan ersetzen</button><button class="btn" id="impAdd">Zum Plan hinzufügen</button><button class="btn ghost" id="impCancel">Verwerfen</button></div></section>`;
+  const chosen=()=>$$("[data-i]",box).filter(c=>c.checked).map(c=>list[Number(c.dataset.i)]);
+  const apply=replace=>{ const c=chosen().map(l=>({id:rid("l"),...l})); S.timetable.entries=replace?c:[...S.timetable.entries,...c];
+    const d=deriveSlots(S.timetable.entries); if(d.length>=3) S.timetable.slots=d; if(c.some(l=>l.day===5)) S.timetable.days=6;
+    save(); box.innerHTML=""; render(); toast(`${c.length} Stunden übernommen`); };
+  $("#impReplace").onclick=()=>apply(true); $("#impAdd").onclick=()=>apply(false); $("#impCancel").onclick=()=>box.innerHTML="";
+}
+
+/* ---- 08_due.js ---- */
+/* ===================== Abgaben, Klausuren, Erinnerungen, Lernplan ===================== */
+const TYPE_NAME={klausur:"Klausur",abgabe:"Abgabe"};
+function remindDaysOf(it){ return it.remindDays&&it.remindDays.length? it.remindDays : (it.type==="klausur"?S.remind.klausurDays:S.remind.abgabeDays); }
+function remindOn(it){ return it.remindDays&&it.remindDays.length ? true : !!S.remind[it.type]; }
+function dueReminders(){
+  const t=today0(); const out=[];
+  for(const it of S.items){ if(it.done||!remindOn(it)) continue; const d=parseISO(it.date); const left=daysBetween(t,d); if(left<0) continue;
+    const ds=[...remindDaysOf(it)].sort((a,b)=>a-b); const hit=ds.find(x=>left<=x); if(hit===undefined) continue;
+    const key=`${it.id}:${hit}`; if(S.dismissed[key]) continue; out.push({it,left,key}); }
+  return out.sort((a,b)=>a.left-b.left);
+}
+const leftLabel=n=>n===0?"heute":n===1?"morgen":n<0?`vor ${-n} Tagen`:`in ${n} Tagen`;
+function calLinks(it){
+  const title=`${TYPE_NAME[it.type]}: ${it.title}${it.subject?` (${it.subject})`:""}`;
+  const details=[it.notes||"","Eingetragen mit Merkwerk."].filter(Boolean).join("\n");
+  const ymd=it.date.replace(/-/g,"");
+  let g, o;
+  if(it.time){ const [h,mi]=it.time.split(":"); const st=`${ymd}T${h}${mi}00`; const endM=toMin(it.time)+(it.type==="klausur"?90:15); const en=`${ymd}T${pad(Math.floor(endM/60)%24)}${pad(endM%60)}00`;
+    g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${st}/${en}&ctz=Europe/Berlin&details=${encodeURIComponent(details)}`;
+    o=`startdt=${it.date}T${it.time}:00&enddt=${it.date}T${fromMin(endM%1440)}:00`; }
+  else{ const nx=new Date(parseISO(it.date)); nx.setDate(nx.getDate()+1); g=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${ymd}/${isoDate(nx).replace(/-/g,"")}&details=${encodeURIComponent(details)}`; o=`startdt=${it.date}&enddt=${isoDate(nx)}&allday=true`; }
+  const oq=`path=%2Fcalendar%2Faction%2Fcompose&rru=addevent&subject=${encodeURIComponent(title)}&body=${encodeURIComponent(details)}&${o}`;
+  return {google:g,outlook:`https://outlook.live.com/calendar/0/deeplink/compose?${oq}`,outlook365:`https://outlook.office.com/calendar/0/deeplink/compose?${oq}`};
+}
+
+/* ---------- Lernplan ---------- */
+const secTitle=s=>{ const first=s.text.split("\n").map(x=>x.trim()).find(Boolean)||""; return first.length>70?first.slice(0,67)+"…":first; };
+function buildPlan(it,set,{weekdays,reviewDays,keepDone=true}){
+  const old=it.plan&&keepDone? it.plan.days.filter(d=>d.done):[];
+  const doneSecs=new Set(old.filter(d=>d.kind==="neu").flatMap(d=>d.sectionIds));
+  const secs=set.sections.filter(s=>!doneSecs.has(s.id));
+  const start=today0(); const end=parseISO(it.date); end.setDate(end.getDate()-1);
+  const dates=[]; for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ if(weekdays.includes(wd(d)) && !old.some(o=>o.date===isoDate(d))) dates.push(isoDate(d)); }
+  if(!dates.length) return {error:"Bis zum Termin gibt es keinen freien Lerntag mehr. Wähle mehr Wochentage oder lerne heute direkt im Lernset."};
+  let rev=clamp(Number(reviewDays)||0,0,Math.max(0,dates.length-1)); if(!secs.length) rev=dates.length? Math.min(dates.length, Math.max(1,rev)) : 0;
+  const learnDates=dates.slice(0,dates.length-rev), revDates=dates.slice(dates.length-rev);
+  const days=[...old];
+  const L=learnDates.length;
+  if(secs.length && L){
+    if(secs.length<=L){ // weniger Abschnitte als Tage: gleichmäßig verteilen
+      secs.forEach((s,j)=>days.push({date:learnDates[Math.floor(j*L/secs.length)],kind:"neu",sectionIds:[s.id],done:false}));
+    } else {
+      let idx=0;
+      for(let k=0;k<L;k++){
+        const daysLeft=L-k; const rest=secs.slice(idx); const remain=rest.reduce((a,s)=>a+s.text.length,0); const target=remain/daysLeft;
+        const ids=[]; let acc=0;
+        while(idx<secs.length){
+          const s=secs[idx];
+          if(daysLeft>1 && ids.length>0 && (acc+s.text.length/2>target || secs.length-idx<=daysLeft-1)) break;
+          ids.push(s.id); acc+=s.text.length; idx++;
+        }
+        if(ids.length) days.push({date:learnDates[k],kind:"neu",sectionIds:ids,done:false});
+      }
+    }
+  }
+  revDates.forEach(date=>days.push({date,kind:"wiederholung",sectionIds:set.sections.map(s=>s.id),done:false}));
+  days.sort((a,b)=>a.date.localeCompare(b.date));
+  return {plan:{setId:set.id,weekdays,reviewDays:rev,days,createdAt:Date.now()}};
+}
+/* Termin verschoben: Lernplan an das neue Datum anpassen (erledigte Tage bleiben) */
+function adaptPlanToDate(it){
+  if(!it.plan) return;
+  const late=it.plan.days.some(d=>!d.done && d.date>=it.date);
+  const set=setById(it.plan.setId); if(!late||!set) return;
+  const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,keepDone:true});
+  if(!r.error){ it.plan=r.plan; toast("Lernplan an das neue Datum angepasst"); }
+}
+function planProgress(it,set){ if(!it.plan||!set) return {pct:0,secDone:0,n:0}; const n=set.sections.length; const done=new Set(it.plan.days.filter(d=>d.done&&d.kind==="neu").flatMap(d=>d.sectionIds)); return {pct:n?Math.round(done.size/n*100):0,secDone:done.size,n}; }
+function markPlanDone(ref,pct){ const it=S.items.find(x=>x.id===ref.itemId); if(!it||!it.plan) return; const d=it.plan.days.find(x=>x.date===ref.date&&x.kind===ref.kind); if(d){ d.done=true; d.pct=pct; save(); toast("Lerneinheit im Plan abgehakt"); } }
+async function startPlanDay(it,day){
+  if(!SETS.length) await loadSets();
+  const set=setById(it.plan.setId); if(!set){ toast("Das Lernset zu diesem Plan gibt es nicht mehr"); return; }
+  const n=day.kind==="wiederholung"?15:clamp(day.sectionIds.length*4,6,15);
+  S.activeSet=set.id; save(false);
+  go("learn",{manage:true});
+  setTimeout(()=>startRound(set,{n,restrict:day.kind==="wiederholung"?null:day.sectionIds,label:`Lernplan ${it.title} · ${fmtDate(day.date)}`,planRef:{itemId:it.id,date:day.date,kind:day.kind}}),30);
+}
+
+VIEWS.due = async function(m,arg){
+  if(!SETS.length) await loadSets();
+  if(arg&&arg.id){ const it=S.items.find(x=>x.id===arg.id); if(it) return renderItem(m,it); }
+  const t=today0();
+  const items=[...S.items].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||"").localeCompare(b.time||""));
+  const upcoming=items.filter(i=>!i.done&&daysBetween(t,parseISO(i.date))>=0), past=items.filter(i=>i.done||daysBetween(t,parseISO(i.date))<0);
+  const rem=dueReminders();
+  m.innerHTML=`<div class="view">
+   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Abgaben & Klausuren</h1><p class="muted">Termine eintragen, erinnern lassen und mit deinem Material einen Lernplan bis zur Klausur erstellen.</p></div><span class="spacer"></span><button class="btn primary" id="addIt">+ Termin eintragen</button></div>
+   ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
+   <section class="sheet stack"><h3>Anstehend</h3>${upcoming.length?`<div class="list">${upcoming.map(itemRow).join("")}</div>`:`<div class="empty">Keine anstehenden Termine. Trag deine nächste Klausur oder Abgabe ein.</div>`}</section>
+   <section class="sheet stack"><div class="row"><h3>Erinnerungen einstellen</h3></div>
+     <div class="grid2">
+       ${["klausur","abgabe"].map(k=>`<div class="stack" style="gap:8px"><label class="row" style="gap:8px;font-weight:700"><input type="checkbox" data-ron="${k}" ${S.remind[k]?"checked":""}> An ${k==="klausur"?"Klausuren":"Abgaben"} erinnern</label>
+         <div class="row" style="gap:6px">${[14,7,3,2,1,0].map(d=>`<button class="chip" data-rd="${k}" data-d="${d}" aria-pressed="${(S.remind[k+"Days"]||[]).includes(d)}">${d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher"}</button>`).join("")}</div></div>`).join("")}
+     </div>
+     <p class="small muted">Merkwerk zeigt fällige Erinnerungen, sobald du die Seite öffnest. Damit dein Handy dich auch erinnert, wenn Merkwerk zu ist, übernimm Termine mit einem Klick in Google Kalender oder Outlook und lass dir dort eine Benachrichtigung schicken.</p>
+   </section>
+   ${past.length?`<details class="sheet"><summary>Erledigt und vergangen (${past.length})</summary><div class="list" style="margin-top:8px">${past.reverse().map(itemRow).join("")}</div></details>`:""}
+   <div class="row"><span class="spacer"></span><button class="btn ghost sm" id="backup">Termine & Stundenplan sichern (.json)</button></div>
+  </div>`;
+  $("#addIt").onclick=()=>editItem();
+  bindRem(m); bindRows(m);
+  $$("[data-ron]").forEach(c=>c.onchange=()=>{S.remind[c.dataset.ron]=c.checked;save();});
+  $$("[data-rd]").forEach(c=>c.onclick=()=>{ const k=c.dataset.rd+"Days", d=Number(c.dataset.d); const s=new Set(S.remind[k]||[]); s.has(d)?s.delete(d):s.add(d); S.remind[k]=[...s].sort((a,b)=>b-a); c.setAttribute("aria-pressed",s.has(d)); save(); });
+  $("#backup").onclick=async()=>{ if(!CAP.downloads){ copyText(JSON.stringify(S,null,1)); return; } try{ await CAP.downloads.save({filename:`merkwerk-sicherung-${isoDate(new Date())}.json`,data:JSON.stringify(S,null,1)}); }catch(e){ if(e&&e.code!=="declined") toast("Speichern nicht möglich"); } };
+};
+function remHTML(rem){ return `<div class="list">${rem.map(r=>`<div class="li"><span class="pill ${r.left<=1?"bad":"warn"}">${leftLabel(r.left)}</span><div class="grow"><b>${TYPE_NAME[r.it.type]}: ${esc(r.it.title)}</b><div class="small muted">${esc(r.it.subject||"")} · ${fmtDate(r.it.date,{weekday:"long",day:"numeric",month:"long"})}${r.it.time?" · "+r.it.time+" Uhr":""}</div></div><button class="btn sm" data-open-it="${r.it.id}">Öffnen</button><button class="btn ghost sm" data-dis="${r.key}">Erledigt</button></div>`).join("")}</div>`; }
+function bindRem(m){ $$("[data-dis]",m).forEach(b=>b.onclick=()=>{S.dismissed[b.dataset.dis]=true;save();render();}); $$("[data-open-it]",m).forEach(b=>b.onclick=()=>go("due",{id:b.dataset.openIt})); }
+function itemRow(it){
+  const d=parseISO(it.date); const left=daysBetween(today0(),d); const set=it.plan?setById(it.plan.setId):null; const pr=planProgress(it,set);
+  return `<div class="li"><div class="due"><b class="mono">${d.getDate()}</b><span>${d.toLocaleDateString("de-DE",{month:"short"})}</span></div>
+   <div class="grow stack" style="gap:3px"><div class="row" style="gap:6px"><span class="pill ${it.type==="klausur"?"warn":""}">${TYPE_NAME[it.type]}</span>${it.done?'<span class="pill ok">erledigt</span>':`<span class="small muted">${leftLabel(left)}${it.time?" · "+it.time+" Uhr":""}</span>`}</div>
+   <b>${esc(it.title)}</b><span class="small muted">${esc(it.subject||"")}${it.plan?` · Lernplan ${pr.pct} % durchgearbeitet`:""}</span>
+   ${it.plan?`<div class="bar" style="max-width:260px"><i style="width:${pr.pct}%"></i></div>`:""}</div>
+   <button class="btn sm" data-open-it="${it.id}">Öffnen</button></div>`;
+}
+function bindRows(m){ $$("[data-open-it]",m).forEach(b=>b.onclick=()=>go("due",{id:b.dataset.openIt})); }
+
+function editItem(it,prefill,opts={}){
+  const isNew=!it; it=it||Object.assign({id:rid("it"),type:"klausur",title:"",subject:"",date:"",time:"",notes:"",remindDays:null,done:false},prefill||{});
+  const subs=[...new Set([...(S.mySubjects||[]),...S.timetable.entries.map(x=>x.subject)])];
+  modal(`<h2>${isNew?"Termin eintragen":"Termin bearbeiten"}</h2>
+   <div class="row" role="radiogroup">${["klausur","abgabe"].map(k=>`<button class="chip" data-ty="${k}" aria-pressed="${it.type===k}">${TYPE_NAME[k]}</button>`).join("")}</div>
+   <label class="f">Titel<input type="text" id="iT" value="${esc(it.title)}" placeholder="z. B. Klausur Analysis I oder Hausarbeit Kapitel 2"></label>
+   <label class="f">Fach / Modul<input type="text" id="iS" list="iSl" value="${esc(it.subject)}"><datalist id="iSl">${subs.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
+   <div class="grid2"><label class="f">Datum<input type="date" id="iD" value="${esc(it.date)}"></label><label class="f">Uhrzeit (optional)<input type="time" id="iH" value="${esc(it.time)}"></label></div>
+   <label class="f">Notizen<textarea id="iN" style="min-height:70px" placeholder="Raum, Hilfsmittel, Abgabeform …">${esc(it.notes)}</textarea></label>
+   <div class="stack" style="gap:6px"><span class="label">Erinnern</span><div class="row" style="gap:6px" id="iR"></div><span class="small muted">Ohne Auswahl gelten deine Standard-Einstellungen.</span></div>
+   <div class="row"><button class="btn primary" id="iSave">Speichern</button>${isNew?"":`<button class="btn danger" id="iDel">Löschen</button>`}<button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    let type=it.type; let rd=new Set(it.remindDays||[]);
+    const drawR=()=>{ $("#iR",m).innerHTML=[14,7,3,2,1,0].map(d=>`<button class="chip" data-r="${d}" aria-pressed="${rd.has(d)}">${d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage"}</button>`).join("")+`<span class="small muted">Standard: ${(type==="klausur"?S.remind.klausurDays:S.remind.abgabeDays).map(d=>d===0?"am Tag":d+" T.").join(", ")}</span>`;
+      $$("[data-r]",m).forEach(b=>b.onclick=()=>{const d=Number(b.dataset.r); rd.has(d)?rd.delete(d):rd.add(d); drawR();}); };
+    drawR();
+    $$("[data-ty]",m).forEach(b=>b.onclick=()=>{type=b.dataset.ty; $$("[data-ty]",m).forEach(x=>x.setAttribute("aria-pressed",x.dataset.ty===type)); drawR();});
+    $("#iT",m).focus();
+    $("#iSave",m).onclick=()=>{ const title=$("#iT",m).value.trim(), date=$("#iD",m).value; if(!title||!date){toast("Bitte Titel und Datum angeben");return;}
+      Object.assign(it,{type,title,subject:$("#iS",m).value.trim(),date,time:$("#iH",m).value,notes:$("#iN",m).value.trim(),remindDays:rd.size?[...rd].sort((a,b)=>b-a):null});
+      Object.keys(S.dismissed).forEach(k=>{ if(k.startsWith(it.id+":")) delete S.dismissed[k]; });
+      const moved=!isNew && opts.oldDate && opts.oldDate!==it.date;
+      if(isNew) S.items.push(it);
+      if(it.plan) adaptPlanToDate(it);
+      save(); close();
+      toast(isNew?`${TYPE_NAME[it.type]} im Kalender eingetragen`:"Termin aktualisiert – Kalender angepasst");
+      if(opts.stay){ render(); } else go("due",{id:it.id}); };
+    const del=$("#iDel",m); if(del) del.onclick=()=>{ S.items=S.items.filter(x=>x.id!==it.id); save(); close(); go("due"); };
+  });
+}
+
+function renderItem(m,it){
+  const set=it.plan?setById(it.plan.setId):(it.setId?setById(it.setId):null);
+  const left=daysBetween(today0(),parseISO(it.date)); const L=calLinks(it); const pr=planProgress(it,set);
+  const tISO=isoDate(today0());
+  m.innerHTML=`<div class="view">
+   <div class="row"><button class="btn ghost sm" id="backDue">← Alle Termine</button></div>
+   <section class="sheet stack">
+     <div class="row" style="align-items:flex-start"><div class="stack" style="gap:4px"><div class="row" style="gap:6px"><span class="pill ${it.type==="klausur"?"warn":""}">${TYPE_NAME[it.type]}</span>${it.subject?`<span class="small muted">${esc(it.subject)}</span>`:""}</div><h1>${esc(it.title)}</h1>
+       <p>${fmtDate(it.date,{weekday:"long",day:"numeric",month:"long",year:"numeric"})}${it.time?`, ${it.time} Uhr`:""} · <b>${leftLabel(left)}</b></p></div><span class="spacer"></span>
+       <div class="row"><button class="btn sm" id="calIt">Im Kalender zeigen</button><button class="btn sm" id="edIt">Bearbeiten</button><button class="btn sm" id="doneIt">${it.done?"Wieder öffnen":"Als erledigt markieren"}</button></div></div>
+     ${it.notes?`<p class="small">${esc(it.notes)}</p>`:""}
+     <div class="row small"><span class="muted">Erinnerung: ${remindOn(it)?remindDaysOf(it).map(d=>d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher").join(", "):"aus"}</span></div>
+     <p class="small muted">Steht automatisch in deinem Merkwerk-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
+     <div class="row"><span class="label">Auch in externen Kalender</span><a class="btn sm" href="${esc(L.google)}" target="_blank" rel="noopener">Google Kalender ↗</a><a class="btn sm" href="${esc(L.outlook)}" target="_blank" rel="noopener">Outlook.com ↗</a><a class="btn sm" href="${esc(L.outlook365)}" target="_blank" rel="noopener">Outlook (Schule/Arbeit) ↗</a></div>
+   </section>
+   <section class="sheet stack" id="planSec"></section>
+  </div>`;
+  $("#backDue").onclick=()=>go("due"); $("#edIt").onclick=()=>editItem(it,null,{oldDate:it.date});
+  $("#calIt").onclick=()=>{ S.ttMode="cal"; go("tt",{date:it.date}); };
+  $("#doneIt").onclick=()=>{it.done=!it.done;save();render();};
+  const ps=$("#planSec");
+  if(it.plan&&set){
+    const missed=it.plan.days.filter(d=>!d.done&&d.kind==="neu"&&d.date<tISO);
+    const n=it.plan.days.length; let k=0;
+    ps.innerHTML=`<div class="row"><h2>Lernplan</h2><span class="spacer"></span><span class="small muted">Material: ${esc(set.name)} · ${set.sections.length} Abschnitte</span></div>
+     <div class="stack" style="gap:6px"><div class="row"><span class="label">Durchgearbeitet</span><span class="spacer"></span><span class="mono small">${pr.secDone}/${pr.n} Abschnitte · ${pr.pct} %</span></div><div class="bar"><i style="width:${pr.pct}%"></i></div></div>
+     ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Merkwerk kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
+     <div>${it.plan.days.map(d=>{ k++; const secs=d.sectionIds.map(id=>set.sections.find(s=>s.id===id)).filter(Boolean); const chars=secs.reduce((a,s)=>a+s.text.length,0);
+        const what=d.kind==="wiederholung"?`<b>Wiederholung:</b> gemischter Durchgang über das ganze Material`:`<b>${secs.length} Abschnitt${secs.length>1?"e":""}</b> (ca. ${Math.max(1,Math.round(chars/2200))} Seite${Math.round(chars/2200)>1?"n":""}): ${esc(secs.slice(0,3).map(secTitle).join(" · "))}${secs.length>3?" …":""}`;
+        return `<div class="plan-day ${d.date===tISO?"today":""} ${d.done?"done":""}"><div class="d"><b>${fmtDate(d.date)}</b>${d.date===tISO?' <span class="small">heute</span>':""}</div><div class="what small">${what}${d.done&&d.pct!=null?` · <span class="pill ok">${d.pct} %</span>`:""}</div>
+          <div class="row" style="gap:6px;justify-content:flex-end">${d.done?`<button class="btn ghost sm" data-undo="${d.date}|${d.kind}">Rückgängig</button>`:`<button class="btn sm ${d.date===tISO?"primary":""}" data-learn="${d.date}|${d.kind}">Lernen</button><button class="btn ghost sm" data-check="${d.date}|${d.kind}">Abhaken</button>`}</div></div>`; }).join("")}</div>
+     <details><summary class="small">Plan neu erstellen</summary><div id="planForm" style="margin-top:10px"></div></details>`;
+    const find=v=>{const [date,kind]=v.split("|"); return it.plan.days.find(d=>d.date===date&&d.kind===kind);};
+    $$("[data-learn]",ps).forEach(b=>b.onclick=()=>startPlanDay(it,find(b.dataset.learn)));
+    $$("[data-check]",ps).forEach(b=>b.onclick=()=>{find(b.dataset.check).done=true;save();render();});
+    $$("[data-undo]",ps).forEach(b=>b.onclick=()=>{const d=find(b.dataset.undo); d.done=false; delete d.pct; save(); render();});
+    const rp=$("#replan",ps); if(rp) rp.onclick=()=>{ const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays}); if(r.error){toast(r.error);return;} it.plan=r.plan; save(); render(); toast("Plan neu verteilt"); };
+    planForm($("#planForm",ps),it,set);
+  } else {
+    ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Merkwerk teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
+    planForm($("#planForm",ps),it,set);
+  }
+}
+function planForm(el,it,set){
+  const wds=it.plan?it.plan.weekdays:[0,1,2,3,4,6]; const rev=it.plan?it.plan.reviewDays:2;
+  const candidates=SETS.filter(s=>!s.example);
+  el.innerHTML=`<div class="stack">
+    <label class="f">Material<select id="pSet"><option value="">Neues Lernset mit Dateien anlegen …</option>${candidates.map(s=>`<option value="${s.id}" ${set&&set.id===s.id?"selected":""}>${esc(s.name)} (${s.sections.length} Abschnitte)</option>`).join("")}</select></label>
+    <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT oder Fotos</span><input type="file" id="pFi" multiple accept=".pdf,.docx,.txt,.md,image/*" hidden></div><div id="pSt" class="small"></div></div>
+    <div class="stack" style="gap:6px"><span class="label">An diesen Tagen lernen</span><div class="row" style="gap:6px">${DAYS.map((d,i)=>`<button class="chip" data-wd="${i}" aria-pressed="${wds.includes(i)}">${d}</button>`).join("")}</div></div>
+    <label class="f" style="max-width:280px">Wiederholungstage vor dem Termin<select id="pRev">${[0,1,2,3,4].map(n=>`<option ${n===rev?"selected":""}>${n}</option>`).join("")}</select></label>
+    <div class="row"><button class="btn primary" id="pGo">Lernplan erstellen</button></div><div id="pErr"></div></div>`;
+  const sel=$("#pSet",el), up=$("#pUp",el); const days=new Set(wds);
+  sel.onchange=()=>{ up.hidden=!!sel.value; };
+  up.hidden=!!sel.value;
+  $$("[data-wd]",el).forEach(b=>b.onclick=()=>{const i=Number(b.dataset.wd); days.has(i)?days.delete(i):days.add(i); b.setAttribute("aria-pressed",days.has(i));});
+  let pending=[];
+  const fi=$("#pFi",el), dz=$("#pDz",el);
+  dz.onclick=()=>fi.click(); dz.onkeydown=e=>{if(e.key==="Enter"){fi.click();}};
+  dz.ondragover=e=>{e.preventDefault();dz.classList.add("over");}; dz.ondragleave=()=>dz.classList.remove("over");
+  dz.ondrop=e=>{e.preventDefault();dz.classList.remove("over");pending=[...e.dataTransfer.files];$("#pSt",el).textContent=`${pending.length} Datei(en) ausgewählt`;};
+  fi.onchange=()=>{pending=[...fi.files];$("#pSt",el).textContent=`${pending.length} Datei(en) ausgewählt`;};
+  $("#pGo",el).onclick=async()=>{
+    const err=$("#pErr",el); err.innerHTML="";
+    if(!days.size){ err.innerHTML=`<div class="note bad">Wähle mindestens einen Wochentag.</div>`; return; }
+    let s=sel.value?setById(sel.value):null;
+    if(!s){
+      if(!pending.length){ err.innerHTML=`<div class="note bad">Wähle ein Lernset oder lade Material hoch.</div>`; return; }
+      s=newSet(`${it.title}`,it.subject); const errs=[];
+      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
+      if(!s.files.length){ err.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")||"Kein Text gefunden."}</div>`; return; }
+      s.sections=makeSections(s.files); await putSet(s);
+      if(errs.length) toast(errs.join(" "),5000);
+    }
+    if(!s.sections.length){ err.innerHTML=`<div class="note bad">Das Lernset enthält noch keinen Text.</div>`; return; }
+    const r=buildPlan(it,s,{weekdays:[...days].sort(),reviewDays:Number($("#pRev",el).value),keepDone:!!(it.plan&&it.plan.setId===s.id)});
+    if(r.error){ err.innerHTML=`<div class="note bad">${esc(r.error)}</div>`; return; }
+    it.plan=r.plan; it.setId=s.id; save(); render(); toast("Lernplan erstellt");
+  };
+}
+
+/* ---- 09_calendar.js ---- */
+/* ===================== Kalender (FullCalendar) ===================== */
+const FULLCAL="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.21/index.global.min.js";
+const FC_DE={code:"de",week:{dow:1,doy:4},buttonText:{prev:"Zurück",next:"Weiter",today:"Heute",year:"Jahr",month:"Monat",week:"Woche",day:"Tag",list:"Liste"},weekText:"KW",weekTextLong:"Woche",allDayText:"Ganztägig",moreLinkText:n=>"+ "+n+" weitere",noEventsText:"Keine Einträge in diesem Zeitraum"};
+let CAL=null; let CAL_POS={view:null,date:null};
+const calRefresh=()=>{ if(CAL) CAL.refetchEvents(); };
+function calStore(){ S.events ||= []; const t=S.timetable; t.cancel ||= {}; t.moves ||= {}; return t; }
+
+/* A/B-Wochen: Anker = Montag einer Woche + ihr Buchstabe */
+function mondayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-wd(x)); return x; }
+function weekLetter(date){ const a=S.timetable.ab; if(!a) return null; const diff=Math.round((mondayOf(date)-parseISO(a.monday))/(7*864e5)); return (Math.abs(diff)%2===0)?a.letter:(a.letter==="A"?"B":"A"); }
+
+/* Freie Tage (Ferien, Feiertage) unterdrücken Unterricht */
+function freeDates(){ const s=new Set(); for(const e of (S.events||[])){ if(e.kind!=="frei") continue; const a=parseISO(e.start.slice(0,10)); const b=parseISO((e.end||e.start).slice(0,10)); for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) s.add(isoDate(d)); } return s; }
+
+function buildCalEvents(start,end){
+  const t=calStore(); const out=[]; const free=freeDates(); const tISO=isoDate(today0());
+  // Unterricht (wöchentlich wiederkehrend)
+  for(let d=new Date(start); d<end; d.setDate(d.getDate()+1)){
+    const iso=isoDate(d); if(free.has(iso)) continue; const day=wd(d); const wl=weekLetter(d);
+    for(const l of t.entries){ if(l.day!==day) continue; if(l.week&&wl&&l.week!==wl) continue;
+      const key=l.id+"|"+iso; if(t.moves[key]) continue;
+      const cancelled=!!t.cancel[key];
+      out.push({id:"L|"+key,title:(cancelled?"Entfällt: ":"")+l.subject+(l.room?" · "+l.room:""),start:`${iso}T${l.start}`,end:`${iso}T${l.end}`,backgroundColor:subjColor(l.subject),borderColor:"transparent",textColor:"var(--ink)",classNames:["ev-lesson",cancelled?"ev-cancel":""],extendedProps:{kind:"lesson",lessonId:l.id,date:iso}}); }
+  }
+  // einzeln verschobene Stunden
+  for(const key in t.moves){ const mv=t.moves[key]; const [lid,orig]=key.split("|"); const l=t.entries.find(x=>x.id===lid); if(!l) continue;
+    const ds=parseISO(mv.date); if(ds<start||ds>=end) continue;
+    out.push({id:"L|"+key,title:l.subject+" (verlegt)"+(l.room?" · "+l.room:""),start:`${mv.date}T${mv.start}`,end:`${mv.date}T${mv.end}`,backgroundColor:subjColor(l.subject),borderColor:"var(--accent)",textColor:"var(--ink)",classNames:["ev-lesson"],extendedProps:{kind:"lesson",lessonId:lid,date:orig,moved:true}}); }
+  // Klausuren & Abgaben
+  for(const it of S.items){
+    const base={id:"I|"+it.id,title:`${TYPE_NAME[it.type]}: ${it.title}`,classNames:[it.type==="klausur"?"ev-klausur":"ev-abgabe",it.done?"ev-done":""],extendedProps:{kind:"item",itemId:it.id},durationEditable:false};
+    if(it.time){ const endM=Math.min(toMin(it.time)+(it.type==="klausur"?90:30),1439); out.push({...base,start:`${it.date}T${it.time}`,end:`${it.date}T${fromMin(endM)}`}); }
+    else out.push({...base,start:it.date,allDay:true});
+    // Lerneinheiten aus dem Lernplan
+    if(it.plan&&!it.done) for(const d of it.plan.days){
+      out.push({id:`P|${it.id}|${d.date}|${d.kind}`,title:`${d.kind==="wiederholung"?"Wiederholen":"Lernen"}: ${it.title}`,start:d.date,allDay:true,classNames:["ev-plan",d.done?"ev-done":"",(!d.done&&d.date<tISO&&d.kind==="neu")?"ev-missed":""],extendedProps:{kind:"plan",itemId:it.id,date:d.date,pk:d.kind},durationEditable:false});
+    }
+  }
+  // eigene Termine & freie Tage
+  for(const e of S.events||[]){
+    if(e.kind==="frei"){ const endEx=new Date(parseISO((e.end||e.start).slice(0,10))); endEx.setDate(endEx.getDate()+1);
+      out.push({id:"E|"+e.id,title:e.title||"Frei",start:e.start.slice(0,10),end:isoDate(endEx),allDay:true,classNames:["ev-frei"],extendedProps:{kind:"event",eventId:e.id}});
+      out.push({id:"B|"+e.id,start:e.start.slice(0,10),end:isoDate(endEx),display:"background",classNames:["ev-frei-bg"]}); }
+    else out.push({id:"E|"+e.id,title:e.title,start:e.start,end:e.end||undefined,allDay:!!e.allDay,classNames:["ev-termin"],extendedProps:{kind:"event",eventId:e.id}});
+  }
+  return out;
+}
+
+const hhmm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const localISO=d=>`${isoDate(d)}T${hhmm(d)}`;
+
+async function mountCalendar(box,bar,gotoDate){
+  calStore();
+  if(CAL){ try{CAL.destroy();}catch{} CAL=null; }
+  const narrow=window.innerWidth<620;
+  const ab=S.timetable.ab; const curWL=weekLetter(new Date());
+  bar.innerHTML=`<button class="btn sm primary" id="calNew">+ Neuer Eintrag</button>
+    <label class="row" style="gap:6px">A/B-Wochen<select id="abSel" style="width:auto"><option value="">aus</option><option value="A" ${curWL==="A"?"selected":""}>diese Woche = A</option><option value="B" ${curWL==="B"?"selected":""}>diese Woche = B</option></select></label>
+    <span class="spacer"></span>
+    <span class="row" style="gap:10px"><span><i class="lg lg-k"></i>Klausur</span><span><i class="lg lg-a"></i>Abgabe</span><span><i class="lg lg-p"></i>Lernen</span><span><i class="lg lg-t"></i>Termin</span><span><i class="lg lg-f"></i>Frei</span></span>`;
+  $("#calNew").onclick=()=>{ const d=CAL?CAL.getDate():new Date(); newEntryDialog({start:new Date(d.getFullYear(),d.getMonth(),d.getDate(),8,0),end:new Date(d.getFullYear(),d.getMonth(),d.getDate(),9,0),allDay:false}); };
+  $("#abSel").onchange=e=>{ const v=e.target.value; S.timetable.ab=v?{monday:isoDate(mondayOf(new Date())),letter:v}:null; save(); calRefresh(); };
+  try{ await loadScript(FULLCAL); }catch{ box.innerHTML=`<div class="note bad">Der Kalender konnte nicht geladen werden. Prüfe deine Internetverbindung oder nutze das Wochenraster.</div>`; return; }
+  if(!box.isConnected) return;
+  box.innerHTML="";
+  const slots=ttSlots(); const minT=Math.min(7*60,...slots.map(s=>toMin(s.start)),...S.timetable.entries.map(e=>toMin(e.start)))-30; const maxT=Math.max(18*60,...slots.map(s=>toMin(s.end)),...S.timetable.entries.map(e=>toMin(e.end)))+30;
+  CAL=new FullCalendar.Calendar(box,{
+    locales:[FC_DE],locale:"de",firstDay:1,timeZone:"local",
+    initialView:CAL_POS.view||(narrow?"timeGridDay":"timeGridWeek"),
+    initialDate:gotoDate||CAL_POS.date||undefined,
+    headerToolbar:narrow?{left:"prev,next",center:"title",right:"today"}:{left:"prev,next today",center:"title",right:"dayGridMonth,timeGridWeek,timeGridDay,listMonth"},
+    footerToolbar:narrow?{center:"timeGridDay,timeGridWeek,dayGridMonth,listMonth"}:undefined,
+    views:{listMonth:{buttonText:"Liste"}},
+    height:"auto",expandRows:true,nowIndicator:true,weekNumbers:!narrow,navLinks:true,
+    slotMinTime:fromMin(Math.max(0,minT-minT%30))+":00",slotMaxTime:fromMin(Math.min(1440,maxT+(30-maxT%30)%30))+":00",
+    slotDuration:"00:15:00",slotLabelInterval:"01:00",scrollTime:"07:30:00",
+    slotLabelFormat:{hour:"2-digit",minute:"2-digit",hour12:false},eventTimeFormat:{hour:"2-digit",minute:"2-digit",hour12:false},
+    dayMaxEvents:true,editable:true,selectable:true,selectMirror:true,longPressDelay:350,
+    events:(info,ok)=>ok(buildCalEvents(info.start,info.end)),
+    datesSet:info=>{ CAL_POS={view:info.view.type,date:isoDate(info.view.currentStart)}; },
+    select:info=>{ CAL.unselect(); newEntryDialog({start:info.start,end:info.end,allDay:info.allDay}); },
+    eventClick:info=>{ info.jsEvent.preventDefault(); onCalClick(info.event); },
+    eventDrop:info=>onCalMove(info,false),
+    eventResize:info=>onCalMove(info,true),
+    eventDidMount:info=>{ const p=info.event.extendedProps; if(p.kind==="item"){ const it=S.items.find(x=>x.id===p.itemId); if(it) info.el.title=`${TYPE_NAME[it.type]}: ${it.title}${it.subject?" ("+it.subject+")":""}${it.notes?"\n"+it.notes:""}`; } },
+  });
+  CAL.render();
+  cleanup.push(()=>{ if(CAL){ try{CAL.destroy();}catch{} CAL=null; } });
+}
+
+/* ---------- Klick ---------- */
+function onCalClick(ev){
+  const p=ev.extendedProps; const t=calStore();
+  if(p.kind==="item"){ go("due",{id:p.itemId}); return; }
+  if(p.kind==="plan"){ const it=S.items.find(x=>x.id===p.itemId); if(!it||!it.plan) return; const d=it.plan.days.find(x=>x.date===p.date&&x.kind===p.pk); if(!d) return;
+    modal(`<span class="label">${d.kind==="wiederholung"?"Wiederholung":"Lerneinheit"} · ${fmtDate(d.date,{weekday:"long",day:"numeric",month:"long"})}</span><h2>${esc(it.title)}</h2>
+      <p class="small muted">${d.kind==="wiederholung"?"Gemischter Durchgang über das ganze Material.":`${d.sectionIds.length} Abschnitt${d.sectionIds.length>1?"e":""} aus deinem Lernplan.`} ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(today0(),parseISO(it.date)))}.</p>
+      <div class="row"><button class="btn primary" id="pcL">${d.done?"Noch einmal lernen":"Jetzt lernen"}</button><button class="btn" id="pcD">${d.done?"Nicht erledigt":"Abhaken"}</button><button class="btn" id="pcO">Lernplan öffnen</button><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+      $("#pcL",m).onclick=()=>{close();startPlanDay(it,d);};
+      $("#pcD",m).onclick=()=>{d.done=!d.done; if(!d.done) delete d.pct; save(); close(); calRefresh();};
+      $("#pcO",m).onclick=()=>{close();go("due",{id:it.id});}; }); return; }
+  if(p.kind==="event"){ const e=S.events.find(x=>x.id===p.eventId); if(e) editEvent(e); return; }
+  if(p.kind==="lesson"){ const l=t.entries.find(x=>x.id===p.lessonId); if(!l) return; const key=l.id+"|"+p.date; const cancelled=!!t.cancel[key]; const mv=t.moves[key];
+    modal(`<span class="label">${fmtDate(mv?mv.date:p.date,{weekday:"long",day:"numeric",month:"long"})} · ${mv?mv.start:l.start}–${mv?mv.end:l.end}</span><h2>${esc(l.subject)}</h2>
+      <p class="small muted">${esc([l.room,l.teacher].filter(Boolean).join(" · ")||"Kein Raum eingetragen")}${l.week?` · nur Woche ${l.week}`:""}${mv?` · verlegt vom ${fmtDate(p.date)}`:""}${cancelled?" · entfällt an diesem Tag":""}</p>
+      <div class="stack" style="gap:8px">
+        <span class="label">Nur dieser Termin</span>
+        <div class="row">${mv?`<button class="btn" id="lcBack">Verlegung aufheben</button>`:`<button class="btn" id="lcX">${cancelled?"Findet doch statt":"Entfällt"}</button>`}</div>
+        <span class="label">Jede Woche</span>
+        <div class="row"><button class="btn" id="lcEdit">Stunde im Stundenplan bearbeiten</button><button class="btn" id="lcExam">Klausur in dieser Stunde eintragen</button></div>
+      </div>
+      <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+      const x=$("#lcX",m); if(x) x.onclick=()=>{ if(cancelled) delete t.cancel[key]; else t.cancel[key]=true; save(); close(); calRefresh(); };
+      const b=$("#lcBack",m); if(b) b.onclick=()=>{ delete t.moves[key]; save(); close(); calRefresh(); };
+      $("#lcEdit",m).onclick=()=>{ close(); editLesson(l.day,{start:l.start,end:l.end},l.id); };
+      $("#lcExam",m).onclick=()=>{ close(); editItem(null,{type:"klausur",subject:l.subject,date:mv?mv.date:p.date,time:mv?mv.start:l.start,title:`Klausur ${l.subject}`,notes:l.room?`Raum ${l.room}`:""},{stay:true}); };
+    }); }
+}
+
+/* ---------- Verschieben / Dauer ändern ---------- */
+function onCalMove(info,resized){
+  const ev=info.event, p=ev.extendedProps; const t=calStore();
+  const s=ev.start, e=ev.end; const allDay=ev.allDay;
+  if(p.kind==="item"){ const it=S.items.find(x=>x.id===p.itemId); if(!it){info.revert();return;}
+    const nd=isoDate(s); if(nd<isoDate(today0())&&!it.done){ toast("Termine in der Vergangenheit sind nicht möglich"); info.revert(); return; }
+    it.date=nd; it.time=allDay?"":hhmm(s); Object.keys(S.dismissed).forEach(k=>{ if(k.startsWith(it.id+":")) delete S.dismissed[k]; });
+    adaptPlanToDate(it); save(); calRefresh(); toast(`${TYPE_NAME[it.type]} verschoben auf ${fmtDate(nd)}${it.time?", "+it.time+" Uhr":""}`); return; }
+  if(p.kind==="plan"){ const it=S.items.find(x=>x.id===p.itemId); const d=it&&it.plan&&it.plan.days.find(x=>x.date===p.date&&x.kind===p.pk); const nd=isoDate(s);
+    if(!d||nd>=it.date){ toast("Lerneinheiten müssen vor dem Termin liegen"); info.revert(); return; }
+    d.date=nd; it.plan.days.sort((a,b)=>a.date.localeCompare(b.date)); save(); calRefresh(); return; }
+  if(p.kind==="event"){ const x=S.events.find(y=>y.id===p.eventId); if(!x){info.revert();return;}
+    if(x.kind==="frei"||allDay){ const endIncl=e?new Date(e.getTime()-864e5):s; x.start=isoDate(s); x.end=isoDate(endIncl<s?s:endIncl); x.allDay=true; }
+    else { x.start=localISO(s); x.end=e?localISO(e):localISO(new Date(s.getTime()+36e5)); x.allDay=false; }
+    save(); calRefresh(); return; }
+  if(p.kind==="lesson"){
+    if(allDay||!e||isoDate(s)!==isoDate(e)){ toast("Unterricht braucht eine Uhrzeit"); info.revert(); return; }
+    const l=t.entries.find(x=>x.id===p.lessonId); if(!l){info.revert();return;} const key=l.id+"|"+p.date;
+    let decided=false;
+    modal(`<h2>${esc(l.subject)} ${resized?"verlängern/kürzen":"verschieben"}</h2><p>Neu: ${fmtDate(isoDate(s),{weekday:"long",day:"numeric",month:"long"})}, ${hhmm(s)}–${hhmm(e)} Uhr</p>
+      <div class="row"><button class="btn primary" id="mvOne">Nur diesen Termin</button><button class="btn" id="mvAll">Jede Woche (Stundenplan ändern)</button><button class="btn ghost" id="mvNo">Abbrechen</button></div>`,(m,close)=>{
+      const done=()=>{decided=true;close();};
+      $("#mvOne",m).onclick=()=>{ t.moves[key]={date:isoDate(s),start:hhmm(s),end:hhmm(e)}; delete t.cancel[key]; save(); done(); calRefresh(); };
+      $("#mvAll",m).onclick=()=>{ delete t.moves[key]; l.day=wd(s); l.start=hhmm(s); l.end=hhmm(e); if(l.day>4&&(S.timetable.days||5)<6) S.timetable.days=6; save(); done(); calRefresh(); toast("Stundenplan geändert"); };
+      $("#mvNo",m).onclick=()=>{ done(); info.revert(); };
+      $("#ov").addEventListener("click",ev2=>{ if(ev2.target.id==="ov"&&!decided) info.revert(); });
+    });
+  }
+}
+
+/* ---------- Neuer Eintrag ---------- */
+function newEntryDialog({start,end,allDay}){
+  const date=isoDate(start); const time=allDay?"":hhmm(start); const endTime=allDay||!end?"":hhmm(end);
+  modal(`<span class="label">${fmtDate(date,{weekday:"long",day:"numeric",month:"long"})}${time?` · ${time}${endTime?"–"+endTime:""}`:" · ganztägig"}</span><h2>Was möchtest du eintragen?</h2>
+    <div class="grid2">
+      <button class="wizard-opt" data-k="klausur"><b>Klausur</b><span class="small muted">mit Erinnerung und Lernplan</span></button>
+      <button class="wizard-opt" data-k="abgabe"><b>Abgabe</b><span class="small muted">Hausarbeit, Übungsblatt, Projekt</span></button>
+      <button class="wizard-opt" data-k="termin"><b>Termin</b><span class="small muted">Sprechstunde, Treffen, Training</span></button>
+      <button class="wizard-opt" data-k="frei"><b>Frei / Ferien</b><span class="small muted">Unterricht fällt an diesen Tagen weg</span></button>
+      ${allDay?"":`<button class="wizard-opt" data-k="stunde"><b>Unterrichtsstunde</b><span class="small muted">jede Woche ${DAYS_LONG[wd(start)]}, ${time}${endTime?"–"+endTime:""}</span></button>`}
+    </div><div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    $$("[data-k]",m).forEach(b=>b.onclick=()=>{ const k=b.dataset.k; close();
+      if(k==="klausur"||k==="abgabe") editItem(null,{type:k,date,time},{stay:true});
+      else if(k==="stunde") editLesson(wd(start),{start:time,end:endTime||fromMin(toMin(time)+45)},null);
+      else if(k==="frei"){ const endIncl=end&&allDay?new Date(end.getTime()-864e5):start; editEvent(null,{kind:"frei",title:"Ferien",start:date,end:isoDate(endIncl<start?start:endIncl),allDay:true}); }
+      else editEvent(null,{kind:"termin",title:"",start:allDay?date:`${date}T${time}`,end:allDay?null:`${date}T${endTime||fromMin(Math.min(toMin(time)+60,1439))}`,allDay}); });
+  });
+}
+function editEvent(e,prefill){
+  const isNew=!e; e=e||Object.assign({id:rid("ev")},prefill);
+  const frei=e.kind==="frei";
+  modal(`<h2>${isNew?(frei?"Freie Tage eintragen":"Termin eintragen"):(frei?"Freie Tage":"Termin")}</h2>
+    <label class="f">Bezeichnung<input type="text" id="evT" value="${esc(e.title||"")}" placeholder="${frei?"z. B. Herbstferien, Feiertag, Brückentag":"z. B. Sprechstunde, Lerngruppe"}"></label>
+    ${frei?`<div class="grid2"><label class="f">Von<input type="date" id="evA" value="${esc(e.start.slice(0,10))}"></label><label class="f">Bis<input type="date" id="evB" value="${esc((e.end||e.start).slice(0,10))}"></label></div><p class="small muted">An diesen Tagen blendet der Kalender deinen Unterricht aus.</p>`
+    :`<label class="row small" style="gap:6px"><input type="checkbox" id="evAll" ${e.allDay?"checked":""}> ganztägig</label>
+      <div class="grid2"><label class="f">Datum<input type="date" id="evD" value="${esc(e.start.slice(0,10))}"></label><span></span>
+      <label class="f evTime">Beginn<input type="time" id="evA" value="${esc(e.allDay?"":(e.start.slice(11,16)||""))}"></label><label class="f evTime">Ende<input type="time" id="evB" value="${esc(e.allDay||!e.end?"":e.end.slice(11,16))}"></label></div>`}
+    <label class="f">Notizen<textarea id="evN" style="min-height:60px">${esc(e.notes||"")}</textarea></label>
+    <div class="row"><button class="btn primary" id="evS">Speichern</button>${isNew?"":`<button class="btn danger" id="evX">Löschen</button>`}<button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    $("#evT",m).focus();
+    const all=$("#evAll",m); const tog=()=>$$(".evTime",m).forEach(x=>x.hidden=all.checked); if(all){ all.onchange=tog; tog(); }
+    $("#evS",m).onclick=()=>{ const title=$("#evT",m).value.trim()||(frei?"Frei":""); if(!title){toast("Bitte eine Bezeichnung angeben");return;}
+      if(frei){ const a=$("#evA",m).value, b=$("#evB",m).value||a; if(!a){toast("Bitte ein Datum angeben");return;} Object.assign(e,{title,start:a<=b?a:b,end:a<=b?b:a,allDay:true}); }
+      else { const d=$("#evD",m).value; if(!d){toast("Bitte ein Datum angeben");return;}
+        if(all.checked) Object.assign(e,{start:d,end:null,allDay:true});
+        else { const a=$("#evA",m).value||"08:00"; let b=$("#evB",m).value; if(!b||toMin(b)<=toMin(a)) b=fromMin(Math.min(toMin(a)+60,1439)); Object.assign(e,{start:`${d}T${a}`,end:`${d}T${b}`,allDay:false}); }
+        e.title=title; }
+      e.notes=$("#evN",m).value.trim();
+      if(isNew) S.events.push(e); save(); close(); calRefresh(); if(!CAL) render(); toast(isNew?"Im Kalender eingetragen":"Gespeichert"); };
+    const x=$("#evX",m); if(x) x.onclick=()=>{ S.events=S.events.filter(y=>y.id!==e.id); save(); close(); calRefresh(); };
+  });
+}
+
+/* ---- 10_home.js ---- */
+/* ===================== Heute ===================== */
+VIEWS.home = async function(m){
+  if(!SETS.length) await loadSets();
+  const now=new Date(); const t0=today0(); const tISO=isoDate(t0);
+  const lessons=lessonsOn(now); const nowM=now.getHours()*60+now.getMinutes();
+  const next=lessons.find(l=>!l.cancelled&&toMin(l.end)>nowM);
+  const evToday=(S.events||[]).filter(e=>e.kind!=="frei"&&e.start.slice(0,10)===tISO).sort((a,b)=>a.start.localeCompare(b.start));
+  const rem=dueReminders();
+  const sessions=S.items.filter(it=>!it.done&&it.plan).flatMap(it=>it.plan.days.filter(d=>d.date===tISO).map(d=>({it,d})));
+  const soon=S.items.filter(it=>!it.done).map(it=>({it,left:daysBetween(t0,parseISO(it.date))})).filter(x=>x.left>=0&&x.left<=21).sort((a,b)=>a.left-b.left);
+  const active=setById(S.activeSet); const running=active&&active.round&&active.round.phase==="q";
+  const fresh=!S.profile&&!SETS.length&&!S.items.length&&!S.timetable.entries.length;
+  m.innerHTML=`<div class="view">
+   <div class="stack" style="gap:4px"><span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span><h1>${fresh?"Willkommen bei Merkwerk":"Heute"}</h1></div>
+   ${fresh?`<section class="sheet stack"><p>Merkwerk macht aus deinem Material Prüfungsfragen – jede mit einem wörtlichen Beleg. Dazu kommen eine Bibliothek für dein Fach, dein Stundenplan und ein Lernplan bis zur nächsten Klausur.</p>
+     <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
+   ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
+   ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
+   <div class="grid2">
+     <section class="sheet stack"><div class="row"><h3>Lernplan heute</h3></div>
+       ${sessions.length?`<div class="list">${sessions.map(({it,d})=>`<div class="li"><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${d.kind==="wiederholung"?"Wiederholung":"Neue Abschnitte: "+d.sectionIds.length} · ${leftLabel(daysBetween(t0,parseISO(it.date)))} ${TYPE_NAME[it.type]}</div></div>${d.done?'<span class="pill ok">erledigt</span>':`<button class="btn sm primary" data-pl="${it.id}|${d.date}|${d.kind}">Lernen</button>`}</div>`).join("")}</div>`
+        :`<p class="muted small">Heute steht nichts im Lernplan. ${S.items.some(i=>!i.done)?"Öffne einen Termin, um einen Lernplan zu erstellen.":"Trag eine Klausur ein und lass dir einen Lernplan erstellen."}</p>`}
+     </section>
+     <section class="sheet stack"><div class="row"><h3>Stundenplan</h3><span class="spacer"></span><button class="btn ghost sm" id="toTT">Kalender</button></div>
+       ${evToday.length?`<div class="list">${evToday.map(e=>`<div class="li"><span class="mono small" style="min-width:92px">${e.allDay?"ganztägig":e.start.slice(11,16)+"–"+(e.end||"").slice(11,16)}</span><div class="grow"><b>${esc(e.title)}</b><div class="small muted">Termin</div></div></div>`).join("")}</div>`:""}
+       ${lessons.length?`<div class="list">${lessons.map(l=>`<div class="li" ${l===next?'style="background:var(--accent-soft);border-radius:8px;padding-inline:8px"':""}><span class="mono small" style="min-width:92px">${l.start}–${l.end}</span><div class="grow"><b style="${l.cancelled?"text-decoration:line-through;opacity:.6":""}">${esc(l.subject)}</b>${l.cancelled?' <span class="pill bad">entfällt</span>':""}${l.moved?' <span class="pill">verlegt</span>':""}<div class="small muted">${esc([l.room,l.teacher].filter(Boolean).join(" · "))}</div></div>${l===next?`<span class="pill">${toMin(l.start)<=nowM?"jetzt":"als Nächstes"}</span>`:""}</div>`).join("")}</div>`
+        :`<p class="muted small">${S.timetable.entries.length?"Heute kein Unterricht eingetragen.":"Noch kein Stundenplan – importiere ihn per Screenshot."}</p>`}
+     </section>
+   </div>
+   <section class="sheet stack"><div class="row"><h3>Die nächsten drei Wochen</h3><span class="spacer"></span><button class="btn ghost sm" id="toDue">Alle Termine</button></div>
+     ${soon.length?`<div class="list">${soon.map(({it})=>itemRow(it)).join("")}</div>`:`<p class="muted small">Keine Abgaben oder Klausuren in den nächsten 21 Tagen.</p>`}
+   </section>
+  </div>`;
+  const h1=$("#h1"); if(h1) h1.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
+  const h2=$("#h2"); if(h2) h2.onclick=()=>go("lib");
+  const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
+  $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
+  bindRem(m); bindRows(m);
+  $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
+};
+
+/* ===================== Start ===================== */
+$$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
+(async()=>{
+  await loadSets();
+  go(ROUTE.v||"home");
+  initCaps();
+})();
+
+</script>
