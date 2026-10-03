@@ -1,6 +1,6 @@
 # Merkwerk
 
-Merkwerk ist eine Lernseite: Du lädst dein Material hoch (PDF, DOCX, TXT, Fotos) und bekommst pro Durchgang 15 Prüfungsfragen dazu, jede mit einem wörtlichen Beleg aus deinen Dateien. Dazu kommen eine Fächer-Bibliothek, ein Stundenplan mit Kalender, Abgaben und Klausuren mit Erinnerungen sowie ein Lernplan, der dein Material bis zum Termin aufteilt.
+Merkwerk ist eine Lernseite: Du lädst dein Material hoch (PDF, DOCX, TXT, Fotos) und lernst es entweder als interaktive Abfrage mit 15 Prüfungsfragen pro Durchgang, jede mit einem wörtlichen Beleg aus deinen Dateien, oder mit Karteikarten. Dazu kommen eine Fächer-Bibliothek, ein Stundenplan mit Kalender, Abgaben und Klausuren mit Erinnerungen sowie ein Lernplan, der dein Material bis zum Termin aufteilt.
 
 ## Schnellstart
 
@@ -31,7 +31,8 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 
 | Funktion | Artifact | Lokal / GitHub Pages |
 |---|---|---|
-| Beispiel-Durchgang (Photosynthese) | ja | ja |
+| Beispiel-Durchgang und Beispiel-Karteikarten (Photosynthese) | ja | ja |
+| Karteikarten aus eigenem Material | ja (Claude) | ja, einfache Erkennung von Definitionssätzen |
 | Fragen aus eigenem Material, Fotos/Scans lesen, schriftliche Antworten bewerten | ja (Claude) | nein |
 | PDF- und DOCX-Dateien einlesen | ja | ja, mit Internet |
 | Profil, Fächer je Bundesland/Schulart/Klasse, Themen, Links zu Bildungsplänen | ja | ja |
@@ -45,7 +46,11 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 
 ## Funktionen
 
-**Lernen.** 15 Fragen pro Durchgang: 5 Multiple Choice, 4 schriftlich, 3 Zuordnung, 3 Lückentext, jeweils einem Anforderungsbereich (I Wiedergeben, II Zusammenhänge herstellen, III Anwenden und Beurteilen) zugeordnet. Jede Antwort wird sofort geprüft; bei Fehlern bleiben Lösung und Beleg stehen. Am Ende: Prozentwert, Aufschlüsselung nach Format, Liste der Fehler, dann dieselben Fragen neu gemischt oder 15 neue. Eine Abdeckungsanzeige zeigt, welche Abschnitte schon abgefragt wurden; neue Fragen nehmen zuerst die Lücken dran.
+**Lernen.** Nach dem Anlegen eines Lernsets gibt es zwei Lernmodi.
+
+*Interaktive Abfrage:* 15 Fragen pro Durchgang: 5 Multiple Choice, 4 schriftlich, 3 Zuordnung, 3 Lückentext, jeweils einem Anforderungsbereich (I Wiedergeben, II Zusammenhänge herstellen, III Anwenden und Beurteilen) zugeordnet. Jede Antwort wird sofort geprüft; bei Fehlern bleiben Lösung und Beleg stehen. Am Ende: Prozentwert, Aufschlüsselung nach Format, Liste der Fehler, dann dieselben Fragen neu gemischt oder 15 neue. Eine Abdeckungsanzeige zeigt, welche Abschnitte schon abgefragt wurden; neue Fragen nehmen zuerst die Lücken dran.
+
+*Karteikarten:* Aus dem Material entstehen Karten mit dem Begriff vorne und der Definition hinten, jede mit Beleg. Ein Klick dreht die Karte um. Ziehen nach links ordnet sie „weiß ich“ zu, nach rechts „muss ich noch üben“ (alternativ Klick auf die Seite oder Pfeiltasten). Beide Seiten zählen mit (grün und orange), oben stehen die durchgearbeiteten Karten (z. B. 17/30) mit Fortschrittsbalken. Am Ende zeigt ein Säulendiagramm den Anteil gewusster Karten; danach alle Karten noch einmal, nur die nicht gewussten oder zurück zum Hauptmenü. Mit Claude erstellt Claude die Karten und jeder Beleg wird wie bei den Fragen geprüft; ohne Claude erkennt Merkwerk Sätze wie „X ist …“ oder „… nennt man X“.
 
 **Bibliothek.** Beim ersten Öffnen fragt die Seite nach Schule oder Studium, bei Schülern nach Bundesland, Schulart und Klasse. Danach Fächer bzw. Module wählen, ein Thema eingeben und Einträge anderer ansehen oder selbst hochladen. Jeder Eintrag lässt sich als Lernset übernehmen.
 
@@ -65,9 +70,10 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 src/
   01_head.html     Titel, Schriften, Styles (Hell/Dunkel), Kopfzeile mit Reitern
   02_data.js       Bundesländer, Schularten, Fächer, Themen, Studiengänge, Links zu Bildungsplänen
-  03_example.js    Beispieltext Photosynthese und 15 Beispielfragen
+  03_example.js    Beispieltext Photosynthese, 15 Beispielfragen und 12 Beispiel-Karteikarten
   04_core.js       Hilfsfunktionen, Speicher (localStorage + IndexedDB), Claude-Fähigkeiten, Navigation
   05_learn.js      Lernsets, Dateien lesen, Abschnitte, Fragen erzeugen und prüfen, Durchgang
+  05b_cards.js     Karteikarten: erstellen, umdrehen, ziehen, zählen, Auswertung
   06_library.js    Profil-Abfrage, Bibliothek, Einträge
   07_timetable.js  Stundenplan-Raster, Screenshot- und ICS-Import
   08_due.js        Abgaben, Klausuren, Erinnerungen, Lernplan

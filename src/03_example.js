@@ -40,3 +40,19 @@ const EXAMPLE_QUESTIONS = [
  {type:"cloze",afb:"I",prompt:"Die Energie des Lichts wird in Form von ___ und ___ gespeichert.",blanks:[["ATP"],["NADPH"]],quote:"Die Energie des Lichts wird in Form von ATP und NADPH gespeichert"},
  {type:"cloze",afb:"II",prompt:"Die ___ kehrt die Summengleichung der Photosynthese im Prinzip um. Die produzierte ___ bildet die Grundlage fast aller Nahrungsketten.",blanks:[["Zellatmung"],["Glucose","Glukose"]],quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um"},
 ];
+
+/* Karteikarten zum Beispiel: Begriff vorne, Definition hinten, Beleg wörtlich aus EXAMPLE_TEXT */
+const EXAMPLE_CARDS = [
+ {term:"Photosynthese",definition:"Prozess, bei dem grüne Pflanzen, Algen und Cyanobakterien Lichtenergie in chemische Energie umwandeln; aus Kohlenstoffdioxid und Wasser entstehen Glucose und Sauerstoff.",quote:"Die Photosynthese ist der Prozess, bei dem grüne Pflanzen, Algen und Cyanobakterien Lichtenergie in chemische Energie umwandeln."},
+ {term:"Summengleichung der Photosynthese",definition:"6 CO2 + 6 H2O → C6H12O6 + 6 O2",quote:"Die vereinfachte Summengleichung lautet: 6 CO2 + 6 H2O → C6H12O6 + 6 O2."},
+ {term:"Chloroplasten",definition:"Ort der Photosynthese; von einer Doppelmembran umgeben, innen liegen Thylakoide und Stroma.",quote:"Die Photosynthese findet in den Chloroplasten statt. Chloroplasten sind von einer Doppelmembran umgeben."},
+ {term:"Thylakoide",definition:"Gestapelte Membransäckchen im Inneren der Chloroplasten; an ihren Membranen laufen die lichtabhängigen Reaktionen ab.",quote:"Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma."},
+ {term:"Stroma",definition:"Grundsubstanz im Inneren der Chloroplasten, in der der Calvin-Zyklus abläuft.",quote:"Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma."},
+ {term:"Chlorophyll",definition:"Grüner Farbstoff in den Thylakoidmembranen, der vor allem rotes und blaues Licht absorbiert.",quote:"Der grüne Farbstoff Chlorophyll sitzt in den Thylakoidmembranen und absorbiert vor allem rotes und blaues Licht."},
+ {term:"Fotolyse",definition:"Spaltung von Wasser unter Lichteinwirkung an den Thylakoidmembranen; der frei werdende Sauerstoff stammt aus dem Wasser.",quote:"Dort wird Wasser unter Lichteinwirkung gespalten; diesen Vorgang nennt man Fotolyse."},
+ {term:"ATP und NADPH",definition:"Speicherformen der Lichtenergie aus den lichtabhängigen Reaktionen, die anschließend für den Aufbau von Zucker gebraucht werden.",quote:"Die Energie des Lichts wird in Form von ATP und NADPH gespeichert, die anschließend für den Aufbau von Zucker gebraucht werden."},
+ {term:"Calvin-Zyklus",definition:"Lichtunabhängige Reaktionen im Stroma, die mithilfe von ATP und NADPH schrittweise Zucker aufbauen.",quote:"Mithilfe von ATP und NADPH aus den lichtabhängigen Reaktionen wird daraus schrittweise Zucker aufgebaut."},
+ {term:"Rubisco",definition:"Enzym, das im Calvin-Zyklus Kohlenstoffdioxid an ein Akzeptormolekül bindet.",quote:"Das Enzym Rubisco bindet dabei Kohlenstoffdioxid an ein Akzeptormolekül."},
+ {term:"Begrenzender Faktor",definition:"Der Faktor, der die Photosyntheserate begrenzt, wenn eine steigende Lichtintensität sie nicht mehr erhöht.",quote:"Steigt die Lichtintensität, nimmt die Rate zunächst zu, bis ein anderer Faktor begrenzt. Dieser Faktor wird als begrenzender Faktor bezeichnet."},
+ {term:"Zellatmung",definition:"Kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird.",quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird."},
+];

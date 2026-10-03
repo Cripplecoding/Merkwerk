@@ -17,6 +17,7 @@
   --accent:#2a46c4; --accent-ink:#ffffff; --accent-soft:#e6eafb;
   --mark:#e9f26b; --mark-ink:#2b2f0a;
   --ok:#1d7f52; --ok-soft:#e1f3ea; --bad:#b83a32; --bad-soft:#f9e4e2; --warn:#a86200; --warn-soft:#fbefd9;
+  --orange:#d26a00; --orange-soft:#fdebd6;
   --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -27,12 +28,14 @@
   --accent:#8fa2ff; --accent-ink:#0d1330; --accent-soft:#232c52;
   --mark:#c9d443; --mark-ink:#1a1d05;
   --ok:#53c48e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610;
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark;}}
 :root[data-theme="dark"]{
   --paper:#11141b; --sheet:#181c25; --ink:#e7e9ef; --muted:#9aa2b4; --line:#2a303d; --grid:#1a1f29;
   --accent:#8fa2ff; --accent-ink:#0d1330; --accent-soft:#232c52;
   --mark:#c9d443; --mark-ink:#1a1d05;
   --ok:#53c48e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610;
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark;}
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);}
@@ -207,6 +210,48 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 #calBox .fc-list-day-cushion{background:var(--paper)}
 .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .lg-k{background:var(--warn)}.lg-a{background:var(--accent)}.lg-p{background:var(--mark)}.lg-t{background:var(--ok)}.lg-f{background:var(--line)}
+
+/* Karteikarten */
+.wizard-opt:disabled{opacity:.5;cursor:not-allowed}
+.fc-progress{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px auto 14px;width:min(100%,420px)}
+.fc-progress .mono{font-size:1.05rem;color:var(--muted)}
+.fc-progress .mono b{color:var(--ink);font-size:1.25rem}
+.fc-bar{width:100%;height:4px;background:var(--line);border-radius:99px;overflow:hidden}
+.fc-bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s ease}
+.fc-stage{display:grid;grid-template-columns:minmax(64px,1fr) minmax(0,3fr) minmax(64px,1fr);gap:14px;align-items:stretch;max-width:900px;width:100%;margin:0 auto}
+.fc-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--line);border-radius:14px;background:var(--sheet);cursor:pointer;padding:12px 6px;text-align:center;font-weight:700;color:var(--muted);min-width:0;transition:background .15s,border-color .15s,transform .15s}
+.fc-zone .fc-count{font-family:var(--f-display);font-weight:800;font-size:clamp(2rem,6vw,3rem);line-height:1}
+.fc-zone .fc-zl{font-size:.9rem;line-height:1.2;overflow-wrap:anywhere}
+.fc-zone .fc-arrow{font-size:1.1rem;opacity:.6}
+.fc-zone.know .fc-count{color:var(--ok)}
+.fc-zone.practice .fc-count{color:var(--orange)}
+.fc-zone.know:hover,.fc-zone.know.hot{border-color:var(--ok);border-style:solid;background:var(--ok-soft);color:var(--ink)}
+.fc-zone.practice:hover,.fc-zone.practice.hot{border-color:var(--orange);border-style:solid;background:var(--orange-soft);color:var(--ink)}
+.fc-zone.hot{transform:scale(1.04)}
+.fc-zone:focus-visible,.fc-card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.fc-card{perspective:1400px;cursor:pointer;touch-action:pan-y;user-select:none;-webkit-user-select:none;border-radius:16px;min-width:0}
+.fc-card.dragging{cursor:grabbing}
+.fc-inner{display:grid;min-height:min(56vh,340px);transition:transform .5s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
+.fc-inner.flipped{transform:rotateY(180deg)}
+.fc-face{grid-area:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:26px 20px;background:var(--sheet);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);backface-visibility:hidden;-webkit-backface-visibility:hidden;min-width:0}
+.fc-front{background-image:linear-gradient(var(--grid) 1px,transparent 1px);background-size:100% 28px;background-position:0 14px}
+.fc-back{transform:rotateY(180deg)}
+.fc-term{font-family:var(--f-display);font-weight:800;font-size:clamp(1.4rem,4.4vw,2.2rem);line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere}
+.fc-def{font-size:1.1rem;line-height:1.5;overflow-wrap:anywhere}
+.fc-back .quote{text-align:left;max-width:52ch}
+@media (max-width:560px){.fc-stage{gap:8px;grid-template-columns:64px minmax(0,1fr) 64px}.fc-face{padding:20px 12px}.fc-zone .fc-zl{font-size:.74rem}}
+@media (prefers-reduced-motion: reduce){.fc-inner,.fc-bar>i,.fc-zone{transition:none}}
+.fc-chart{display:flex;justify-content:center;align-items:flex-start;gap:clamp(24px,8vw,64px);padding:8px 0 4px;border-bottom:1px solid var(--line)}
+.fc-col{display:flex;flex-direction:column;align-items:center;gap:8px;width:clamp(90px,24vw,140px)}
+.fc-track{height:200px;width:100%;display:flex;align-items:flex-end;background:var(--paper);border-radius:10px 10px 0 0}
+.fc-track>i{display:block;width:100%;border-radius:10px 10px 0 0;min-height:2px}
+.fc-col.know .fc-track>i{background:var(--ok)}
+.fc-col.practice .fc-track>i{background:var(--orange)}
+.fc-val{font-weight:700;font-size:.95rem}
+.fc-col.know .fc-val{color:var(--ok)}
+.fc-col.practice .fc-val{color:var(--orange)}
+.fc-cl{font-weight:700;font-size:.9rem;text-align:center;padding-bottom:8px;min-height:3.2em;line-height:1.3}
+.fc-actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:420px;width:100%;margin:0 auto}
 </style>
 
 <header class="top">
@@ -506,6 +551,22 @@ const EXAMPLE_QUESTIONS = [
  {type:"cloze",afb:"I",prompt:"Die Photosynthese findet in den ___ statt. Diese sind von einer ___ umgeben.",blanks:[["Chloroplasten"],["Doppelmembran"]],quote:"Die Photosynthese findet in den Chloroplasten statt. Chloroplasten sind von einer Doppelmembran umgeben."},
  {type:"cloze",afb:"I",prompt:"Die Energie des Lichts wird in Form von ___ und ___ gespeichert.",blanks:[["ATP"],["NADPH"]],quote:"Die Energie des Lichts wird in Form von ATP und NADPH gespeichert"},
  {type:"cloze",afb:"II",prompt:"Die ___ kehrt die Summengleichung der Photosynthese im Prinzip um. Die produzierte ___ bildet die Grundlage fast aller Nahrungsketten.",blanks:[["Zellatmung"],["Glucose","Glukose"]],quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um"},
+];
+
+/* Karteikarten zum Beispiel: Begriff vorne, Definition hinten, Beleg wörtlich aus EXAMPLE_TEXT */
+const EXAMPLE_CARDS = [
+ {term:"Photosynthese",definition:"Prozess, bei dem grüne Pflanzen, Algen und Cyanobakterien Lichtenergie in chemische Energie umwandeln; aus Kohlenstoffdioxid und Wasser entstehen Glucose und Sauerstoff.",quote:"Die Photosynthese ist der Prozess, bei dem grüne Pflanzen, Algen und Cyanobakterien Lichtenergie in chemische Energie umwandeln."},
+ {term:"Summengleichung der Photosynthese",definition:"6 CO2 + 6 H2O → C6H12O6 + 6 O2",quote:"Die vereinfachte Summengleichung lautet: 6 CO2 + 6 H2O → C6H12O6 + 6 O2."},
+ {term:"Chloroplasten",definition:"Ort der Photosynthese; von einer Doppelmembran umgeben, innen liegen Thylakoide und Stroma.",quote:"Die Photosynthese findet in den Chloroplasten statt. Chloroplasten sind von einer Doppelmembran umgeben."},
+ {term:"Thylakoide",definition:"Gestapelte Membransäckchen im Inneren der Chloroplasten; an ihren Membranen laufen die lichtabhängigen Reaktionen ab.",quote:"Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma."},
+ {term:"Stroma",definition:"Grundsubstanz im Inneren der Chloroplasten, in der der Calvin-Zyklus abläuft.",quote:"Im Inneren liegen gestapelte Membransäckchen, die Thylakoide, umgeben von einer Grundsubstanz, dem Stroma."},
+ {term:"Chlorophyll",definition:"Grüner Farbstoff in den Thylakoidmembranen, der vor allem rotes und blaues Licht absorbiert.",quote:"Der grüne Farbstoff Chlorophyll sitzt in den Thylakoidmembranen und absorbiert vor allem rotes und blaues Licht."},
+ {term:"Fotolyse",definition:"Spaltung von Wasser unter Lichteinwirkung an den Thylakoidmembranen; der frei werdende Sauerstoff stammt aus dem Wasser.",quote:"Dort wird Wasser unter Lichteinwirkung gespalten; diesen Vorgang nennt man Fotolyse."},
+ {term:"ATP und NADPH",definition:"Speicherformen der Lichtenergie aus den lichtabhängigen Reaktionen, die anschließend für den Aufbau von Zucker gebraucht werden.",quote:"Die Energie des Lichts wird in Form von ATP und NADPH gespeichert, die anschließend für den Aufbau von Zucker gebraucht werden."},
+ {term:"Calvin-Zyklus",definition:"Lichtunabhängige Reaktionen im Stroma, die mithilfe von ATP und NADPH schrittweise Zucker aufbauen.",quote:"Mithilfe von ATP und NADPH aus den lichtabhängigen Reaktionen wird daraus schrittweise Zucker aufgebaut."},
+ {term:"Rubisco",definition:"Enzym, das im Calvin-Zyklus Kohlenstoffdioxid an ein Akzeptormolekül bindet.",quote:"Das Enzym Rubisco bindet dabei Kohlenstoffdioxid an ein Akzeptormolekül."},
+ {term:"Begrenzender Faktor",definition:"Der Faktor, der die Photosyntheserate begrenzt, wenn eine steigende Lichtintensität sie nicht mehr erhöht.",quote:"Steigt die Lichtintensität, nimmt die Rate zunächst zu, bis ein anderer Faktor begrenzt. Dieser Faktor wird als begrenzender Faktor bezeichnet."},
+ {term:"Zellatmung",definition:"Kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird.",quote:"Die Zellatmung kehrt die Summengleichung der Photosynthese im Prinzip um: Glucose und Sauerstoff werden zu Kohlenstoffdioxid und Wasser abgebaut, wobei Energie frei wird."},
 ];
 
 /* ---- 04_core.js ---- */
@@ -850,9 +911,10 @@ VIEWS.learn = async function(m,arg){
   if(arg&&arg.setId) S.activeSet=arg.setId;
   if(!SETS.length) await loadSets();
   const set=setById(S.activeSet)||SETS[0];
+  if(set&&arg&&arg.cards) return renderCards(m,set);
   if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch. Jeder Durchgang hat 15 Prüfungsfragen, jede mit einem wörtlichen Beleg aus deinem Material.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen oder mit Karteikarten.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
@@ -865,6 +927,12 @@ VIEWS.learn = async function(m,arg){
   renderSetPanel($("#setPanel"),set);
 };
 
+function fcInfo(set){
+  const F=set.fc;
+  if(F&&F.phase==="card"&&F.idx>0) return `Fortsetzen: ${F.idx} von ${F.ids.length} Karten durchgearbeitet`;
+  if(set.cards&&set.cards.length) return `${set.cards.length} Karten · Begriff vorne, Definition hinten`;
+  return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
+}
 function renderSetPanel(el,set){
   if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an und lade dein Material hoch – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
@@ -879,10 +947,16 @@ function renderSetPanel(el,set){
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung</span><span class="spacer"></span><span class="mono small">${cov.done}/${cov.n} Abschnitte · ${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div><p class="small muted">Neue Fragen nehmen zuerst die Abschnitte dran, die noch nicht abgefragt wurden.</p></div>
      ${last?`<p class="small">Letzter Durchgang: <b class="mono">${last.pct} %</b> am ${new Date(last.at).toLocaleDateString("de-DE")}</p>`:""}
      <div id="roundStatus" hidden></div>
-     <div class="row">
-       <button class="btn primary" id="startBtn" ${set.files.length?"":"disabled"}>Durchgang starten · 15 Fragen</button>
-       ${set.round&&set.round.qs?`<button class="btn" id="sameBtn">Letzte Fragen neu gemischt</button>`:""}
+     <div class="stack" style="gap:8px"><span class="label">Lernmodus wählen</span>
+       <div class="grid2" style="gap:10px">
+         <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
+         <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
+       </div>
      </div>
+     ${set.round&&set.round.qs||set.cards&&set.cards.length?`<div class="row">
+       ${set.round&&set.round.qs?`<button class="btn sm" id="sameBtn">Letzte Fragen neu gemischt</button>`:""}
+       ${set.cards&&set.cards.length&&!set.example?`<button class="btn sm" id="cardsNew">Karteikarten neu erstellen</button>`:""}
+     </div>`:""}
      ${set.example?"":needClaude()}
      <div class="row"><span class="spacer"></span><button class="btn ghost danger sm" id="delSet">Lernset löschen</button></div>
    </section>
@@ -898,9 +972,11 @@ function renderSetPanel(el,set){
   subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);};
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
+  $("#cardsBtn").onclick=()=>openCards(set);
+  const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
-  $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; await putSet(set); go("learn",{manage:true}); });
-  $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
+  $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
+  $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
   const dz=$("#dz"); if(dz){ const fi=$("#fileIn");
     dz.onclick=()=>fi.click(); dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click();}};
     dz.ondragover=e=>{e.preventDefault();dz.classList.add("over");}; dz.ondragleave=()=>dz.classList.remove("over");
@@ -915,7 +991,7 @@ async function addFiles(set,files){
       set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr});
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
   }
-  set.sections=makeSections(set.files); await putSet(set);
+  set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});
   if(errs.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")}</div>`;},50);
   else toast(`${files.length} Datei(en) gelesen`);
@@ -996,6 +1072,180 @@ function renderEnd(m,set){
   $("#backSets").onclick=()=>{ set.round.phase="done"; putSet(set); go("learn",{manage:true}); };
   $("#again").onclick=()=>startRound(set,{reuse:true,restrict:R.restrict,label:R.label});
   $("#fresh").onclick=()=>startRound(set,{n:R.qs.length>=15?15:Math.max(6,R.qs.length),restrict:R.restrict,label:R.label,planRef:R.planRef,fresh:true});
+}
+
+/* ---- 05b_cards.js ---- */
+/* ===================== Karteikarten ===================== */
+// set.cards: [{id,term,definition,quote,fileName}]
+// set.fc:    {ids:[Karten-IDs in Reihenfolge], idx, known:[ids], practice:[ids], phase:"card"|"end", retry}
+
+function cardCountFor(set){ const chars=set.files.reduce((a,f)=>a+f.text.length,0); return clamp(Math.round(chars/350),8,40); }
+
+/* ---------- Karten mit Claude ---------- */
+function buildCardPrompt(set,n){
+  let budget=110000; const listed=[];
+  for(const s of set.sections){ if(budget-s.text.length<0) break; budget-=s.text.length; listed.push(s); }
+  const material=listed.map(s=>`[${s.id} | ${s.fileName}]\n${s.text}`).join("\n\n");
+  return `Du erstellst Karteikarten für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das Material unten.
+
+REGELN
+1. Jede Karte hat "term": einen Fachbegriff, Namen oder eine kurze Bezeichnung aus dem Material (höchstens 6 Wörter), und "definition": eine Erklärung in 1 bis 2 Sätzen, nur mit Inhalten aus dem Material. Der Begriff selbst steht nicht in der Definition.
+2. Jede Karte hat "quote": ein wörtliches, zusammenhängendes Zitat aus dem Material (40 bis 300 Zeichen), das die Definition belegt. Exakt so geschrieben wie im Material, ohne Auslassungen, ohne "…".
+3. Etwa ${n} Karten, verteilt über das ganze Material. Jeder Begriff nur einmal, die wichtigsten zuerst.
+
+Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}
+
+MATERIAL
+${material}`;
+}
+function validateCard(set,c){
+  if(!c||!c.term||!c.definition||!c.quote) return null;
+  const term=String(c.term).trim(), def=String(c.definition).trim();
+  if(term.length>90||def.length<4||def.length>600) return null;
+  const loc=locateQuote(set,c.quote); if(!loc) return null;
+  return {id:rid("c"),term,definition:def,quote:String(c.quote),fileName:loc.fileName};
+}
+function dedupeCards(cards){ const seen=new Set(); return cards.filter(c=>{ const k=relax(c.term); if(!k||seen.has(k)) return false; seen.add(k); return true; }); }
+async function generateCards(set,{signal}={}){
+  const n=cardCountFor(set);
+  const res=await CAP.sample.json(buildCardPrompt(set,n),{modelTier:"default",cache:false,signal});
+  const list=Array.isArray(res)?res:(res&&res.cards)||[];
+  const cards=dedupeCards(list.map(c=>validateCard(set,c)).filter(Boolean));
+  return {cards,dropped:list.length-cards.length};
+}
+
+/* ---------- Karten ohne Claude: Definitionssätze im Text erkennen ---------- */
+const CARD_STOP=new Set(["es","er","sie","das","dies","diese","dieser","dieses","man","hier","dort","dabei","daher","deshalb","so","wir","ihr","ich","du","beide","alle","viele","manche","einige","er","jeder","jede","jedes"]);
+const capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const stripArticle=s=>s.replace(/^(der|die|das|den|dem|des|ein|eine|einen|einem|eines)\s+/i,"").trim();
+function extractCardsLocal(set){
+  const out=[];
+  for(const f of set.files){
+    const sents=String(f.text||"").replace(/\r/g,"").split(/(?<=[.!?])\s+|\n+/).map(s=>s.trim()).filter(Boolean);
+    sents.forEach((s,i)=>{
+      if(s.length<20||s.length>420) return;
+      let term=null, def=null;
+      let m=s.match(/^(.{8,}?)[;,:]?\s+(?:diese[nrs]?\s+\S+\s+)?(?:nennt|bezeichnet)\s+man\s+(?:als\s+)?(.{2,60}?)[.!]?$/i);
+      if(m){ term=m[2]; def=m[1]; }
+      if(!term){ m=s.match(/^(?:Dieser|Diese|Dieses)\s+\S+\s+(?:wird|werden)\s+(?:auch\s+)?als\s+(.{2,60}?)\s+bezeichnet[.!]?$/);
+        if(m&&i>0){ term=m[1]; def=sents[i-1]; } }
+      if(!term){ m=s.match(/^(?:Unter\s+(?:dem|der|den)\s+)?((?:(?:Der|Die|Das|Ein|Eine)\s+)?[A-ZÄÖÜ][\wÄÖÜäöüß-]*(?:\s+[\wÄÖÜäöüß-]+){0,2}?)\s+(?:ist|sind|bezeichnet|beschreibt|bedeutet|versteht\s+man)\s+(.{20,})$/);
+        if(m){ term=m[1]; def=m[2]; } }
+      if(!term) return;
+      term=capFirst(stripArticle(term.replace(/[„“"]/g,""))); def=capFirst(def.trim().replace(/[;,:]$/,""));
+      if(!/[.!?]$/.test(def)) def+=".";
+      if(term.length<2||CARD_STOP.has(term.toLowerCase())||!/^[A-ZÄÖÜ0-9]/.test(term)) return;
+      out.push({id:rid("c"),term,definition:def,quote:s,fileName:f.name});
+    });
+  }
+  return dedupeCards(out).slice(0,40);
+}
+function exampleCards(set){ return EXAMPLE_CARDS.map(c=>validateCard(set,c)).filter(Boolean); }
+
+/* ---------- Durchlauf ---------- */
+function fcStart(set,ids,retry=false){ set.fc={ids:shuffle(ids),idx:0,known:[],practice:[],phase:"card",retry}; return set.fc; }
+function fcAssign(set,cat){
+  const F=set.fc; if(!F||F.phase!=="card") return F;
+  const id=F.ids[F.idx]; (cat==="known"?F.known:F.practice).push(id);
+  F.idx++; if(F.idx>=F.ids.length) F.phase="end";
+  return F;
+}
+function fcResult(F){ const n=F.known.length+F.practice.length; return {n,known:F.known.length,practice:F.practice.length,pct:n?Math.round(F.known.length/n*100):0}; }
+
+async function openCards(set,{rebuild=false}={}){
+  if(!set.files.length){ toast("Lade zuerst Material hoch"); return; }
+  if(!set.cards||!set.cards.length||rebuild){
+    let cards=[];
+    if(set.example) cards=exampleCards(set);
+    else if(CAP.sample){
+      const box=$("#roundStatus"); const ctl=new AbortController();
+      if(box){ box.hidden=false; box.innerHTML=`<div class="row"><span class="spin"></span><span>Claude erstellt Karteikarten aus deinem Material …</span><span class="spacer"></span><button class="btn sm" id="rsStop">Abbrechen</button></div>`; $("#rsStop").onclick=()=>ctl.abort(); }
+      try{ const r=await generateCards(set,{signal:ctl.signal}); cards=r.cards; if(r.dropped) toast(`${r.dropped} Karten ohne gültigen Beleg verworfen`,3500); }
+      catch(e){ if(box){ if(e&&e.code==="cancelled") box.hidden=true; else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
+    } else cards=extractCardsLocal(set);
+    if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Merkwerk in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
+    set.cards=cards; set.fc=null;
+  }
+  if(!set.fc||rebuild) fcStart(set,set.cards.map(c=>c.id));
+  await putSet(set); S.activeSet=set.id; save(); go("learn",{setId:set.id,cards:true});
+}
+
+/* ---------- Ansicht ---------- */
+let fcKeyHandler=null;
+function setFcKeys(fn){ if(fcKeyHandler) document.removeEventListener("keydown",fcKeyHandler); fcKeyHandler=fn; if(fn){ document.addEventListener("keydown",fn); cleanup.push(()=>setFcKeys(null)); } }
+const reduceMotion=()=>window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function renderCards(m,set){
+  const F=set.fc; if(!F||!set.cards) return go("learn",{manage:true});
+  if(F.phase==="end") return renderCardsEnd(m,set);
+  const byId=Object.fromEntries(set.cards.map(c=>[c.id,c]));
+  const card=byId[F.ids[F.idx]]; if(!card){ F.ids=F.ids.filter(id=>byId[id]); F.idx=Math.min(F.idx,F.ids.length); if(F.idx>=F.ids.length) F.phase="end"; putSet(set); return renderCards(m,set); }
+  const total=F.ids.length, done=F.idx, pct=Math.round(done/total*100);
+  m.innerHTML=`<div class="view">
+   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${F.retry?'<span class="pill warn">Nicht gewusste</span>':""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   <div class="fc-progress" aria-label="Fortschritt"><span class="mono"><b>${done}</b> / ${total}</span><div class="fc-bar"><i style="width:${pct}%"></i></div></div>
+   <div class="fc-stage">
+     <button class="fc-zone know" id="zKnow" type="button" aria-label="Weiß ich (${F.known.length})"><span class="fc-count mono">${F.known.length}</span><span class="fc-zl">weiß ich</span><span class="fc-arrow" aria-hidden="true">←</span></button>
+     <div class="fc-card" id="fcCard" tabindex="0" role="button" aria-label="Karte umdrehen">
+       <div class="fc-inner">
+         <div class="fc-face fc-front"><span class="label">Begriff</span><p class="fc-term">${esc(card.term)}</p><span class="small muted">Antippen zum Umdrehen</span></div>
+         <div class="fc-face fc-back" aria-hidden="true"><span class="label">Definition</span><p class="fc-def">${esc(card.definition)}</p><p class="quote small">„${esc(card.quote)}“ <span class="muted">– ${esc(card.fileName)}</span></p></div>
+       </div>
+     </div>
+     <button class="fc-zone practice" id="zPractice" type="button" aria-label="Muss ich noch üben (${F.practice.length})"><span class="fc-count mono">${F.practice.length}</span><span class="fc-zl">muss ich noch üben</span><span class="fc-arrow" aria-hidden="true">→</span></button>
+   </div>
+   <p class="small muted" style="text-align:center">Karte antippen zum Umdrehen · nach links oder rechts ziehen zum Einordnen · Tastatur: Leertaste, ← und →</p>
+  </div>`;
+  $("#backSets").onclick=()=>go("learn",{manage:true});
+  const el=$("#fcCard"), inner=$(".fc-inner",el), zK=$("#zKnow"), zP=$("#zPractice");
+  let flipped=false, busy=false;
+  const flip=()=>{ flipped=!flipped; inner.classList.toggle("flipped",flipped); $(".fc-front",el).setAttribute("aria-hidden",String(flipped)); $(".fc-back",el).setAttribute("aria-hidden",String(!flipped)); };
+  const assign=async cat=>{
+    if(busy) return; busy=true;
+    (cat==="known"?zK:zP).classList.add("hot");
+    const fly=()=>new Promise(r=>{ if(reduceMotion()) return r(); el.style.transition="transform .28s ease-in, opacity .28s ease-in"; el.style.transform=`translateX(${cat==="known"?"-":""}110vw) rotate(${cat==="known"?-14:14}deg)`; el.style.opacity="0"; setTimeout(r,260); });
+    await fly(); fcAssign(set,cat); await putSet(set); renderCards(m,set);
+  };
+  el.onkeydown=e=>{ if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();} };
+  const onKey=e=>{ if(e.target.closest&&e.target.closest("input,textarea,select")) return; if(e.key==="ArrowLeft"){e.preventDefault();assign("known");} else if(e.key==="ArrowRight"){e.preventDefault();assign("practice");} };
+  setFcKeys(onKey);
+  zK.onclick=()=>assign("known"); zP.onclick=()=>assign("practice");
+  // Ziehen mit Maus, Finger oder Stift; ein kurzer Klick dreht die Karte um
+  let sx=0, sy=0, dx=0, pid=null, moved=false;
+  const thresh=()=>Math.min(140,Math.max(60,el.offsetWidth*0.28));
+  const hot=()=>{ const t=thresh(); zK.classList.toggle("hot",dx<-t); zP.classList.toggle("hot",dx>t); };
+  const reset=()=>{ el.style.transition="transform .2s ease"; el.style.transform=""; dx=0; hot(); el.classList.remove("dragging"); };
+  el.onpointerdown=e=>{ if(busy||e.button>0) return; pid=e.pointerId; sx=e.clientX; sy=e.clientY; dx=0; moved=false; el.style.transition="none"; };
+  el.onpointermove=e=>{ if(e.pointerId!==pid) return; dx=e.clientX-sx; if(!moved&&Math.abs(dx)>8&&Math.abs(dx)>Math.abs(e.clientY-sy)){ moved=true; el.classList.add("dragging"); try{el.setPointerCapture(pid);}catch{} } if(moved){ el.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`; hot(); } };
+  el.onpointerup=e=>{ if(e.pointerId!==pid) return; pid=null;
+    if(!moved){ flip(); return; }
+    const t=thresh(); if(dx<-t) assign("known"); else if(dx>t) assign("practice"); else reset(); };
+  el.onpointercancel=()=>{ pid=null; if(moved) reset(); };
+  el.focus({preventScroll:true});
+}
+
+function renderCardsEnd(m,set){
+  setFcKeys(null); const F=set.fc; const r=fcResult(F);
+  const kPct=r.pct, pPct=r.n?100-r.pct:0;
+  m.innerHTML=`<div class="view">
+   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button></div>
+   <section class="sheet stack" style="gap:20px">
+     <div class="row" style="align-items:flex-end;gap:18px"><div class="score mono">${kPct}<span style="font-size:1.6rem"> %</span></div><div class="stack" style="gap:2px"><h2>Alle Karten durchgearbeitet</h2><p class="muted">Du hast ${r.known} von ${r.n} Karten gewusst${F.retry?" · Durchlauf mit nicht gewussten Karten":""}</p></div></div>
+     <div class="fc-chart" role="img" aria-label="Gewusst ${kPct} Prozent, muss ich noch üben ${pPct} Prozent">
+       <div class="fc-col know"><span class="fc-val mono">${r.known} · ${kPct} %</span><div class="fc-track"><i style="height:${kPct}%"></i></div><span class="fc-cl">gewusst</span></div>
+       <div class="fc-col practice"><span class="fc-val mono">${r.practice} · ${pPct} %</span><div class="fc-track"><i style="height:${pPct}%"></i></div><span class="fc-cl">muss ich noch üben</span></div>
+     </div>
+     <div class="fc-actions">
+       <button class="btn primary" id="fcAll">Karten noch einmal durcharbeiten</button>
+       <button class="btn" id="fcRetry" ${r.practice?"":"disabled"}>Nicht gewusste erneut üben${r.practice?` (${r.practice})`:""}</button>
+       <button class="btn" id="fcHome">Zurück zum Hauptmenü</button>
+     </div>
+   </section>
+   ${r.practice?`<section class="sheet stack"><h3>Muss ich noch üben (${r.practice})</h3><div class="list">${F.practice.map(id=>set.cards.find(c=>c.id===id)).filter(Boolean).map(c=>`<div class="li"><div class="grow stack" style="gap:2px"><b>${esc(c.term)}</b><p class="small">${esc(c.definition)}</p></div></div>`).join("")}</div></section>`:`<div class="note">Alles gewusst. Mit „Karten noch einmal durcharbeiten“ startest du einen neuen Durchlauf.</div>`}
+  </div>`;
+  $("#backSets").onclick=()=>go("learn",{manage:true});
+  $("#fcAll").onclick=async()=>{ fcStart(set,set.cards.map(c=>c.id)); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
+  $("#fcRetry").onclick=async()=>{ if(!F.practice.length) return; fcStart(set,[...F.practice],true); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
+  $("#fcHome").onclick=()=>go("home");
 }
 
 /* ---- 06_library.js ---- */
@@ -1836,6 +2086,7 @@ VIEWS.home = async function(m){
   const sessions=S.items.filter(it=>!it.done&&it.plan).flatMap(it=>it.plan.days.filter(d=>d.date===tISO).map(d=>({it,d})));
   const soon=S.items.filter(it=>!it.done).map(it=>({it,left:daysBetween(t0,parseISO(it.date))})).filter(x=>x.left>=0&&x.left<=21).sort((a,b)=>a.left-b.left);
   const active=setById(S.activeSet); const running=active&&active.round&&active.round.phase==="q";
+  const fcRunning=active&&active.fc&&active.fc.phase==="card"&&active.fc.idx>0&&active.cards;
   const fresh=!S.profile&&!SETS.length&&!S.items.length&&!S.timetable.entries.length;
   m.innerHTML=`<div class="view">
    <div class="stack" style="gap:4px"><span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span><h1>${fresh?"Willkommen bei Merkwerk":"Heute"}</h1></div>
@@ -1843,6 +2094,7 @@ VIEWS.home = async function(m){
      <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
    ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
+   ${fcRunning?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Karteikarten angefangen</span><b>${esc(active.name)} · ${active.fc.idx} von ${active.fc.ids.length} Karten</b></div><button class="btn primary" id="contFc">Weiter üben</button></section>`:""}
    <div class="grid2">
      <section class="sheet stack"><div class="row"><h3>Lernplan heute</h3></div>
        ${sessions.length?`<div class="list">${sessions.map(({it,d})=>`<div class="li"><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${d.kind==="wiederholung"?"Wiederholung":"Neue Abschnitte: "+d.sectionIds.length} · ${leftLabel(daysBetween(t0,parseISO(it.date)))} ${TYPE_NAME[it.type]}</div></div>${d.done?'<span class="pill ok">erledigt</span>':`<button class="btn sm primary" data-pl="${it.id}|${d.date}|${d.kind}">Lernen</button>`}</div>`).join("")}</div>`
@@ -1861,6 +2113,7 @@ VIEWS.home = async function(m){
   const h1=$("#h1"); if(h1) h1.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
   const h2=$("#h2"); if(h2) h2.onclick=()=>go("lib");
   const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
+  const cf=$("#contFc"); if(cf) cf.onclick=()=>go("learn",{setId:active.id,cards:true});
   $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
   bindRem(m); bindRows(m);
   $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
