@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 *.log
+tools/bildungsplaene/scraper/cache/
+tools/bildungsplaene/scraper/rows/
+tools/bildungsplaene/scraper/*.log
+tools/bildungsplaene/scraper/plan.tsv
+tools/bildungsplaene/scraper/jobs.tsv
