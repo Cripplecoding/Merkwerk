@@ -154,7 +154,7 @@ function renderItem(m,it){
    <section class="sheet stack">
      <div class="row" style="align-items:flex-start"><div class="stack" style="gap:4px"><div class="row" style="gap:6px"><span class="pill ${it.type==="klausur"?"warn":""}">${TYPE_NAME[it.type]}</span>${it.subject?`<span class="small muted">${esc(it.subject)}</span>`:""}</div><h1>${esc(it.title)}</h1>
        <p>${fmtDate(it.date,{weekday:"long",day:"numeric",month:"long",year:"numeric"})}${it.time?`, ${it.time} Uhr`:""} · <b>${leftLabel(left)}</b></p></div><span class="spacer"></span>
-       <div class="row"><button class="btn sm" id="calIt">Im Kalender zeigen</button><button class="btn sm" id="edIt">Bearbeiten</button><button class="btn sm" id="doneIt">${it.done?"Wieder öffnen":"Als erledigt markieren"}</button></div></div>
+       <div class="row"><button class="btn sm" id="calIt">Im Kalender zeigen</button>${it.type==="klausur"&&!it.done?`<button class="btn sm" id="examIt">Probeklausur schreiben</button>`:""}<button class="btn sm" id="edIt">Bearbeiten</button><button class="btn sm" id="doneIt">${it.done?"Wieder öffnen":"Als erledigt markieren"}</button></div></div>
      ${it.notes?`<p class="small">${esc(it.notes)}</p>`:""}
      <div class="row small"><span class="muted">Erinnerung: ${remindOn(it)?remindDaysOf(it).map(d=>d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher").join(", "):"aus"}</span></div>
      <p class="small muted">Steht automatisch in deinem Merkwerk-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
@@ -165,6 +165,7 @@ function renderItem(m,it){
   $("#backDue").onclick=()=>go("due"); $("#edIt").onclick=()=>editItem(it,null,{oldDate:it.date});
   $("#calIt").onclick=()=>{ S.ttMode="cal"; go("tt",{date:it.date}); };
   $("#doneIt").onclick=()=>{it.done=!it.done;save();render();};
+  const ei=$("#examIt"); if(ei) ei.onclick=()=>openExamDialog(set||null,{subject:it.subject||(set&&set.subject)||""});
   const ps=$("#planSec");
   if(it.plan&&set){
     const missed=it.plan.days.filter(d=>!d.done&&d.kind==="neu"&&d.date<tISO);

@@ -336,6 +336,7 @@ function renderSetPanel(el,set){
     $("#e2").onclick=()=>openNewSetDialog(); return; }
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
   const last=(set.history||[]).slice(-1)[0];
+  const openExam=(S.exams||[]).find(e=>e.phase!=="done"&&e.setIds.includes(set.id));
   el.innerHTML=`<div class="grid2">
    <section class="sheet stack">
      ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
@@ -349,6 +350,7 @@ function renderSetPanel(el,set){
        <div class="grid2" style="gap:10px">
          <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
          <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
+         <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
        </div>
      </div>
      ${set.round&&set.round.qs||set.cards&&set.cards.length?`<div class="row">
@@ -377,6 +379,7 @@ function renderSetPanel(el,set){
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
+  $("#examBtn").onclick=()=>openExam?go("exam",{id:openExam.id}):openExamDialog(set);
   const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
   $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
@@ -456,11 +459,13 @@ function renderRound(m,set){
       ${!res.correct||q.type==="text"?`<div><span class="label">Lösung</span><p>${sol}</p></div>`:""}
       ${q.explain&&!res.correct?`<p class="small">${esc(q.explain)}</p>`:""}
       <div><span class="label">Beleg aus ${esc(q.fileName)}</span><p class="quote">„${esc(q.quote)}“</p></div>
+      ${!res.correct?`<div id="whyBox"></div>`:""}
       ${!res.correct?`<div class="row small"><span class="muted">Stimmt die Lösung nicht mit deinem Material überein?</span><button class="btn ghost sm" id="dispute">Werte als richtig</button></div>`:""}
       ${res.disputed?`<p class="small muted">Als fehlerhaft gemeldet: zählt als richtig und kommt bei „Dieselben Fragen“ nicht mehr dran.</p>`:""}
       <div class="row"><button class="btn primary" id="nextQ">${R.idx+1<R.qs.length?"Nächste Frage":"Auswertung ansehen"}</button></div></div>`;
     $("#nextQ").onclick=async()=>{ if(R.idx+1<R.qs.length){R.idx++;} else { R.phase="end"; const pctv=Math.round(R.results.filter(r=>r&&r.correct).length/R.qs.length*100); (set.history ||= []).push({at:Date.now(),pct:pctv,prompts:R.qs.map(q=>q.prompt)}); if(R.planRef) markPlanDone(R.planRef,pctv); } await putSet(set); renderRound(m,set); };
     const dp=$("#dispute"); if(dp) dp.onclick=async()=>{ q.disputed=true; const orig=R.qs.find(x=>x.id===q.id); if(orig) orig.disputed=true; R.results[R.idx]={...res,correct:true,disputed:true}; await putSet(set); renderRound(m,set); };
+    mountWhy($("#whyBox"),set,q,res);
     $("#nextQ").focus();
   }
 }

@@ -83,6 +83,9 @@ Preise der Claude API: Opus 5.5 4 $ pro Million Eingabe-Token und 20 $ pro Milli
 
 - Eine Abfragerunde mit 15 Fragen sind 2 bis 4 Anfragen (Fragen erstellen, gegen das Material prüfen, schriftliche Antworten bewerten). Je nach Menge des Materials etwa 0,20 bis 0,60 $ mit Opus 5.5, ungefähr die Hälfte mit Sonnet 5.5.
 - Fünf Seiten Handschrift lesen (Haiku 4.5): etwa 2 Cent.
+- KI-Tutor: „Warum ist das falsch?“ etwa 3 bis 4 Cent pro Erklärung oder Nachfrage, eine Probeklausur (erstellen und korrigieren, 2 Anfragen) etwa 0,40 $, weil sie das Material aller Lernsets eines Fachs bekommt.
+- Bei 100 aktiven Nutzern im Monat (50 gelegentlich, 40 normal, 10 intensiv, mit KI-Tutor und Prompt-Caching) rechne ich mit etwa 400 $ mit Opus 5.5 und etwa 200 $ mit Sonnet 5.5. Dann sollte `MERKWERK_LIMIT_GESAMT` auf etwa 600 stehen.
+- Laufzeit: Supabase begrenzt, wie lange eine Funktion laufen darf (im kostenlosen Tarif deutlich kürzer als im bezahlten). Eine Probeklausur aus sehr viel Material kann mit Opus an diese Grenze kommen; dann hilft `MERKWERK_EFFORT=low` oder der bezahlte Supabase-Tarif.
 - Prompt-Caching: Fragen erstellen, Fragen prüfen und Karteikarten schicken das Material als denselben Block, den die Claude API 5 Minuten zwischenspeichert. Ab der zweiten Anfrage mit demselben Material kostet es nur noch ein Zehntel. Das spart grob 10 bis 20 % der Kosten einer Abfragerunde, bei großem Material mehr, und noch mehr, wenn direkt danach Karteikarten oder eine weitere Runde folgen (geschätzt). In `ki_tagesuebersicht` zeigt die Spalte `token_cache`, wie viel aus dem Zwischenspeicher kam.
 - Bei 300 Anfragen am Tag (Standard-Obergrenze) und überwiegend Opus-Anfragen sind das im ungünstigsten Fall rund 30 bis 50 $ am Tag. Deshalb Schritt 1.2, das Monatslimit in der Anthropic Console.
 
