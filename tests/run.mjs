@@ -15,7 +15,7 @@ vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,ACC:()=>ACC};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -209,6 +209,13 @@ ok("Lerninhalte: Themenliste und Links zu Erklärungen und Videos", () => {
   assert.ok(A.curatedTopics("Mathematik",{track:"schule",type:"real",grade:7}).includes("Lineare Funktionen"));
   const l = A.learnLinks("Mathematik","Lineare Funktionen",{track:"schule",grade:7});
   assert.ok(l.some(x=>x.kind==="Video" && x.url.startsWith("https://www.youtube.com/results?search_query=") && x.url.includes("Klasse%207")));
+});
+ok("Lerninhalte: Lernmodus wählbar, Abfrage ohne Claude gesperrt", () => {
+  const off = A.genModesHTML();
+  assert.ok(off.includes("Karteikarten") && off.includes("Interaktive Abfrage"));
+  assert.match(off, /data-gm="quiz" disabled/); assert.doesNotMatch(off, /data-gm="cards" disabled/);
+  A.CAP.sample = () => {}; const on = A.genModesHTML(); A.CAP.sample = null;
+  assert.doesNotMatch(on, /data-gm="quiz" disabled/);
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);
