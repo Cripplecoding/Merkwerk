@@ -9,13 +9,13 @@ import { deflateRawSync } from "node:zlib";
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","05c_generate.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
-const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder,
+const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder, AbortController,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -161,6 +161,25 @@ okAsync("GoodNotes: kaputte oder leere Datei verweist auf den PDF-Export", async
   await assert.rejects(A.readGoodnotes({name:"x.goodnotes", arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}, null, null, null), /als PDF/);
   const buf = zip([["schema.pb",Uint8Array.from([8,35])]]);
   await assert.rejects(A.readGoodnotes({name:"leer.goodnotes", arrayBuffer:async()=>buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.length)}, null, null, null), /kein Text/);
+});
+okAsync("Bilder lesen: zwei Stapel gleichzeitig, leere Seiten werden nicht geschickt", async () => {
+  const calls = []; let running = 0, maxRun = 0;
+  A.CAP.images = { maxCount: 5 };
+  A.CAP.sample = async (prompt, opt) => {
+    running++; maxRun = Math.max(maxRun, running); calls.push({ n: opt.images.length, tier: opt.modelTier });
+    await new Promise(r => setTimeout(r, 20)); running--;
+    opt.onText && opt.onText({ text: "x", delta: "x" });
+    return { text: opt.images.map(b => b.name).join("\n=====\n") };
+  };
+  const img = name => Object.assign(new Blob(["x"]), { name });
+  const r = await A.ocrImages([img("A"), () => Promise.resolve(null), img("C"), img("D"), () => Promise.resolve(img("E"))], null);
+  assert.equal(JSON.stringify(r.texts), JSON.stringify(["A", "", "C", "D", "E"]));
+  assert.equal(maxRun, 2);
+  assert.equal(JSON.stringify(calls.map(c => c.n).sort()), JSON.stringify([2, 2]));
+  assert.ok(calls.every(c => c.tier === "quick"));
+  A.S().ocrThorough = true; await A.ocrImages([img("F")], null); A.S().ocrThorough = false;
+  assert.equal(calls.at(-1).tier, "default");
+  A.CAP.sample = null; A.CAP.images = null;
 });
 ok("Bildungspläne: Realschule Bayern Klasse 7 bekommt die Fachlehrpläne der 7. Jahrgangsstufe", () => {
   const p = {track:"schule",state:"BY",type:"real",grade:7};

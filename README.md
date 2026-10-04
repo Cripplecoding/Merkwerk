@@ -62,7 +62,9 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 
 *Karteikarten:* Aus dem Material entstehen Karten mit dem Begriff vorne und der Definition hinten, jede mit Beleg. Ein Klick dreht die Karte um. Ziehen nach links ordnet sie „weiß ich“ zu, nach rechts „muss ich noch üben“ (alternativ Klick auf die Seite oder Pfeiltasten). Beide Seiten zählen mit (grün und orange), oben stehen die durchgearbeiteten Karten (z. B. 17/30) mit Fortschrittsbalken. Am Ende zeigt ein Säulendiagramm den Anteil gewusster Karten; danach alle Karten noch einmal, nur die nicht gewussten oder zurück zum Hauptmenü. Mit Claude erstellt Claude die Karten und jeder Beleg wird wie bei den Fragen geprüft; ohne Claude erkennt Merkwerk Sätze wie „X ist …“ oder „… nennt man X“.
 
-**Handschrift und GoodNotes.** Fotos, Scans und PDF-Seiten ohne Textebene liest in claude.ai Claude, ausdrücklich auch Handschrift; PDF-Seiten mit gedrucktem Text und vielen Stiftstrichen (z. B. kommentierte Folien aus GoodNotes oder Notability) gibt Merkwerk dann ebenfalls als Bild an Claude, damit die Randnotizen nicht fehlen. Ohne Claude übernimmt Tesseract.js im Browser (Deutsch und Englisch). `.goodnotes`-Dateien sind ZIP-Archive: Merkwerk übernimmt daraus die Handschrifterkennung, die GoodNotes selbst pro Seite für die Suche speichert (`search/<Seite>`), dazu den Text eingebetteter PDFs und die Bilder. Gelesener Text ist als „bitte prüfen“ markiert und lässt sich unter „Gelesenen Text ansehen“ korrigieren.
+**Handschrift und GoodNotes.** Fotos, Scans und PDF-Seiten ohne Textebene liest in claude.ai Claude, ausdrücklich auch Handschrift; PDF-Seiten mit gedrucktem Text und vielen Stiftstrichen (z. B. kommentierte Folien aus GoodNotes oder Notability) gibt Merkwerk dann ebenfalls als Bild an Claude, damit die Randnotizen nicht fehlen. Ohne Claude übernimmt Tesseract.js im Browser (deutsches Sprachmodell, liest auch englische Wörter). `.goodnotes`-Dateien sind ZIP-Archive: Merkwerk übernimmt daraus die Handschrifterkennung, die GoodNotes selbst pro Seite für die Suche speichert (`search/<Seite>`), dazu den Text eingebetteter PDFs und die Bilder. Gelesener Text ist als „bitte prüfen“ markiert und lässt sich unter „Gelesenen Text ansehen“ korrigieren.
+
+**Tempo der Texterkennung.** Claude liest mehrseitiges Material in zwei Stapeln gleichzeitig (mehr Anfragen lässt claude.ai pro Person nicht parallel laufen) und nimmt standardmäßig das schnelle Modell (`modelTier: "quick"`, ohne Nachdenkphase). Der Schalter „Handschrift gründlich lesen“ beim Hochladen nimmt das stärkere Modell: langsamer, aber genauer bei schwer lesbarer Schrift; die Wahl wird mit dem Konto gespeichert. Ohne Claude laufen bis zu drei Tesseract-Worker gleichzeitig, große Fotos werden vorher auf 2400 Pixel Kantenlänge verkleinert. PDF-Seiten werden erst gerendert, wenn sie an der Reihe sind, damit das Lesen schon während der Vorbereitung beginnt, und komplett leere Seiten werden übersprungen.
 
 **Bibliothek.** Beim ersten Öffnen fragt die Seite nach Schule oder Studium, bei Schülern nach Bundesland, Schulart und Klasse. Danach Fächer bzw. Module wählen, ein Thema eingeben und Einträge anderer ansehen oder selbst hochladen. Jeder Eintrag lässt sich als Lernset übernehmen.
 
@@ -104,7 +106,7 @@ dist/              fertige Seiten (index.html lokal, merkwerk-artifact.html für
 tests/run.mjs      Logik-Prüfungen ohne Browser
 ```
 
-Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit Sprachdaten für Deutsch und Englisch, ca. 10 MB beim ersten Mal). Schriften kommen von Google Fonts.
+Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit deutschen Sprachdaten, ca. 5 MB beim ersten Mal). Schriften kommen von Google Fonts.
 
 ## Anmeldung einrichten
 
