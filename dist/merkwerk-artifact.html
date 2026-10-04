@@ -1305,7 +1305,7 @@ function renderSetPanel(el,set){
   nameIn.onchange=async()=>{set.name=nameIn.value.trim()||"Lernset";await putSet(set);go("learn",{manage:true});};
   subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);go("learn",{manage:true});};
   const topIn=$("#setTopic"); if(topIn) topIn.onchange=async()=>{set.topic=topIn.value.trim(); if(/^Lernset \d+$/.test(set.name)&&set.topic) set.name=set.topic; await putSet(set);go("learn",{manage:true});};
-  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } generateIntoSet(set); };
+  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } putSet(set); openGenModes(set); };
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
@@ -1637,6 +1637,7 @@ function openNewSetDialog(preset={}){
         <button class="wizard-opt" id="nsOwn"><b>Eigene Dateien anfügen</b><span class="small muted">PDF, DOCX, GoodNotes, Fotos – wie gewohnt</span></button>
         <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Merkwerk gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
       </div>
+      <div id="nsModes" hidden></div>
     </div>
     <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Abbrechen</button></div>
   </div>`,(m,close)=>{
@@ -1671,15 +1672,17 @@ function openNewSetDialog(preset={}){
     tIn.oninput=()=>{ topic=tIn.value.trim(); $$("[data-nt]",m).forEach(c=>c.setAttribute("aria-pressed",c.dataset.nt===topic)); };
     drawSubjects(); drawPlan(); drawTopics();
     if(p&&p.track==="schule") loadPlans().then(ok=>{ plansOk=ok; if($("#ns")){ drawSubjects(); drawPlan(); } });
-    const create=async gen=>{
+    const create=async mode=>{
       subject=sIn.value.trim(); topic=tIn.value.trim();
-      if(gen&&!topic){ toast("Gib zuerst ein Thema ein – dazu sucht Merkwerk die Inhalte"); tIn.focus(); return; }
       const s=newSet(topic||subject||"Lernset "+(SETS.length+1),subject); s.topic=topic;
       await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true});
-      if(gen) generateIntoSet(s);
+      if(mode) generateIntoSet(s,{mode});
     };
-    $("#nsOwn",m).onclick=()=>create(false);
-    $("#nsGen",m).onclick=()=>create(true);
+    $("#nsOwn",m).onclick=()=>create(null);
+    $("#nsGen",m).onclick=()=>{
+      if(!tIn.value.trim()){ toast("Gib zuerst ein Thema ein – dazu sucht Merkwerk die Inhalte"); tIn.focus(); return; }
+      const box=$("#nsModes",m); box.innerHTML=genModesHTML(); box.hidden=false; bindGenModes(box,create); box.scrollIntoView({block:"nearest",behavior:"smooth"});
+    };
     (subject?tIn:sIn).focus();
   });
 }
@@ -1762,7 +1765,23 @@ ${src?`\nQUELLEN\n${src}`:""}`,{modelTier:"default",signal});
   }
   return {files,gen:{at:Date.now(),fit:check.fit,note:check.note,focus:check.focus,docs:docs.slice(0,4).map(d=>({title:d.title,url:d.url,st:d.st})),links,by:CAP.sample?"claude":"wikipedia"}};
 }
-async function generateIntoSet(set){
+/* Lernmodus für die generierten Inhalte: direkt danach Karteikarten oder interaktive Abfrage */
+const GEN_MODES=[
+  {k:"cards",t:"Karteikarten",d:"Begriff vorne, Definition hinten – aus dem erstellten Lerntext"},
+  {k:"quiz",t:"Interaktive Abfrage",d:"15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext",claude:true},
+  {k:"read",t:"Erst nur den Lerntext",d:"Lerntext und Quellen ansehen, den Lernmodus später wählen"},
+];
+function genModesHTML(){
+  return `<div class="stack" style="gap:8px"><span class="label">Wie willst du mit den Inhalten lernen?</span>
+    <div class="grid3" style="gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))">${GEN_MODES.map(o=>{ const off=o.claude&&!CAP.sample;
+      return `<button class="wizard-opt" data-gm="${o.k}" ${off?"disabled":""}><b>${esc(o.t)}</b><span class="small muted">${esc(off?"Nur in claude.ai: dort erstellt Claude die Fragen":o.d)}</span></button>`; }).join("")}</div></div>`;
+}
+function bindGenModes(root,onPick){ $$("[data-gm]",root).forEach(b=>b.onclick=()=>onPick(b.dataset.gm)); }
+function openGenModes(set){
+  modal(`<h2>Lerninhalte generieren</h2><p class="small muted">Zu „${esc(set.topic)}“${set.subject?` · ${esc(set.subject)}`:""}</p><div id="gmBox">${genModesHTML()}</div><div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Abbrechen</button></div>`,
+    (m,close)=>bindGenModes($("#gmBox",m),mode=>{ close(); generateIntoSet(set,{mode}); }));
+}
+async function generateIntoSet(set,{mode="read"}={}){
   const box=$("#genBox"); const ctl=new AbortController();
   const status=t=>{ const e=$("#genTxt"); if(e) e.textContent=t; };
   if(box){ box.hidden=false; box.innerHTML=`<div class="note"><div class="row"><span class="spin"></span><span id="genTxt">Starte …</span><span class="spacer"></span><button class="btn sm" id="genStop">Abbrechen</button></div></div>`; $("#genStop").onclick=()=>ctl.abort(); }
@@ -1771,7 +1790,10 @@ async function generateIntoSet(set){
     set.gen=r.gen;
     if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Merkwerk ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
     set.files.push(...r.files); set.sections=makeSections(set.files); set.cards=null; set.fc=null;
-    await putSet(set); go("learn",{manage:true}); toast("Lerninhalte erstellt – wähle jetzt, wie du lernen willst");
+    await putSet(set); go("learn",{manage:true});
+    if(mode==="cards"){ toast("Lerninhalte erstellt – jetzt kommen die Karteikarten"); setTimeout(()=>openCards(set),30); }
+    else if(mode==="quiz"&&CAP.sample){ toast("Lerninhalte erstellt – jetzt kommen die Prüfungsfragen"); setTimeout(()=>startRound(set,{n:15}),30); }
+    else toast("Lerninhalte erstellt – wähle jetzt, wie du lernen willst");
   }catch(e){
     const b=$("#genBox"); if(!b) return;
     if((e&&e.code==="cancelled")||(e&&e.name==="AbortError")){ b.hidden=true; return; }

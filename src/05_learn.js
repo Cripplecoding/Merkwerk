@@ -346,7 +346,7 @@ function renderSetPanel(el,set){
   nameIn.onchange=async()=>{set.name=nameIn.value.trim()||"Lernset";await putSet(set);go("learn",{manage:true});};
   subjIn.onchange=async()=>{set.subject=subjIn.value.trim();await putSet(set);go("learn",{manage:true});};
   const topIn=$("#setTopic"); if(topIn) topIn.onchange=async()=>{set.topic=topIn.value.trim(); if(/^Lernset \d+$/.test(set.name)&&set.topic) set.name=set.topic; await putSet(set);go("learn",{manage:true});};
-  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } generateIntoSet(set); };
+  const gb=$("#genBtn"); if(gb) gb.onclick=()=>{ const t=($("#setTopic")||{}).value; if(t!==undefined&&t.trim()!==(set.topic||"")) set.topic=t.trim(); if(!set.topic){ toast("Trag zuerst ein Thema ein"); $("#setTopic").focus(); return; } putSet(set); openGenModes(set); };
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
