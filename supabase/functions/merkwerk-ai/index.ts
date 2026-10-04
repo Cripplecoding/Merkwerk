@@ -1,7 +1,9 @@
 // Merkwerk-KI für alle: nimmt Anfragen der Seite (GitHub Pages) entgegen, prüft Anmeldung und Tageslimit
 // und fragt Claude über die Claude API. Der API-Schlüssel bleibt hier auf dem Server.
 //
-// Anfrage (POST, JSON):  { prompt, images?: [{media_type, data(base64)}], tier?: "quick"|"default" }
+// Anfrage (POST, JSON):  { prompt, material?, images?: [{media_type, data(base64)}], tier?: "quick"|"default" }
+//   material: Abschnitte des Lernsets. Kommt vor der Anweisung und wird zwischengespeichert (Prompt-Caching),
+//   damit Fragen erstellen, prüfen und Karteikarten das Material nur einmal voll bezahlen.
 //   Header: Authorization: Bearer <Zugangs-Token aus Supabase Auth>, apikey: <anon key>
 // Antwort: NDJSON-Strom, eine Zeile pro Ereignis:
 //   {"t":"text","text":"…bisheriger Gesamttext…"}   (laufend, für die Fortschrittsanzeige)
@@ -68,11 +70,12 @@ Deno.serve(async (req) => {
   if (authErr || !auth?.user) return fail(h, 401, "session_expired", "Bitte neu anmelden");
   const uid = auth.user.id;
 
-  let body: { prompt?: unknown; images?: unknown; tier?: unknown };
+  let body: { prompt?: unknown; material?: unknown; images?: unknown; tier?: unknown };
   try { body = await req.json(); } catch { return fail(h, 400, "bad_request", "Ungültige Anfrage"); }
   const prompt = typeof body.prompt === "string" ? body.prompt : "";
   if (!prompt.trim()) return fail(h, 400, "bad_request", "Leere Anfrage");
-  if (prompt.length > MAX_PROMPT) return fail(h, 413, "prompt_too_large", "Material zu groß");
+  const material = typeof body.material === "string" ? body.material : "";
+  if (prompt.length + material.length > MAX_PROMPT) return fail(h, 413, "prompt_too_large", "Material zu groß");
   const images = Array.isArray(body.images) ? body.images : [];
   if (images.length > MAX_IMAGES) return fail(h, 413, "prompt_too_large", "Zu viele Bilder");
   for (const im of images) {
@@ -91,6 +94,9 @@ Deno.serve(async (req) => {
   if (!q?.ok) return fail(h, 429, "daily_limit", q?.grund === "gesamt" ? "gesamt" : "nutzer");
 
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
+    // Material zuerst und byte-gleich, mit Cache-Marke: Die nächste Anfrage mit demselben Material (innerhalb von 5 Minuten,
+    // gleiches Modell) liest es für ein Zehntel des Preises aus dem Zwischenspeicher. Sehr kurzes Material (unter ca. 500 Token) cacht die API nicht.
+    ...(material ? [{ type: "text" as const, text: "MATERIAL\n" + material, cache_control: { type: "ephemeral" as const } }] : []),
     ...images.map((im: { media_type: string; data: string }) => ({
       type: "image" as const,
       source: { type: "base64" as const, media_type: im.media_type as "image/jpeg", data: im.data },
@@ -120,7 +126,10 @@ Deno.serve(async (req) => {
           }
         }
         const msg = await stream.finalMessage();
-        admin.rpc("ki_token_buchen", { p_nutzer: uid, p_ein: msg.usage.input_tokens, p_aus: msg.usage.output_tokens }).then(() => {}, () => {});
+        const u = msg.usage;
+        admin.rpc("ki_token_buchen", {
+          p_nutzer: uid, p_ein: u.input_tokens + (u.cache_creation_input_tokens ?? 0), p_cache: u.cache_read_input_tokens ?? 0, p_aus: u.output_tokens,
+        }).then(() => {}, () => {});
         if (msg.stop_reason === "refusal") { send({ t: "error", code: "refused", message: "abgelehnt" }); return; }
         const final = msg.content.filter((b) => b.type === "text").map((b) => (b as Anthropic.Beta.BetaTextBlock).text).join("");
         send({ t: "done", text: final || text, rest: q.rest, truncated: msg.stop_reason === "max_tokens" });

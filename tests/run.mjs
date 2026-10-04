@@ -15,7 +15,7 @@ vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -268,6 +268,24 @@ okAsync("KI-Server: Anfrage mit Anmeldung, Fortschritt, Ergebnis und Tageslimit"
   mode = "limit";
   await assert.rejects(sample("zu viel"), e => e.code === "daily_limit" && /Tageslimit/.test(A.sampleErr(e)));
   Object.assign(A.AI_CONFIG, { url: "", anonKey: "" });
+});
+okAsync("Prompt-Caching: Erstellen, Prüfen und Karteikarten schicken denselben Material-Block", async () => {
+  const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}], coverage:{}, history:[] }; set.sections = A.makeSections(set.files);
+  const calls = [];
+  const fake = async () => ({text:""});
+  fake.json = async (p, o) => { calls.push({p, o}); return calls.length===1 ? {questions:A.EXAMPLE_QUESTIONS} : {checks:[]}; };
+  A.CAP.sample = fake; A.CAP.remote = true;
+  await A.generateQuestions(set, {n:15});
+  const [gen, chk] = calls;
+  assert.ok(gen.o.material && gen.o.material.length > 1000, "Material als eigener Block");
+  assert.equal(chk.o.material, gen.o.material, "Prüfung nutzt denselben Block");
+  assert.ok(!gen.p.includes(set.sections[0].text) && !chk.p.includes(set.sections[0].text), "Material nicht doppelt in der Anweisung");
+  assert.equal(A.buildCardPrompt(set, 10).material, gen.o.material, "Karteikarten nutzen denselben Block");
+  // claude.ai: Material wie bisher am Ende der Anfrage
+  A.CAP.remote = false; calls.length = 0;
+  await A.generateQuestions(set, {n:15});
+  assert.ok(calls[0].p.endsWith(gen.o.material) && calls[0].p.includes("\n\nMATERIAL\n") && !calls[0].o.material);
+  A.CAP.sample = null;
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

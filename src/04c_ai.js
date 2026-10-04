@@ -73,7 +73,7 @@ function remoteSample(){
   const run=async(prompt,opt={})=>{
     await aiConsent();
     const images=opt.images&&opt.images.length?await Promise.all(opt.images.map(aiImage)):[];
-    const body=JSON.stringify({prompt,images,tier:opt.modelTier==="quick"?"quick":"default"});
+    const body=JSON.stringify({prompt,images,tier:opt.modelTier==="quick"?"quick":"default",...(opt.material?{material:opt.material}:{})});
     let res;
     for(let attempt=0;attempt<2;attempt++){
       const token=await aiToken(attempt>0);
@@ -105,4 +105,14 @@ function remoteSample(){
   sample.json=async(prompt,opt)=>aiParseJson((await run(prompt+"\n\nGib nur das JSON aus, ohne Text davor oder danach.",opt)).text);
   sample.limits=async()=>({images:{maxCount:5}});
   return sample;
+}
+
+/* Material (Lernset-Abschnitte) als eigener Block: Der Server schickt es vor der Anweisung und lässt es von der
+   Claude API zwischenspeichern (Prompt-Caching). Fragen erstellen, prüfen und Karteikarten nutzen denselben Block,
+   so kostet das Material ab der zweiten Anfrage innerhalb von 5 Minuten nur noch etwa ein Zehntel.
+   In claude.ai steht das Material wie bisher am Ende der Anfrage. */
+function materialText(sections){ return sections.map(s=>`[${s.id} | ${s.fileName}]\n${s.text}`).join("\n\n"); }
+function askWithMaterial(prompt,material,opt){
+  if(CAP.remote) return CAP.sample.json(prompt,{...opt,material});
+  return CAP.sample.json(`${prompt}\n\nMATERIAL\n${material}`,opt);
 }

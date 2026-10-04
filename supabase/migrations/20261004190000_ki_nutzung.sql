@@ -6,7 +6,8 @@ create table if not exists public.ki_nutzung (
   art        text   not null check (art in ('nutzer','ip','gesamt')),
   schluessel text   not null,          -- Nutzer-ID, Hash der IP-Adresse oder 'alle'
   anfragen   integer not null default 0,
-  token_ein  bigint  not null default 0,
+  token_ein  bigint  not null default 0,   -- Eingabe-Token zum vollen Preis (inkl. Schreiben in den Zwischenspeicher)
+  token_cache bigint not null default 0,   -- Eingabe-Token aus dem Zwischenspeicher (etwa ein Zehntel des Preises)
   token_aus  bigint  not null default 0,
   primary key (tag, art, schluessel)
 );
@@ -36,21 +37,21 @@ begin
 end $$;
 
 -- Trägt nach der Antwort die verbrauchten Token ein (für den Überblick über die Kosten).
-create or replace function public.ki_token_buchen(p_nutzer text, p_ein bigint, p_aus bigint)
+create or replace function public.ki_token_buchen(p_nutzer text, p_ein bigint, p_cache bigint, p_aus bigint)
 returns void language sql security definer set search_path = public as $$
-  update ki_nutzung set token_ein = token_ein + p_ein, token_aus = token_aus + p_aus
+  update ki_nutzung set token_ein = token_ein + p_ein, token_cache = token_cache + p_cache, token_aus = token_aus + p_aus
    where tag = (now() at time zone 'Europe/Berlin')::date
      and ((art='nutzer' and schluessel=p_nutzer) or (art='gesamt' and schluessel='alle'));
 $$;
 
 revoke all on function public.ki_anfrage_buchen(text,text,int,int,int) from public, anon, authenticated;
-revoke all on function public.ki_token_buchen(text,bigint,bigint) from public, anon, authenticated;
+revoke all on function public.ki_token_buchen(text,bigint,bigint,bigint) from public, anon, authenticated;
 grant execute on function public.ki_anfrage_buchen(text,text,int,int,int) to service_role;
-grant execute on function public.ki_token_buchen(text,bigint,bigint) to service_role;
+grant execute on function public.ki_token_buchen(text,bigint,bigint,bigint) to service_role;
 
 -- Übersicht für Joshi im Supabase-Dashboard (SQL Editor): select * from ki_tagesuebersicht;
 create or replace view public.ki_tagesuebersicht with (security_invoker = true) as
-  select tag, anfragen, token_ein, token_aus,
+  select tag, anfragen, token_ein, token_cache, token_aus,
          (select count(*) from ki_nutzung n where n.tag = g.tag and n.art = 'nutzer') as nutzer
     from ki_nutzung g where art = 'gesamt' order by tag desc;
 revoke all on public.ki_tagesuebersicht from anon, authenticated;

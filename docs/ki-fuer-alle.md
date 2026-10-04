@@ -83,6 +83,7 @@ Preise der Claude API: Opus 5.5 4 $ pro Million Eingabe-Token und 20 $ pro Milli
 
 - Eine Abfragerunde mit 15 Fragen sind 2 bis 4 Anfragen (Fragen erstellen, gegen das Material prüfen, schriftliche Antworten bewerten). Je nach Menge des Materials etwa 0,20 bis 0,60 $ mit Opus 5.5, ungefähr die Hälfte mit Sonnet 5.5.
 - Fünf Seiten Handschrift lesen (Haiku 4.5): etwa 2 Cent.
+- Prompt-Caching: Fragen erstellen, Fragen prüfen und Karteikarten schicken das Material als denselben Block, den die Claude API 5 Minuten zwischenspeichert. Ab der zweiten Anfrage mit demselben Material kostet es nur noch ein Zehntel. Das spart grob ein Viertel der Opus-Kosten pro Abfragerunde (geschätzt). In `ki_tagesuebersicht` zeigt die Spalte `token_cache`, wie viel aus dem Zwischenspeicher kam.
 - Bei 300 Anfragen am Tag (Standard-Obergrenze) und überwiegend Opus-Anfragen sind das im ungünstigsten Fall rund 30 bis 50 $ am Tag. Deshalb Schritt 1.2, das Monatslimit in der Anthropic Console.
 
 Entschieden am 4. Oktober 2026: Die KI-Kosten externer Nutzer laufen über deinen Claude-API-Schlüssel, und jedes Gerät hat ein Tageslimit.
