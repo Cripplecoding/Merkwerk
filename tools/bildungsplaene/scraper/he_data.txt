@@ -1,0 +1,279 @@
+## KCSEK1 https://kultus.hessen.de/Unterricht/Sekundarstufe-I-Kerncurricula
+2021-06/kerncurriculum_alevitische_religion_hauptschule_0.pdf	Kerncurriculum Alevitische Religion - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_alevitische_religion_realschule.pdf	Kerncurriculum Alevitische Religion - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_alevitische_religion_gymnasium.pdf	Kerncurriculum Alevitische Religion - Sekundarstufe I (Gymnasium)
+2023-07/2023_-_kerncurriculum_arabisch_-_sekundarstufe_i_realschule.pdf	Kerncurriculum Arabisch - Sekundarstufe I (Realschule) (Stand 2023)
+2023-07/2023_-_kerncurriculum_arabisch_-_sekundarstufe_i_gymnasium.pdf	Kerncurriculum Arabisch - Sekundarstufe I (Gymnasium) (Stand 2023)
+2021-06/kerncurriculum_arbeitslehre_hauptschule.pdf	Kerncurriculum Arbeitslehre - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_arbeitslehre_realschule.pdf	Kerncurriculum Arbeitslehre - Sekundarstufe I (Realschule)
+2021-06/leitfaden_arbeitslehre_sekundarstufe_i.pdf	Leitfaden Arbeitslehre - Sekundarstufe I
+2021-06/kerncurriculum_biologie_hauptschule.pdf	Kerncurriculum Biologie - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_biologie_realschule.pdf	Kerncurriculum Biologie - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_biologie_gymnasium.pdf	Kerncurriculum Biologie - Sekundarstufe I (Gymnasium)
+2021-06/leitfaden_biologie_sekundarstufe_i.pdf	Leitfaden Biologie - Sekundarstufe I
+2021-06/kerncurriculum_chemie_hauptschule.pdf	Kerncurriculum Chemie - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_chemie_realschule.pdf	Kerncurriculum Chemie - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_chemie_gymnasium-1.pdf	Kerncurriculum Chemie - Sekundarstufe I (Gymnasium)
+2021-06/leitfaden_chemie_sekundarstufe_i.pdf	Leitfaden Chemie - Sekundarstufe I
+2021-06/kch_sek1_gym_chinesisch_0.pdf	Kerncurriculum Chinesisch - Sekundarstufe I (Gymnasium)
+2021-06/kerncurriculum_deutsch_hauptschule.pdf	Kerncurriculum Deutsch - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_deutsch_realschule.pdf	Kerncurriculum Deutsch - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_deutsch_gymnasium.pdf	Kerncurriculum Deutsch - Sekundarstufe I (Gymnasium)
+2021-06/leitfaden_deutsch_sekundarstufe_i.pdf	Leitfaden Deutsch - Sekundarstufe I
+2021-06/kerncurriculum_erdkunde_hauptschule.pdf	Kerncurriculum Erdkunde - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_erdkunde_realschule.pdf	Kerncurriculum Erdkunde - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_erdkunde_gymnasium.pdf	Kerncurriculum Erdkunde - Sekundarstufe I (Gymnasium)
+2021-06/leitfaden_erdkunde_sekundarstufe_i.pdf	Leitfaden Erdkunde - Sekundarstufe I
+2021-06/kerncurriculum_ethik_hauptschule.pdf	Kerncurriculum Ethik - Sekundarstufe I (Hauptschule)
+2021-06/kerncurriculum_ethik_realschule.pdf	Kerncurriculum Ethik - Sekundarstufe I (Realschule)
+2021-06/kerncurriculum_ethik_gymnasium.pdf	Kerncurriculum Ethik - Sekundarstufe I (Gymnasium)
+2021-06/leitfaden_ethik_sekundarstufe_i.pdf	Leitfaden Ethik - Sekundarstufe I
+2021-07/kerncurriculum_evangelische_religion.pdf	Kerncurriculum Evangelische Religion - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_evangelische_religion_realschule.pdf	Kerncurriculum Evangelische Religion - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_evangelische_religion_gymnasium.pdf	Kerncurriculum Evangelische Religion - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_evangelische_religion_sekundarstufe_i.pdf	Leitfaden Evangelische Religion - Sekundarstufe I
+2021-07/lf_ergaenzung_evreli_sek.pdf	Ergänzung zum Leitfaden Evangelische Religion - Sekundarstufe I
+2021-07/kerncurriculum_geschichte_hauptschule.pdf	Kerncurriculum Geschichte - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_geschichte_realschule.pdf	Kerncurriculum Geschichte - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_geschichte_gymnasium.pdf	Kerncurriculum Geschichte - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_geschichte_sekundarstufe_i.pdf	Leitfaden Geschichte - Sekundarstufe I
+2021-07/kerncurriculum_griechisch_gymnasium.pdf	Kerncurriculum Griechisch - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_griechisch_sekundarstufe_i_0.pdf	Leitfaden Griechisch - Sekundarstufe I
+2021-08/kch_informatik.pdf	Kerncurriculum Informatik - Sekundarstufe I - Wahlunterricht im gymnasialen Bildungsgang (Gymnasium)
+2024-06/hs_ditib-he_kcpdf.pdf	Kerncurriculum Islamische Religion DITIB Hessen (sunnitisch) - Sekundarstufe I (Hauptschule) (2024)
+2024-06/rs_ditib-he_kc_iru.pdf	Kerncurriculum Islamische Religion DITIB Hessen (sunnitisch) - Sekundarstufe I (Realschule) (2024)
+2024-06/gym_ditib-he_kc_iru.pdf	Kerncurriculum Islamische Religion DITIB Hessen (sunnitisch) - Sekundarstufe I (Gymnasium) (2024)
+2021-07/kc_jr_hs.pdf	Kerncurriculum Jüdische Religion - Sekundarstufe I (Hauptschule)
+2021-07/kc_jr_rs.pdf	Kerncurriculum Jüdische Religion - Sekundarstufe I (Realschule)
+2021-07/kc_jr_gy.pdf	Kerncurriculum Jüdische Religion - Sekundarstufe I (Gymnasium)
+2021-07/kerncurriculum_katholische_religion_hauptschule.pdf	Kerncurriculum Katholische Religion - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_katholische_religion_realschule.pdf	Kerncurriculum Katholische Religion - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_katholische_religion_gymnasium.pdf	Kerncurriculum Katholische Religion - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_katholische_religion_sekundarstufe_i_0.pdf	Leitfaden Katholische Religion - Sekundarstufe I
+2021-07/kerncurriculum_kunst_hauptschule.pdf	Kerncurriculum Kunst - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_kunst_realschule.pdf	Kerncurriculum Kunst - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_kunst_gymnasium.pdf	Kerncurriculum Kunst - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_kunst_sekundarstufe_i.pdf	Leitfaden Kunst - Sekundarstufe I
+2021-07/kerncurriculum_latein_gymnasium.pdf	Kerncurriculum Latein - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_latein_sekundarstufe_i.pdf	Leitfaden Latein - Sekundarstufe I
+2021-07/kerncurriculum_mathematik_hauptschule.pdf	Kerncurriculum Mathematik - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_mathematik_realschule.pdf	Kerncurriculum Mathematik - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_mathematik_gymnasium.pdf	Kerncurriculum Mathematik - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_mathematik_sekundarstufe_i.pdf	Leitfaden Mathematik - Sekundarstufe I
+2021-07/kerncurriculum_moderne_fremdsprachen_hauptschule.pdf	Kerncurriculum Moderne Fremdsprachen - Sekundarstufe I (Hauptschule)
+2023-07/2023_-_kerncurriculum_moderne_fremdsprachen_-_sekundarstufe_i_realschule.pdf	Kerncurriculum Moderne Fremdsprachen - Sekundarstufe I (Realschule) (Stand Juli 2023)
+2023-07/2023_-_kerncurriculum_moderne_fremdsprachen_-_sekundarstufe_i_gymnasium.pdf	Kerncurriculum Moderne Fremdsprachen - Sekundarstufe I (Gymnasium) (Stand Juli 2023)
+2021-07/leitfaden_moderne_fremdsprachen_sekundarstufe_i.pdf	Leitfaden Moderne Fremdsprachen - Sekundarstufe I
+2021-07/kerncurriculum_musik_hauptschule.pdf	Kerncurriculum Musik - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_musik_realschule.pdf	Kerncurriculum Musik - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_musik_gymnasium.pdf	Kerncurriculum Musik - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_musik_sekundarstufe_i-1.pdf	Leitfaden Musik - Sekundarstufe I
+2024-02/kc_physik_hsa_201102-uea.pdf	Kerncurriculum Physik - Sekundarstufe I (Hauptschule) (überarbeitete Ausgabe 2024)
+2024-02/kc_physik_msa_201102-uea.pdf	Kerncurriculum Physik - Sekundarstufe I (Realschule) (überarbeitete Ausgabe 2024)
+2024-02/kc_physik_uesekii_201102-uea.pdf	Kerncurriculum Physik - Sekundarstufe I (Gymnasium) (überarbeitete Ausgabe 2024)
+2021-07/leitfaden_physik_sekundarstufe_i.pdf	Leitfaden Physik - Sekundarstufe I
+2021-07/kerncurriculum_politik_und_wirtschaft_hauptschule.pdf	Kerncurriculum Politik und Wirtschaft - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_politik_und_wirtschaft_realschule.pdf	Kerncurriculum Politik und Wirtschaft - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_politik_und_wirtschaft_gymnasium.pdf	Kerncurriculum Politik und Wirtschaft - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_politik_und_wirtschaft_sekundarstufe_i.pdf	Leitfaden Politik und Wirtschaft - Sekundarstufe I
+2021-07/kerncurriculum_sport_hauptschule-1.pdf	Kerncurriculum Sport - Sekundarstufe I (Hauptschule)
+2021-07/kerncurriculum_sport_realschule.pdf	Kerncurriculum Sport - Sekundarstufe I (Realschule)
+2021-07/kerncurriculum_sport_gymnasium.pdf	Kerncurriculum Sport - Sekundarstufe I (Gymnasium)
+2021-07/leitfaden_sport_sekundarstufe_i.pdf	Leitfaden Sport - Sekundarstufe I
+## KCGO https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/gymnasiale-oberstufe-ab-schuljahr-20242025-kerncurricula
+2025-10/kerncurriculum_gymnasiale_oberstufe-biologie.pdf	KCGO Biologie (Ausgabe 2024)
+2026-07/kcgo_chemie_21.04.2026.pdf	KCGO Chemie (Ausgabe April 2026)
+2025-10/kerncurriculum_gymnasiale_oberstufe-chinesisch.pdf	KCGO Chinesisch (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-darstellendes_spiel.pdf	KCGO Darstellendes Spiel (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-deutsch.pdf	KCGO Deutsch (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-englisch.pdf	KCGO Englisch (Ausgabe 2024)
+2025-10/kernkurriculum_gymnasiale_oberstufe-ethik.pdf	KCGO Ethik (Ausgabe 2024)
+2026-07/kcgo_evangelische_religion_21.04.2026.pdf	KCGO Evangelische Religion (Ausgabe April 2026)
+2025-10/kerncurriculum_gymnasiale_oberstufe-franzoesisch.pdf	KCGO Französisch (Ausgabe 2024)
+2025-10/kernkurriculum_gymnasiale_oberstufe-geographie.pdf	KCGO Geographie (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-geschichte.pdf	KCGO Geschichte (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-griechisch.pdf	KCGO Griechisch (Ausgabe 2024)
+2025-10/kernkurriculum_gymnasiale_oberstufe-informatik.pdf	KCGO Informatik (Ausgabe 2024)
+2025-11/kcgo_islamische_religion_ditib_hessen_sunnitisch.pdf	KCGO Islamische Religion DITIB Hessen (sunnitisch) (Ausgabe 2025)
+2026-07/kcgo_italienisch_21.04.2026.pdf	KCGO Italienisch (Ausgabe April 2026)
+2025-10/kerncurriculum_gymnasiale_oberstufe-juedische_religion.pdf	KCGO Jüdische Religion (Ausgabe 2024)
+2026-07/kcgo_katholische_religion_21.04.2026.pdf	KCGO Katholische Religion (Ausgabe April 2026)
+2026-07/kcgo_kunst_21.04.2026.pdf	KCGO Kunst (Ausgabe April 2026)
+2025-10/kerncurriculum_gymnasiale_oberstufe-latein.pdf	KCGO Latein (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-litauisch.pdf	KCGO Litauisch (Ausgabe 2024)
+2025-10/kerncurriculum_gymnasiale_oberstufe-mathematik.pdf	KCGO Mathematik (Ausgabe 2024)
+2026-07/kcgo_musik_21.04.2026.pdf	KCGO Musik (Ausgabe April 2026)
+2026-07/kcgo_philosophie_21.04.2026.pdf	KCGO Philosophie (Ausgabe April 2026)
+2025-10/kernkurriculum_gymnasiale_oberstufe-physik.pdf	KCGO Physik (Ausgabe 2024)
+2026-07/kcgo_politik_und_wirtschaft_21.04.2026_0.pdf	KCGO Politik und Wirtschaft (Ausgabe April 2026)
+2025-10/kerncurriculum_gymnasiale_oberstufe-polnisch.pdf	KCGO Polnisch (Ausgabe 2024)
+2026-07/kcgo_russisch_21.04.2026.pdf	KCGO Russisch (Ausgabe April 2026)
+2025-10/kernkurriculum_gymnasiale_oberstufe-spanisch.pdf	KCGO Spanisch (Ausgabe 2024)
+2025-10/kernkurriculum_gymnasiale_oberstufe-sport.pdf	KCGO Sport (Ausgabe 2024)
+2026-07/kcgo_wirtschaftswissenschaften_21.04.2026.pdf	KCGO Wirtschaftswissenschaften (Ausgabe April 2026)
+## KCBG https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/berufliches-gymnasium-ab-schuljahr-202425-kerncurricula
+2025-10/kerncurriculum_berufliches_gymnasium-bautechnik.pdf	KCBG Bautechnik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-biologietechnik.pdf	KCBG Biologietechnik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-chemietechnik.pdf	KCBG Chemietechnik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-elektrotechnik.pdf	KCBG Elektrotechnik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-ernaehrung.pdf	KCBG Ernährung (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-erziehungswissenschaft.pdf	KCBG Erziehungswissenschaft (Ausgabe 2024)
+2026-07/kcbg_gestaltungs-und_medientechnik_22.05.2026.pdf	KCBG Gestaltungs- und Medientechnik (Ausgabe April 2026)
+2025-10/kerncurriculum_berufliches_gymnasium-gesundheit.pdf	KCBG Gesundheit (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-maschinenbautechnik.pdf	KCBG Maschinenbautechnik (Ausgabe 2024)
+2026-07/kcbg_mechatronik_22.05.2026.pdf	KCBG Mechatronik (Ausgabe April 2026)
+2025-10/kerncurriculum_berufliches_gymnasium-praktische_informatik.pdf	KCBG Praktische Informatik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-technische_informatik.pdf	KCBG Technische Informatik
+2025-10/kerncurriculum_berufliches_gymnasium-umwelttechnik.pdf	KCBG Umwelttechnik (Ausgabe 2024)
+2025-10/kerncurriculum_berufliches_gymnasium-wirtschaft.pdf	KCBG Wirtschaft (Ausgabe 2024)
+## KCFOS https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/kerncurricula/fachoberschule
+2023-07/kc_fos_agrarwirtschaft_und_umwelttechnologie_2022.pdf	KC FOS Agrarwirtschaft und Umwelttechnologie (Stand 2022)
+2023-08/kc_fos_bautechnik_2022.pdf	KC FOS Bautechnik (Stand 2022)
+2023-07/kc_fos_biologie_2022.pdf	KC FOS Biologie (Stand 2022)
+2023-07/kc_fos_chemie_2022.pdf	KC FOS Chemie (Stand 2022)
+2023-07/kc_fos_chemisch-physikalische_technik_2022.pdf	KC FOS Chemisch-physikalische Technik (Stand 2022)
+2023-07/kc_fos_deutsch_2022.pdf	KC FOS Deutsch (Stand 2022)
+2023-08/kc_fos_elektrotechnik_2022.pdf	KC FOS Elektrotechnik (Stand 2022)
+2023-07/kc_fos_englisch_2022.pdf	KC FOS Englisch (Stand 2022)
+2023-07/kc_fos_ernaehrung_2022.pdf	KC FOS Ernährung (Stand 2022)
+2023-07/kc_fos_gestaltung_2022.pdf	KC FOS Gestaltung (Stand 2022)
+2023-07/kc_fos_gesundheit_2022.pdf	KC FOS Gesundheit (Stand 2022)
+2023-08/kc_fos_informationstechnik_2022.pdf	KC FOS Informationstechnik (Stand 2022)
+2023-08/kc_fos_maschinenbautechnik_2022.pdf	KC FOS Maschinenbautechnik (Stand 2022)
+2023-07/kc_fos_mathematik_2022.pdf	KC FOS Mathematik (Stand 2022)
+2023-11/kc_fos_medienproduktionstechnik_2022_0.pdf	KC FOS Medienproduktionstechnik (Stand 2022)
+2023-07/kc_fos_physik_2022.pdf	KC FOS Physik (Stand 2022)
+2023-07/kc_fos_politik_und_wirtschaft_2022.pdf	KC FOS Politik und Wirtschaft (Stand 2022)
+2023-07/kc_fos_sozialwesen_2022.pdf	KC FOS Sozialwesen (Stand 2022)
+2023-07/kc_fos_sport_2022.pdf	KC FOS Sport (Stand 2022)
+2023-07/kc_fos_textiltechnik_und_bekleidung_2022.pdf	KC FOS Textiltechnik und Bekleidung (Stand 2022)
+2023-08/kc_fos_wirtschaft_2022_0.pdf	KC FOS Wirtschaft (Stand 2022)
+## BERUF https://kultus.hessen.de/Unterricht/Kerncurricula/Berufliche-Schulen-Kerncurricula
+2021-07/kcgo_englisch_berufsschule.pdf	Kerncurriculum Englisch - Berufsschule
+2021-07/kcgo_englisch_fos.pdf	Kerncurriculum Englisch - Fachoberschule Organisationsform A und Berufsschule
+2021-07/lp-ev.religion_2016_-_berufliche_schulen_2.pdf	Lehrplan Religion (evangelisch) für alle beruflichen Schulen außer BG
+2021-07/lp-_kath_religion_2.pdf	Lehrplan Religion (katholisch) für alle beruflichen Schulen außer BG
+2021-06/lp_bvj_deutsch_03_07_10.pdf	Lehrplan BzB (Berufsvorbereitung) - Allgemeiner Lernbereich Deutsch
+2021-06/lp_bvj_englisch_03_07_10.pdf	Lehrplan BzB (Berufsvorbereitung) - Allgemeiner Lernbereich Englisch
+2021-06/lp_bvj_ethik_03_07_10.pdf	Lehrplan BzB (Berufsvorbereitung) - Allgemeiner Lernbereich Ethik
+2021-06/lp_bvj_mathe_03_07_10.pdf	Lehrplan BzB (Berufsvorbereitung) - Allgemeiner Lernbereich Mathematik
+2021-06/lp_bvj_powi-03_07_10.pdf	Lehrplan BzB (Berufsvorbereitung) - Allgemeiner Lernbereich Politik und Wirtschaft
+## LP-Hauptschule https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Hauptschule
+2021-06/lphauptaufgabengebiete.pdf	Aufgabengebiete Hauptschule
+2021-06/lphauptdeutsch.pdf	Lehrplan Hauptschule Deutsch
+2021-06/lphauptenglisch.pdf	Lehrplan Hauptschule Englisch
+2021-06/lphauptmusik.pdf	Lehrplan Hauptschule Musik
+2021-06/lphauptkunst.pdf	Lehrplan Hauptschule Kunst
+2021-06/lphauptsozialkunde.pdf	Lehrplan Hauptschule Politik und Wirtschaft
+2021-06/lphauptgeschichte.pdf	Lehrplan Hauptschule Geschichte
+2021-06/lphaupterdkunde.pdf	Lehrplan Hauptschule Erdkunde
+2021-06/lphauptkath.rel_.pdf	Lehrplan Hauptschule Katholische Religion
+2021-06/lphauptev.rel_.pdf	Lehrplan Hauptschule Evangelische Religion
+2021-06/freireligioese_religion_sek_i.pdf	Lehrplan Hauptschule Freireligiöse Religion
+2021-06/lphauptethik.pdf	Lehrplan Hauptschule Ethik
+2021-06/lphauptmathe.pdf	Lehrplan Hauptschule Mathematik
+2021-06/lphauptphysik.pdf	Lehrplan Hauptschule Physik
+2021-06/lphauptchemie.pdf	Lehrplan Hauptschule Chemie
+2021-06/lphauptbiologie.pdf	Lehrplan Hauptschule Biologie
+2021-06/lehrplanendfassung-h-aend.22.2.06.pdf	Lehrplan Hauptschule Sport
+2021-06/lphauptarbeitslehre.pdf	Lehrplan Hauptschule Arbeitslehre
+## LP-Realschule https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Realschule
+2021-06/lprealaufgabengebiete.pdf	Aufgabengebiete Realschule
+2021-06/lprealdeutsch.pdf	Lehrplan Realschule Deutsch
+2021-06/lprealenglisch.pdf	Lehrplan Realschule Englisch
+2021-06/lprealfranzosisch.pdf	Lehrplan Realschule Französisch
+2021-06/lprealmusik.pdf	Lehrplan Realschule Musik
+2021-06/lprealkunst.pdf	Lehrplan Realschule Kunst
+2021-06/lprealsozialkunde.pdf	Lehrplan Realschule Politik und Wirtschaft
+2021-06/lprealgeschichte.pdf	Lehrplan Realschule Geschichte
+2021-06/lehrplan_erdkunde_realschule.pdf	Lehrplan Realschule Erdkunde
+2021-06/lprealkath.rel_.pdf	Lehrplan Realschule Katholische Religion
+2021-06/lprealev.rel_.pdf	Lehrplan Realschule Evangelische Religion
+2021-06/freireligioese_religion_sek_i_neu.pdf	Lehrplan Realschule Freireligiöse Religion
+2021-06/lprealethik.pdf	Lehrplan Realschule Ethik
+2021-06/lprealmathe.pdf	Lehrplan Realschule Mathematik
+2021-06/lprealphysik.pdf	Lehrplan Realschule Physik
+2021-06/lprealchemie.pdf	Lehrplan Realschule Chemie
+2021-06/lprealbiologie.pdf	Lehrplan Realschule Biologie
+2021-06/lehrplanendfassung-realsch-aend.neu22.2.06.pdf	Lehrplan Realschule Sport
+2021-06/lpreal_arbeitslehre.pdf	Lehrplan Realschule Arbeitslehre
+## LP-Gymnasium-8 https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Gymnasium-8
+2021-06/g8-deutsch.pdf	Lehrplan Gymnasium 8 Deutsch
+2021-06/g8-englisch.pdf	Lehrplan Gymnasium 8 Englisch
+2021-06/g8-franzoesisch.pdf	Lehrplan Gymnasium 8 Französisch
+2021-06/g8-italienisch.pdf	Lehrplan Gymnasium 8 Italienisch
+2021-06/g8-spanisch.pdf	Lehrplan Gymnasium 8 Spanisch
+2021-06/g8-latein.pdf	Lehrplan Gymnasium 8 Latein
+2021-06/g8-griechisch.pdf	Lehrplan Gymnasium 8 Griechisch
+2021-06/g8-russisch.pdf	Lehrplan Gymnasium 8 Russisch
+2021-06/g8-musik.pdf	Lehrplan Gymnasium 8 Musik
+2021-06/g8-kunst.pdf	Lehrplan Gymnasium 8 Kunst
+2021-06/darstellendes_spiel.pdf	Lehrplan Gymnasium 8 Darstellendes Spiel
+2021-06/g8-politik_und_wirtschaft.pdf	Lehrplan Gymnasium 8 Politik und Wirtschaft
+2021-06/rechtskunde.pdf	Lehrplan Gymnasium 8 Rechtskunde
+2021-06/wirtschaftswissenschaften.pdf	Lehrplan Gymnasium 8 Wirtschaftswissenschaften
+2021-06/g8-geschichte.pdf	Lehrplan Gymnasium 8 Geschichte
+2021-06/g8-erdkunde.pdf	Lehrplan Gymnasium 8 Erdkunde
+2021-06/g8-katholische_religion.pdf	Lehrplan Gymnasium 8 Katholische Religion
+2021-06/g8-evangelische_religion.pdf	Lehrplan Gymnasium 8 Evangelische Religion
+2021-06/lp_freireligioese_religion_sek_i_2009-03-30.pdf	Lehrplan Gymnasium 8 Freireligiöse Religion Sek I
+2021-06/freireligioese_religion_sek_ii.pdf	Lehrplan Gymnasium 8 Freireligiöse Religion Sek II
+2021-06/g8-ethik.pdf	Lehrplan Gymnasium 8 Ethik
+2021-06/philosophie.pdf	Lehrplan Gymnasium 8 Philosophie
+2021-06/g8-mathematik.pdf	Lehrplan Gymnasium 8 Mathematik
+2021-06/g8-biologie.pdf	Lehrplan Gymnasium 8 Biologie
+2021-06/g8-chemie.pdf	Lehrplan Gymnasium 8 Chemie
+2021-06/g8-physik.pdf	Lehrplan Gymnasium 8 Physik
+2021-06/informatik.pdf	Lehrplan Gymnasium 8 Informatik
+2021-06/g8-sport.pdf	Lehrplan Gymnasium 8 Sport
+## LP-Gymnasium-9 https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Gymnasium-9
+2021-06/g9-deutsch.pdf	Lehrplan Gymnasium 9 Deutsch
+2021-06/g9-englisch.pdf	Lehrplan Gymnasium 9 Englisch
+2021-06/g9-franzoesisch.pdf	Lehrplan Gymnasium 9 Französisch
+2021-06/g9-italienisch.pdf	Lehrplan Gymnasium 9 Italienisch
+2021-06/g9-spanisch.pdf	Lehrplan Gymnasium 9 Spanisch
+2021-06/g9-latein.pdf	Lehrplan Gymnasium 9 Latein
+2021-06/g9-griechisch.pdf	Lehrplan Gymnasium 9 Griechisch
+2021-06/japanisch9-13.pdf	Lehrplan Gymnasium 9 Japanisch 9-13
+2021-06/g9-russisch.pdf	Lehrplan Gymnasium 9 Russisch
+2021-06/g9-musik.pdf	Lehrplan Gymnasium 9 Musik
+2021-06/g9-kunst.pdf	Lehrplan Gymnasium 9 Kunst
+2021-06/darstellendes-spiel11-13.pdf	Lehrplan Gymnasium 9 Darstellendes Spiel 11-13
+2021-06/g9-politik-und-wirtschaft.pdf	Lehrplan Gymnasium 9 Politik und Wirtschaft
+2021-06/rechtskunde11-13.pdf	Lehrplan Gymnasium 9 Rechtskunde 11-13
+2021-06/wirtschaftswissenschaft11-13.pdf	Lehrplan Gymnasium 9 Wirtschaftswissenschaften 11-13
+2021-06/g9-geschichte.pdf	Lehrplan Gymnasium 9 Geschichte
+2021-06/g9-erdkunde.pdf	Lehrplan Gymnasium 9 Erdkunde
+2021-06/g9-katholische-religion.pdf	Lehrplan Gymnasium 9 Katholische Religion
+2021-06/g9-evangelische-religion.pdf	Lehrplan Gymnasium 9 Evangelische Religion
+2021-06/lp_freireligioese_religion_sek_i_2009-03-30_0.pdf	Lehrplan Gymnasium 9 Freireligiöse Religion Sek I
+2021-06/lp_freireligioese_religion_sek_ii_2009-03-30.pdf	Lehrplan Gymnasium 9 Freireligiöse Religion Sek II
+2021-06/g9-ethik.pdf	Lehrplan Gymnasium 9 Ethik
+2021-06/philosophie_0.pdf	Lehrplan Gymnasium 9 Philosophie
+2021-06/g9-mathematik.pdf	Lehrplan Gymnasium 9 Mathematik
+2021-06/g9-biologie.pdf	Lehrplan Gymnasium 9 Biologie
+2021-06/g9-chemie.pdf	Lehrplan Gymnasium 9 Chemie
+2021-06/g9-physik.pdf	Lehrplan Gymnasium 9 Physik
+2021-06/informatik_0.pdf	Lehrplan Gymnasium 9 Informatik
+2021-06/lpgymsport5-10.pdf	Lehrplan Gymnasium 9 Sport
+## LP-Gymnasiale-Oberstufe https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Gymnasiale-Oberstufe
+2021-06/japanisch_0.pdf	Lehrplan Gymnasiale Oberstufe Japanisch
+2021-06/go-rechtskunde.pdf	Lehrplan Gymnasiale Oberstufe Rechtskunde
+2021-06/freireligioese_religion_sek_ii_0.pdf	Lehrplan Gymnasiale Oberstufe Freireligiöse Religion Sek II
+2021-06/lp_mennonitische_religion_sekii.pdf	Lehrplan Gymnasiale Oberstufe Mennonitische Religion
+## LP-IGS https://kultus.hessen.de/Schulsystem/Bildungsstandards-Kerncurricula-und-Lehrplaene/Lehrplaene/Integrierte-Gesamtschule-IGS
+2021-06/handreichungigsvorwort.pdf	Vorwort IGS
+2021-06/hand-deutsch.pdf	Handreichung IGS Deutsch
+2021-06/hand-englisch.pdf	Handreichung IGS Englisch
+2021-06/handreichungfranz.pdf	Handreichung IGS Französisch
+2021-06/hand-mathematik.pdf	Handreichung IGS Mathematik
+2021-06/hand-evangelische-religion.pdf	Handreichung IGS Evangelische Religion
+2021-06/hand-katholische-religion.pdf	Handreichung IGS Katholische Religion
+2021-06/hand-ethik.pdf	Handreichung IGS Ethik
+2021-06/hand-biologie.pdf	Handreichung IGS Biologie
+2021-06/hand-chemie.pdf	Handreichung IGS Chemie
+2021-06/hand-physik.pdf	Handreichung IGS Physik
+2021-06/hand-gesellschaftslehre.pdf	Handreichung IGS Gesellschaftslehre
+2021-06/hand-arbeitslehre.pdf	Handreichung IGS Arbeitslehre
+## SEXUAL https://kultus.hessen.de/unterricht/kerncurricula-und-lehrplaene/lehrplaene
+2021-10/lehrplan_sexualerziehung_formatiert_neu.pdf	Lehrplan zur Sexualerziehung für allgemeinbildende und berufliche Schulen
