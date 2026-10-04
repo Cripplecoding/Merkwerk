@@ -85,7 +85,7 @@ Preise der Claude API: Opus 5.5 4 $ pro Million Eingabe-Token und 20 $ pro Milli
 - Fünf Seiten Handschrift lesen (Haiku 4.5): etwa 2 Cent.
 - Bei 300 Anfragen am Tag (Standard-Obergrenze) und überwiegend Opus-Anfragen sind das im ungünstigsten Fall rund 30 bis 50 $ am Tag. Deshalb Schritt 1.2, das Monatslimit in der Anthropic Console.
 
-Wer zahlt, ist noch nicht entschieden: dein Schlüssel mit Tageslimit (so ist es jetzt gebaut), eigene Schlüssel der Nutzer oder ein Bezahl-Abo. Die anderen beiden Wege lassen sich auf diesem Server aufbauen.
+Entschieden am 4. Oktober 2026: Die KI-Kosten externer Nutzer laufen über deinen Claude-API-Schlüssel, und jedes Gerät hat ein Tageslimit.
 
 ## Vor dem Start für Fremde
 
