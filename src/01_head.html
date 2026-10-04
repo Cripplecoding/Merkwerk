@@ -148,6 +148,12 @@ details>summary{cursor:pointer;font-weight:700}
 .cloze input.right{border-color:var(--ok);background:var(--ok-soft)}
 .cloze input.wrong{border-color:var(--bad);background:var(--bad-soft)}
 .score{font-family:var(--f-display);font-weight:800;font-size:3.4rem;line-height:1;letter-spacing:-.03em}
+.why{border-top:1px dashed var(--line);padding-top:8px}
+.why-a{margin:0;white-space:pre-line}
+.exam-head{position:sticky;top:0;z-index:5}
+.exam-clock{font-size:2rem}
+.exam-clock.low{color:var(--bad)}
+@media (max-width:600px){.exam-head h1{font-size:1.3rem}.exam-head>p.small{display:none}.exam-clock{font-size:1.5rem}}
 table.t{border-collapse:collapse;width:100%;font-size:.94rem}
 table.t th,table.t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
 table.t td.n{font-family:var(--f-mono);text-align:right}

@@ -7,7 +7,7 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","05c_generate.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
 const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder, AbortController,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
@@ -15,7 +15,7 @@ vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -235,6 +235,42 @@ ok("Lerninhalte: Lernmodus wählbar, Abfrage ohne Claude gesperrt", () => {
   assert.match(off, /data-gm="quiz" disabled/); assert.doesNotMatch(off, /data-gm="cards" disabled/);
   A.CAP.sample = () => {}; const on = A.genModesHTML(); A.CAP.sample = null;
   assert.doesNotMatch(on, /data-gm="quiz" disabled/);
+});
+ok("Probeklausur: Notenschätzung nach Notenpunkten", () => {
+  assert.equal(A.notenpunkte(100), 15); assert.equal(A.notenpunkte(95), 15); assert.equal(A.notenpunkte(94), 14);
+  assert.equal(A.notenpunkte(50), 6); assert.equal(A.notenpunkte(19), 0);
+  assert.deepEqual([15,14,13,12,10,7,4,3,1,0].map(A.noteFromNP), ["1+","1","1-","2+","2-","3-","4-","5+","5-","6"]);
+  assert.equal(A.gradeEstimate(72,{track:"schule",grade:12}).sub, "10 Notenpunkte");
+  assert.equal(A.gradeEstimate(72,{track:"schule",grade:8}).main, "2-");
+  assert.equal(A.gradeEstimate(72,{track:"uni"}).main, "2,7");
+  assert.equal(A.examPoints(45), 35); assert.equal(A.examPoints(0), 40);
+});
+ok("Probeklausur: Aufgaben brauchen einen wörtlichen Beleg aus dem Material", () => {
+  const set = { id:"s1", name:"Photosynthese", files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
+  const quote = A.EXAMPLE_QUESTIONS[0].quote;
+  const t = A.validateExamTask([set], { prompt:"Erkläre …", points:"6", afb:"II", expectation:"…", key_points:["a"], quote, set:1 });
+  assert.ok(t); assert.equal(t.points, 6); assert.equal(t.setId, "s1"); assert.equal(t.fileName, "Beispiel");
+  assert.equal(A.validateExamTask([set], { prompt:"Erkläre …", points:6, expectation:"…", quote:"Dieser Satz steht nirgends im Material und ist erfunden." }), null);
+});
+okAsync("Probeklausur: Korrektur zählt Punkte, leere Antworten ohne Claude mit 0", async () => {
+  const ex = { subject:"Bio", tasks:[{id:"a",nr:1,prompt:"x",points:4,afb:"I",expectation:"e",key_points:[],quote:"q"},{id:"b",nr:2,prompt:"y",points:6,afb:"II",expectation:"e",key_points:[],quote:"q"}], answers:{a:"meine Antwort", b:"  "} };
+  let prompt = "";
+  A.CAP.sample = { json: async p => { prompt = p; return { aufgaben:[{nr:1,punkte:3.7},{nr:2,punkte:6}], gesamt:"gut" }; } };
+  const g = await A.gradeExam(ex); A.CAP.sample = null;
+  assert.ok(prompt.includes("AUFGABE 1") && !prompt.includes("AUFGABE 2"));
+  assert.equal(g.tasks.a.points, 3.5); assert.equal(g.tasks.b.points, 0);
+  assert.equal(g.got, 3.5); assert.equal(g.max, 10); assert.equal(g.pct, 35); assert.equal(g.overall, "gut");
+});
+ok("Warum ist das falsch?: Erklärung bekommt Frage, falsche Antwort und Beleg", () => {
+  const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
+  const q = { type:"mc", prompt:"Wo?", options:["A","B","C","D"], answer:2, quote:"Zitat", sections:[set.sections[0].id] };
+  const res = { correct:false, given:1 };
+  assert.equal(A.givenText(q,res), "B");
+  const p = A.whyPrompt(set,q,res,[],"");
+  assert.ok(p.includes("Richtige Antwort: C") && p.includes("Antwort des Lernenden: B") && p.includes("Merke:"));
+  assert.ok(p.includes(set.sections[0].text.slice(0,50)));
+  const p2 = A.whyPrompt(set,q,res,[{q:null,a:"Weil …"}],"Und warum nicht A?");
+  assert.ok(p2.includes("Du: Weil …") && p2.includes("Und warum nicht A?"));
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);
