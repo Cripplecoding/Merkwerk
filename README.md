@@ -29,6 +29,8 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 }
 ```
 
+**Dritte Betriebsart, KI für alle:** Mit einem eigenen kleinen Server (Supabase Edge Function, die Claude über die Claude API fragt) bekommt auch die GitHub-Pages-Seite die Claude-Funktionen der Tabelle unten, mit Tageslimit pro Gerät. Bibliothek und geräteübergreifende Daten bleiben vorerst claude.ai vorbehalten. Einrichtung und Kosten: [docs/ki-fuer-alle.md](docs/ki-fuer-alle.md).
+
 | Funktion | Artifact | Lokal / GitHub Pages |
 |---|---|---|
 | Beispiel-Durchgang und Beispiel-Karteikarten (Photosynthese) | ja | ja |
@@ -89,6 +91,7 @@ src/
   03_example.js    Beispieltext Photosynthese, 15 Beispielfragen und 12 Beispiel-Karteikarten
   04_core.js       Hilfsfunktionen, Speicher (localStorage + IndexedDB), Claude-Fähigkeiten, Navigation
   04b_handwriting.js  Texterkennung im Browser (Tesseract), ZIP- und GoodNotes-Leser
+  04c_ai.js        KI außerhalb von claude.ai: Anbindung an den eigenen Server (AI_CONFIG)
   05_learn.js      Lernsets, Dateien lesen, Abschnitte, Fragen erzeugen und prüfen, Durchgang
   05b_cards.js     Karteikarten: erstellen, umdrehen, ziehen, zählen, Auswertung
   06_library.js    Profil-Abfrage, Bibliothek, Einträge
@@ -104,6 +107,7 @@ tools/             bildungsplaene.mjs: erzeugt data/bildungsplaene.js aus dem In
 build.mjs          setzt src/ in Dateireihenfolge zu dist/ zusammen
 dist/              fertige Seiten (index.html lokal, merkwerk-artifact.html für claude.ai, bildungsplaene.js)
 tests/run.mjs      Logik-Prüfungen ohne Browser
+supabase/          eigener KI-Server: Edge Function merkwerk-ai und Tabelle für das Tageslimit
 ```
 
 Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit deutschen Sprachdaten, ca. 5 MB beim ersten Mal). Schriften kommen von Google Fonts.

@@ -1,0 +1,11 @@
+# Supabase-Einstellungen für Merkwerk (nur was vom Standard abweicht). project_id ist nur ein lokaler Name.
+project_id = "merkwerk"
+
+[auth]
+site_url = "https://cripplecoding.github.io/Merkwerk/"
+# Jedes Gerät bekommt ohne Formular ein anonymes Konto; daran hängt das Tageslimit für die KI.
+enable_anonymous_sign_ins = true
+
+[functions.merkwerk-ai]
+# Supabase prüft das Zugangs-Token schon vor der Funktion
+verify_jwt = true

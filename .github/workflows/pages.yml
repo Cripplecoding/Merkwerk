@@ -25,6 +25,9 @@ jobs:
           node-version: 20
       - run: npm test
       - run: npm run build
+        env:
+          MERKWERK_AI_URL: ${{ vars.MERKWERK_AI_URL }}
+          MERKWERK_AI_ANON_KEY: ${{ vars.MERKWERK_AI_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
