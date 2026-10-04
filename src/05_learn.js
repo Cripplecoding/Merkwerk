@@ -42,17 +42,43 @@ const PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.w
 const MAMMOTH="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
 
 // Liest Bilder (Scans, Fotos, Seiten mit Handschrift). Mit Claude: Claude schreibt ab. Ohne Claude: Texterkennung im Browser.
-// Liefert {texts:[ein Text pro Bild], by:"claude"|"browser"}.
-async function ocrImages(blobs,progress){
-  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(blobs,progress),by:"browser"};
-  const per=Math.max(1,Math.min(CAP.images.maxCount||1,5)); const texts=[];
-  for(let i=0;i<blobs.length;i+=per){
-    const part=blobs.slice(i,i+per); progress&&progress(`Claude liest Seite ${i+1}–${i+part.length} von ${blobs.length} …`);
-    const {text}=await CAP.sample(`Du bekommst ${part.length} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`,{images:part,modelTier:"default"});
-    const ps=text.trim().split(/\n*=====\n*/);
-    if(ps.length===part.length) texts.push(...ps.map(t=>t.trim())); else { texts.push(text.trim()); for(let k=1;k<part.length;k++) texts.push(""); }
-  }
+// Ein Eintrag ist ein Bild oder eine Funktion, die es erst erzeugt (eine PDF-Seite rendern) und null für eine leere Seite liefert –
+// so werden spätere Seiten vorbereitet, während die ersten schon gelesen werden.
+// Liefert {texts:[ein Text pro Eintrag], by:"claude"|"browser"}.
+// Tempo: Claude liest zwei Stapel gleichzeitig (claude.ai lässt pro Person etwa zwei Anfragen parallel laufen) und nimmt
+// das schnelle Modell. Mit „Handschrift gründlich lesen“ liest das stärkere Modell, das vorher nachdenkt – genauer, aber langsamer.
+const OCR_PARALLEL=2;
+const ocrTier=()=>S.ocrThorough?"default":"quick";
+const ocrBlob=x=>typeof x==="function"?x():x;
+const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
+async function ocrImages(items,progress){
+  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
+  const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
+  const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
+  const texts=new Array(n).fill(""), chars=starts.map(()=>0); let next=0, done=0;
+  const show=()=>{ const c=chars.reduce((a,b)=>a+b,0); progress&&progress(`Claude liest ${n===1?"das Bild":n+" Seiten"} …${done&&done<n?` ${done} von ${n} fertig`:""}${c?` · ${c.toLocaleString("de-DE")} Zeichen abgeschrieben`:""}`); };
+  const ctl=new AbortController(); show();
+  const lane=async()=>{
+    while(next<starts.length&&!ctl.signal.aborted){ const k=next++, s0=starts[k];
+      const got=await Promise.all(items.slice(s0,s0+per).map(ocrBlob));
+      const at=[], imgs=[]; got.forEach((b,j)=>{ if(b){ at.push(s0+j); imgs.push(b); } });
+      if(imgs.length){
+        const {text}=await CAP.sample(ocrPrompt(imgs.length),{images:imgs,modelTier:ocrTier(),signal:ctl.signal,onText:u=>{chars[k]=u.text.length;show();}});
+        const ps=text.trim().split(/\n*=====\n*/);
+        if(ps.length===imgs.length) ps.forEach((t,j)=>{texts[at[j]]=t.trim();}); else texts[at[0]]=text.trim();
+      }
+      done+=got.length; show();
+    }
+  };
+  try{ await Promise.all(Array.from({length:Math.min(OCR_PARALLEL,starts.length)},lane)); }
+  catch(e){ ctl.abort(); throw e; } // der andere Stapel muss nicht weiterlaufen
   return {texts,by:"claude"};
+}
+// Leere Seite (z. B. in einem Notizbuch-Export): fast kein dunkler Pixel. Solche Seiten werden nicht gelesen.
+function blankCanvas(ctx,w,h){
+  try{ const d=ctx.getImageData(0,0,w,h).data; let dark=0;
+    for(let i=0;i<d.length;i+=4){ if((d[i]<200||d[i+1]<200||d[i+2]<200)&&++dark>40) return false; }
+    return true; }catch{ return false; }
 }
 // Ab so vielen Vektorpfaden gilt eine PDF-Seite als handschriftlich beschrieben (GoodNotes, Notability, OneNote exportieren Striche als Pfade)
 const INK_PATHS=150;
@@ -71,16 +97,20 @@ async function readPdf(data,name,progress,opt={}){
     let ink=false;
     if(!empty&&!opt.textOnly){ try{ const ops=await page.getOperatorList(); ink=ops.fnArray.filter(f=>f===lib.OPS.constructPath).length>=INK_PATHS; }catch{} }
     if(opt.textOnly) pages.push(empty?"":t);
-    else if(empty||(ink&&claude)){
-      progress&&progress(`Bereite Seite ${p} von ${pdf.numPages} vor …`);
-      const vp=page.getViewport({scale:empty&&!claude?2.2:1.7}); const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
-      const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height);
-      await page.render({canvasContext:ctx,viewport:vp}).promise;
-      const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); scans.push({p,b,t}); pages.push(null);
-    } else { pages.push(t); if(ink) inkOnly++; }
+    else if(empty||(ink&&claude)){ scans.push({p,page,t,empty}); pages.push(null); }
+    else { pages.push(t); if(ink) inkOnly++; }
   }
+  // Claude bekommt Bilder ohnehin auf etwa 1,2 Megapixel verkleinert; die Texterkennung im Browser braucht mehr Auflösung
+  const render=async s=>{
+    const v1=s.page.getViewport({scale:1}); const vp=s.page.getViewport({scale:claude?Math.min(2,Math.sqrt(1.2e6/(v1.width*v1.height))):2.2});
+    const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+    const ctx=c.getContext("2d",{willReadFrequently:s.empty}); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height);
+    await s.page.render({canvasContext:ctx,viewport:vp}).promise;
+    if(s.empty&&blankCanvas(ctx,c.width,c.height)) return null;
+    return new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
+  };
   let ocr=false, ocrBy="";
-  if(scans.length){ const r=await ocrImages(scans.map(s=>s.b),progress); scans.forEach((s,i)=>{pages[s.p-1]=(r.texts[i]||"").trim()||s.t;}); ocr=true; ocrBy=r.by; }
+  if(scans.length){ const r=await ocrImages(scans.map(s=>()=>render(s)),progress); scans.forEach((s,i)=>{pages[s.p-1]=(r.texts[i]||"").trim()||s.t;}); ocr=true; ocrBy=r.by; }
   const text=pages.filter(Boolean).join("\n\n");
   const note=inkOnly?`„${name}“: Auf ${inkOnly===1?"einer Seite":inkOnly+" Seiten"} steht vermutlich Handschrift neben gedrucktem Text. Ohne Claude wurde dort nur der gedruckte Text gelesen.`:"";
   return {text,ocr,ocrBy,kind:"pdf",note};
@@ -335,6 +365,7 @@ function renderSetPanel(el,set){
    <section class="sheet stack">
      <h3>Material</h3>
      ${set.example?"":`<div class="dropzone" id="dz" tabindex="0" role="button" aria-label="Dateien hochladen"><b>Dateien hierher ziehen oder klicken</b><br><span class="small muted">PDF, DOCX, TXT, GoodNotes, Fotos und Screenshots – auch Handschrift · keine alten .doc-Dateien</span><input type="file" id="fileIn" multiple accept="${FILE_ACCEPT}" hidden></div>
+     ${CAP.sample&&CAP.images?`<label class="row small" style="gap:8px;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="ocrThorough" style="margin-top:3px" ${S.ocrThorough?"checked":""}><span>Handschrift gründlich lesen <span class="muted">– langsamer, aber genauer bei schwer lesbarer Schrift</span></span></label>`:""}
      <div id="upStatus" class="small"></div>
      <div class="row"><span class="small muted">oder</span><button class="btn" id="genBtn">Lerninhalte generieren</button><span class="small muted">${set.topic?`zu „${esc(set.topic)}“`:"Thema links eintragen"}</span></div>
      <div id="genBox" hidden></div>
@@ -354,6 +385,7 @@ function renderSetPanel(el,set){
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
   $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
   $$("[data-savetx]").forEach(b=>b.onclick=async()=>{ const f=set.files.find(x=>x.id===b.dataset.savetx); f.text=$("#tx_"+f.id).value; set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); toast("Text gespeichert – Abschnitte neu gebildet"); go("learn",{manage:true}); });
+  const ot=$("#ocrThorough"); if(ot) ot.onchange=()=>{ S.ocrThorough=ot.checked; save(); };
   const dz=$("#dz"); if(dz){ const fi=$("#fileIn");
     dz.onclick=()=>fi.click(); dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click();}};
     dz.ondragover=e=>{e.preventDefault();dz.classList.add("over");}; dz.ondragleave=()=>dz.classList.remove("over");

@@ -12,17 +12,43 @@ const BROWSER_OCR_NOTE="Ohne Claude liest Merkwerk Bilder mit einer Texterkennun
 const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
 
 /* ---------- Texterkennung im Browser (ohne Claude) ---------- */
-let tessWorker=null;
-async function ocrLocal(blobs,progress){
+// Tempo: nur das deutsche Sprachmodell (es liest auch englische Wörter; ein zweites Modell kostet fast die doppelte Zeit),
+// mehrere Bilder gleichzeitig in eigenen Workern und große Fotos vorher verkleinert.
+const OCR_LANG="deu";
+const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennung langsamer, aber kaum genauer
+// Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
+const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
+const tessWorkers=[];
+function tessWorker(i){
+  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+}
+async function shrinkForOcr(blob){
+  if(typeof createImageBitmap!=="function") return blob;
+  let bmp; try{ bmp=await createImageBitmap(blob); }catch{ return blob; }
+  const s=OCR_MAX_SIDE/Math.max(bmp.width,bmp.height);
+  if(s>=1){ bmp.close&&bmp.close(); return blob; }
+  const c=document.createElement("canvas"); c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height); bmp.close&&bmp.close();
+  return new Promise(r=>c.toBlob(b=>r(b||blob),"image/jpeg",0.92));
+}
+// items: Bilder oder Funktionen, die ein Bild (oder null für eine leere Seite) liefern – siehe ocrImages
+async function ocrLocal(items,progress){
+  const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
+  const show=()=>progress&&progress(n===1?"Texterkennung im Browser läuft …":`Texterkennung im Browser: ${done} von ${n} Bildern fertig …`);
   progress&&progress("Lade Texterkennung …");
-  await loadScript(TESSERACT);
-  if(!tessWorker) tessWorker=window.Tesseract.createWorker(["deu","eng"]).catch(e=>{tessWorker=null;throw e;});
-  const w=await tessWorker; const out=[];
-  for(let i=0;i<blobs.length;i++){
-    progress&&progress(`Texterkennung im Browser: Bild ${i+1} von ${blobs.length} …`);
-    const {data}=await w.recognize(blobs[i]);
-    out.push(String(data.text||"").replace(/[ \t]+\n/g,"\n").trim());
-  }
+  const lanes=Math.min(n,ocrWorkerCap());
+  for(let k=0;k<lanes;k++) tessWorker(k).catch(()=>{}); // alle Worker laden gleichzeitig
+  const lane=async k=>{
+    let w=null;
+    if(k>0){ try{ w=await tessWorker(k); }catch{ return; } } // weitere Worker sind nur Zusatz
+    while(next<n){ const i=next++;
+      const b=await ocrBlob(items[i]); // Worker 0 lädt, während die erste Seite vorbereitet wird
+      if(!w){ w=await tessWorker(0); show(); }
+      if(b){ const {data}=await w.recognize(await shrinkForOcr(b)); out[i]=String(data.text||"").replace(/[ \t]+\n/g,"\n").trim(); }
+      done++; show();
+    }
+  };
+  await Promise.all(Array.from({length:lanes},(_,k)=>lane(k)));
   return out;
 }
 
