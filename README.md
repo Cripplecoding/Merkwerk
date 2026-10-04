@@ -41,6 +41,8 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 | Fächer aus dem Bildungsplan (4376 Pläne aller 16 Länder), Themenvorschläge beim Lernset | ja | ja, Themen aus der Themenliste |
 | Lerninhalte generieren | ja (Claude schreibt den Lerntext aus Wikipedia, gleicht mit dem Bildungsplan ab) | ja, Wikipedia-Text als Material, Abgleich nur mit der Themenliste |
 | Bibliothek: Einträge anderer ansehen und hochladen | ja (gemeinsame Datenbank) | nein |
+| „Warum ist das falsch?“ mit Nachfragen bei falschen Antworten | ja (Claude) | nein |
+| Probeklausur mit Zeitlimit, Korrektur nach Erwartungshorizont und Notenschätzung | ja (Claude) | nein |
 | Stundenplan von Hand und aus .ics (WebUntis, Uni-Portale) | ja | ja |
 | Stundenplan aus Screenshot | ja (Claude) | nein |
 | Kalender mit Unterricht, Klausuren, Abgaben, Lerneinheiten, Terminen, Ferien | ja | ja, mit Internet |
@@ -56,11 +58,13 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 
 **Lerninhalte generieren.** Statt eigener Dateien: Merkwerk gleicht Fach und Thema mit dem Bildungsplan ab (mit Claude: passt es, was soll man auf dieser Stufe können), lädt passende Wikipedia-Artikel und legt Links zu Erklärvideos (YouTube-Suche) und Serlo an. In claude.ai schreibt Claude daraus einen Lerntext für die Klassenstufe; ohne Claude wird der Wikipedia-Text selbst das Material. Danach geht es wie gewohnt mit Karteikarten oder der interaktiven Abfrage weiter.
 
-**Lernen.** Nach dem Anlegen eines Lernsets gibt es zwei Lernmodi.
+**Lernen.** Nach dem Anlegen eines Lernsets gibt es zwei Lernmodi und dazu die Probeklausur (siehe KI-Tutor).
 
 *Interaktive Abfrage:* 15 Fragen pro Durchgang: 5 Multiple Choice, 4 schriftlich, 3 Zuordnung, 3 Lückentext, jeweils einem Anforderungsbereich (I Wiedergeben, II Zusammenhänge herstellen, III Anwenden und Beurteilen) zugeordnet. Jede Antwort wird sofort geprüft; bei Fehlern bleiben Lösung und Beleg stehen. Am Ende: Prozentwert, Aufschlüsselung nach Format, Liste der Fehler, dann dieselben Fragen neu gemischt oder 15 neue. Eine Abdeckungsanzeige zeigt, welche Abschnitte schon abgefragt wurden; neue Fragen nehmen zuerst die Lücken dran.
 
 *Karteikarten:* Aus dem Material entstehen Karten mit dem Begriff vorne und der Definition hinten, jede mit Beleg. Ein Klick dreht die Karte um. Ziehen nach links ordnet sie „weiß ich“ zu, nach rechts „muss ich noch üben“ (alternativ Klick auf die Seite oder Pfeiltasten). Beide Seiten zählen mit (grün und orange), oben stehen die durchgearbeiteten Karten (z. B. 17/30) mit Fortschrittsbalken. Am Ende zeigt ein Säulendiagramm den Anteil gewusster Karten; danach alle Karten noch einmal, nur die nicht gewussten oder zurück zum Hauptmenü. Mit Claude erstellt Claude die Karten und jeder Beleg wird wie bei den Fragen geprüft; ohne Claude erkennt Merkwerk Sätze wie „X ist …“ oder „… nennt man X“.
+
+**KI-Tutor.** Bei einer falschen Antwort erklärt Claude auf Knopfdruck („Warum ist das falsch?“), wo der Denkfehler liegt, mit einer Merkhilfe am Ende; darunter kann man nachfragen. Die Erklärung stützt sich nur auf das eigene Material und bleibt bei der Frage gespeichert. Die **Probeklausur** (dritter Lernmodus, auch bei jeder Klausur unter „Abgaben & Klausuren“) stellt aus allen Lernsets eines Fachs eine Klausur im Stil der eingestellten Schulart und Klassenstufe zusammen: Aufgaben mit Operatoren, Bewertungseinheiten und Anforderungsbereichen, jede mit Erwartungshorizont und wörtlichem Beleg. Man schreibt sie mit Zeitlimit (30 bis 90 Minuten oder ohne); Antworten werden beim Tippen gespeichert, bei abgelaufener Zeit wird automatisch abgegeben. Claude korrigiert nach dem Erwartungshorizont mit Teilpunkten, Rechtschreibfehler kosten keine Punkte. Die Note wird nach der Notenpunkte-Skala der Oberstufe geschätzt (ab Klasse 11 mit Notenpunkten, im Studium nach dem üblichen Hochschulschlüssel).
 
 **Handschrift und GoodNotes.** Fotos, Scans und PDF-Seiten ohne Textebene liest in claude.ai Claude, ausdrücklich auch Handschrift; PDF-Seiten mit gedrucktem Text und vielen Stiftstrichen (z. B. kommentierte Folien aus GoodNotes oder Notability) gibt Merkwerk dann ebenfalls als Bild an Claude, damit die Randnotizen nicht fehlen. Ohne Claude übernimmt Tesseract.js im Browser (deutsches Sprachmodell, liest auch englische Wörter). `.goodnotes`-Dateien sind ZIP-Archive: Merkwerk übernimmt daraus die Handschrifterkennung, die GoodNotes selbst pro Seite für die Suche speichert (`search/<Seite>`), dazu den Text eingebetteter PDFs und die Bilder. Gelesener Text ist als „bitte prüfen“ markiert und lässt sich unter „Gelesenen Text ansehen“ korrigieren.
 
