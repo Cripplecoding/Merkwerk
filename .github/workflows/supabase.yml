@@ -1,0 +1,46 @@
+name: KI-Server (Supabase) einrichten
+
+# Von Hand starten: Actions → „KI-Server (Supabase) einrichten“ → Run workflow.
+# Legt die Tabelle für das Tageslimit an, hinterlegt den Claude-API-Schlüssel und veröffentlicht die Funktion merkwerk-ai.
+# Braucht diese Repository-Secrets (Settings → Secrets and variables → Actions), siehe docs/ki-fuer-alle.md:
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD, ANTHROPIC_API_KEY
+# Optional als Repository-Variablen: MERKWERK_LIMIT_NUTZER, MERKWERK_LIMIT_IP, MERKWERK_LIMIT_GESAMT, MERKWERK_MODEL_DEFAULT
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Mit dem Supabase-Projekt verbinden
+        run: supabase link --project-ref "$PROJECT_REF"
+      - name: Tabelle für das Tageslimit anlegen
+        run: supabase db push
+      - name: Schlüssel und Limits hinterlegen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LIMIT_NUTZER: ${{ vars.MERKWERK_LIMIT_NUTZER }}
+          LIMIT_IP: ${{ vars.MERKWERK_LIMIT_IP }}
+          LIMIT_GESAMT: ${{ vars.MERKWERK_LIMIT_GESAMT }}
+          MODEL_DEFAULT: ${{ vars.MERKWERK_MODEL_DEFAULT }}
+        run: |
+          args=("ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" "MERKWERK_IP_SALT=$(openssl rand -hex 16)")
+          [ -n "$LIMIT_NUTZER" ] && args+=("MERKWERK_LIMIT_NUTZER=$LIMIT_NUTZER")
+          [ -n "$LIMIT_IP" ] && args+=("MERKWERK_LIMIT_IP=$LIMIT_IP")
+          [ -n "$LIMIT_GESAMT" ] && args+=("MERKWERK_LIMIT_GESAMT=$LIMIT_GESAMT")
+          [ -n "$MODEL_DEFAULT" ] && args+=("MERKWERK_MODEL_DEFAULT=$MODEL_DEFAULT")
+          supabase secrets set --project-ref "$PROJECT_REF" "${args[@]}"
+      - name: Funktion merkwerk-ai veröffentlichen
+        run: supabase functions deploy merkwerk-ai --project-ref "$PROJECT_REF"

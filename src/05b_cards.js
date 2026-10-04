@@ -8,8 +8,8 @@ function cardCountFor(set){ const chars=set.files.reduce((a,f)=>a+f.text.length,
 function buildCardPrompt(set,n){
   let budget=110000; const listed=[];
   for(const s of set.sections){ if(budget-s.text.length<0) break; budget-=s.text.length; listed.push(s); }
-  const material=listed.map(s=>`[${s.id} | ${s.fileName}]\n${s.text}`).join("\n\n");
-  return `Du erstellst Karteikarten für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das Material unten.
+  const material=materialText(listed);
+  return {material, prompt:`Du erstellst Karteikarten für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das MATERIAL.
 
 REGELN
 1. Jede Karte hat "term": einen Fachbegriff, Namen oder eine kurze Bezeichnung aus dem Material (höchstens 6 Wörter), und "definition": eine Erklärung in 1 bis 2 Sätzen, nur mit Inhalten aus dem Material. Der Begriff selbst steht nicht in der Definition.
@@ -17,10 +17,7 @@ REGELN
 3. Etwa ${n} Karten, verteilt über das ganze Material. Jeder Begriff nur einmal, die wichtigsten zuerst.
 4. Prüfe jede Definition vor der Ausgabe Wort für Wort gegen das Material. Vertausche nie Begriffe oder Kategorien (zum Beispiel „glatter Preis“ und „gebrochener Preis“); im Zweifel lass die Karte weg.
 
-Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}
-
-MATERIAL
-${material}`;
+Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}`};
 }
 function validateCard(set,c){
   if(!c||!c.term||!c.definition||!c.quote) return null;
@@ -32,7 +29,8 @@ function validateCard(set,c){
 function dedupeCards(cards){ const seen=new Set(); return cards.filter(c=>{ const k=relax(c.term); if(!k||seen.has(k)) return false; seen.add(k); return true; }); }
 async function generateCards(set,{signal}={}){
   const n=cardCountFor(set);
-  const res=await CAP.sample.json(buildCardPrompt(set,n),{modelTier:"default",cache:false,signal});
+  const {prompt,material}=buildCardPrompt(set,n);
+  const res=await askWithMaterial(prompt,material,{modelTier:"default",cache:false,signal});
   const list=Array.isArray(res)?res:(res&&res.cards)||[];
   const cards=dedupeCards(list.map(c=>validateCard(set,c)).filter(Boolean));
   return {cards,dropped:list.length-cards.length};

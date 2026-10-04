@@ -148,8 +148,8 @@ function buildPrompt(set,mix,restrict,avoid){
   for(const s of ranked){ if(budget-s.text.length<0) break; budget-=s.text.length; chosen.add(s.id); }
   const listed=secs.filter(s=>chosen.has(s.id));
   const uncovered=listed.filter(s=>!(cov[s.id]>0)).map(s=>s.id);
-  const material=listed.map(s=>`[${s.id} | ${s.fileName}]\n${s.text}`).join("\n\n");
-  return `Du erstellst Prüfungsfragen für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das Material unten.
+  const material=materialText(listed);
+  return {material, prompt:`Du erstellst Prüfungsfragen für eine Lernseite. Grundlage ist AUSSCHLIESSLICH das MATERIAL.
 
 REGELN
 1. Jede Frage muss sich vollständig aus dem Material beantworten lassen. Keine Inhalte, Zahlen oder Fachbegriffe, die nicht im Material stehen – auch nicht in falschen Antwortmöglichkeiten.
@@ -167,10 +167,7 @@ FORMATE (Felder)
 - match: {"type":"match","afb","prompt","pairs":[{"left","right"}, 3 bis 5 Paare],"quote","sections"}
 - cloze: {"type":"cloze","afb","prompt":"Satz/Sätze mit ___ für jede Lücke (1-3 Lücken)","blanks":[["Lösung","erlaubte Variante"],...] in Reihenfolge der Lücken,"quote","sections"}
 
-Antworte nur mit JSON: {"questions":[...]}
-
-MATERIAL
-${material}`;
+Antworte nur mit JSON: {"questions":[...]}`};
 }
 function validateQ(set,q){
   if(!q||!TYPE_LABEL[q.type]||!q.prompt||!q.quote) return null;
@@ -191,13 +188,14 @@ function solutionText(q){
   if(q.type==="cloze") return "Lücken: "+q.blanks.map(b=>b[0]).join("; ");
   return "";
 }
-async function verifyQuestions(set,qs,signal){
+// material: derselbe Block wie beim Erstellen, damit die Claude API ihn aus dem Zwischenspeicher nimmt
+async function verifyQuestions(set,qs,signal,material){
   if(!qs.length||!CAP.sample) return qs;
-  const ids=[...new Set(qs.flatMap(q=>q.sections))]; let budget=60000;
-  const material=set.sections.filter(s=>ids.includes(s.id)).filter(s=>(budget-=s.text.length)>=0).map(s=>`[${s.id}]\n${s.text}`).join("\n\n");
+  if(!material){ const ids=[...new Set(qs.flatMap(q=>q.sections))]; let budget=60000;
+    material=materialText(set.sections.filter(s=>ids.includes(s.id)).filter(s=>(budget-=s.text.length)>=0)); }
   const list=qs.map((q,i)=>`#${i} (${q.type}) ${q.prompt}\n${solutionText(q)}\nBeleg: "${q.quote}"`).join("\n\n");
   try{
-    const r=await CAP.sample.json(`Du kontrollierst Prüfungsfragen einer Lernseite, bevor Lernende sie sehen. Prüfe für jede Frage streng anhand des Materials:
+    const r=await askWithMaterial(`Du kontrollierst Prüfungsfragen einer Lernseite, bevor Lernende sie sehen. Prüfe für jede Frage streng anhand des MATERIALS:
 - Ist die angegebene Lösung laut Material richtig und vollständig?
 - Bei Multiple Choice: Ist genau eine Antwort richtig, und sind die falschen Antworten laut Material wirklich falsch?
 - Bei Zuordnungen und Kategorien: Stimmt jede einzelne Zuordnung, nichts vertauscht?
@@ -206,10 +204,7 @@ Im Zweifel "ok": false.
 Antworte nur mit JSON: {"checks":[{"i":Nummer,"ok":true|false,"grund":"kurz"}]}
 
 FRAGEN
-${list}
-
-MATERIAL
-${material}`,{modelTier:"default",cache:false,signal});
+${list}`,material,{modelTier:"default",cache:false,signal});
     const bad=new Set(((r&&r.checks)||[]).filter(c=>c&&c.ok===false).map(c=>Number(c.i)));
     return qs.filter((_,i)=>!bad.has(i));
   }catch(e){ if(e&&e.code==="cancelled") throw e; return qs; }
@@ -221,11 +216,12 @@ async function generateQuestions(set,{n=15,restrict=null,onStatus,signal}={}){
     const need={}; let any=false; for(const k in want){ need[k]=Math.max(0,want[k]-got[k].length); if(need[k]) any=true; }
     if(!any) break;
     onStatus&&onStatus(attempt?"Ersetze verworfene Fragen …":"Claude erstellt die Fragen. Das dauert meist 20–60 Sekunden …");
-    const res=await CAP.sample.json(buildPrompt(set,need,restrict,[...avoid,...Object.values(got).flat().map(q=>q.prompt)]),{modelTier:"default",cache:false,signal});
+    const {prompt,material}=buildPrompt(set,need,restrict,[...avoid,...Object.values(got).flat().map(q=>q.prompt)]);
+    const res=await askWithMaterial(prompt,material,{modelTier:"default",cache:false,signal});
     const list=Array.isArray(res)?res:(res&&res.questions)||[];
     const valid=[]; for(const raw of list){ const q=validateQ(set,raw); if(!q){dropped++;continue;} valid.push(q); }
     onStatus&&onStatus("Claude prüft die Lösungen gegen dein Material …");
-    const checked=await verifyQuestions(set,valid,signal); dropped+=valid.length-checked.length;
+    const checked=await verifyQuestions(set,valid,signal,material); dropped+=valid.length-checked.length;
     for(const q of checked){ if(got[q.type].length<want[q.type]) got[q.type].push(q); }
   }
   const qs=[...got.mc,...got.text,...got.match,...got.cloze];

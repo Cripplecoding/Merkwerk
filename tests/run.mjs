@@ -7,15 +7,15 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
-const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, DecompressionStream, TextDecoder, AbortController,
+const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, ReadableStream, DecompressionStream, TextDecoder, TextEncoder, btoa, AbortController,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
 vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -235,6 +235,57 @@ ok("Lerninhalte: Lernmodus wählbar, Abfrage ohne Claude gesperrt", () => {
   assert.match(off, /data-gm="quiz" disabled/); assert.doesNotMatch(off, /data-gm="cards" disabled/);
   A.CAP.sample = () => {}; const on = A.genModesHTML(); A.CAP.sample = null;
   assert.doesNotMatch(on, /data-gm="quiz" disabled/);
+});
+ok("KI-Server: JSON wird auch mit Text oder ```json drumherum gelesen", () => {
+  assert.equal(A.aiParseJson('{"a":1}').a, 1);
+  assert.equal(A.aiParseJson('```json\n{"cards":[1,2]}\n```').cards.length, 2);
+  assert.equal(A.aiParseJson('Hier ist das Ergebnis: [{"x":"y"}] Fertig.')[0].x, "y");
+  assert.throws(() => A.aiParseJson("kein JSON"), e => e.code === "invalid_json");
+});
+okAsync("KI-Server: Anfrage mit Anmeldung, Fortschritt, Ergebnis und Tageslimit", async () => {
+  Object.assign(A.AI_CONFIG, { url: "https://beispiel.supabase.co/", anonKey: "anon" });
+  store["merkwerk.ki.einwilligung"] = "true";
+  const calls = [];
+  const enc = new TextEncoder();
+  const ndjson = lines => new Response(new ReadableStream({ start(c) { for (const l of lines) c.enqueue(enc.encode(JSON.stringify(l) + "\n")); c.close(); } }));
+  let mode = "ok";
+  A.setFetch(async (url, init) => {
+    calls.push({ url, init });
+    if (url.endsWith("/auth/v1/signup")) return new Response(JSON.stringify({ access_token: "t1", refresh_token: "r1", expires_in: 3600 }));
+    if (mode === "limit") return new Response(JSON.stringify({ code: "daily_limit", message: "nutzer" }), { status: 429 });
+    return ndjson([{ t: "text", text: '{"a"' }, { t: "done", text: '{"answer":42}', rest: 7 }]);
+  });
+  const sample = A.remoteSample();
+  const seen = [];
+  const r = await sample.json("Frage", { modelTier: "quick", onText: u => seen.push(u.text) });
+  assert.equal(r.answer, 42); assert.equal(A.CAP.aiRest, 7); assert.deepEqual(seen, ['{"a"']);
+  const fn = calls.find(c => c.url === "https://beispiel.supabase.co/functions/v1/merkwerk-ai");
+  assert.equal(fn.init.headers.Authorization, "Bearer t1");
+  assert.equal(JSON.parse(fn.init.body).tier, "quick");
+  assert.equal(calls.filter(c => c.url.endsWith("/signup")).length, 1);
+  await sample("Noch eine"); // Token wird wiederverwendet
+  assert.equal(calls.filter(c => c.url.endsWith("/signup")).length, 1);
+  mode = "limit";
+  await assert.rejects(sample("zu viel"), e => e.code === "daily_limit" && /Tageslimit/.test(A.sampleErr(e)));
+  Object.assign(A.AI_CONFIG, { url: "", anonKey: "" });
+});
+okAsync("Prompt-Caching: Erstellen, Prüfen und Karteikarten schicken denselben Material-Block", async () => {
+  const set = { files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}], coverage:{}, history:[] }; set.sections = A.makeSections(set.files);
+  const calls = [];
+  const fake = async () => ({text:""});
+  fake.json = async (p, o) => { calls.push({p, o}); return calls.length===1 ? {questions:A.EXAMPLE_QUESTIONS} : {checks:[]}; };
+  A.CAP.sample = fake; A.CAP.remote = true;
+  await A.generateQuestions(set, {n:15});
+  const [gen, chk] = calls;
+  assert.ok(gen.o.material && gen.o.material.length > 1000, "Material als eigener Block");
+  assert.equal(chk.o.material, gen.o.material, "Prüfung nutzt denselben Block");
+  assert.ok(!gen.p.includes(set.sections[0].text) && !chk.p.includes(set.sections[0].text), "Material nicht doppelt in der Anweisung");
+  assert.equal(A.buildCardPrompt(set, 10).material, gen.o.material, "Karteikarten nutzen denselben Block");
+  // claude.ai: Material wie bisher am Ende der Anfrage
+  A.CAP.remote = false; calls.length = 0;
+  await A.generateQuestions(set, {n:15});
+  assert.ok(calls[0].p.endsWith(gen.o.material) && calls[0].p.includes("\n\nMATERIAL\n") && !calls[0].o.material);
+  A.CAP.sample = null;
 });
 ok("Probeklausur: Notenschätzung nach Notenpunkten", () => {
   assert.equal(A.notenpunkte(100), 15); assert.equal(A.notenpunkte(95), 15); assert.equal(A.notenpunkte(94), 14);

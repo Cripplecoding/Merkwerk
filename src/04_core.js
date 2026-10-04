@@ -74,9 +74,13 @@ function save(remote=true){
 }
 
 /* ---------- Claude-Fähigkeiten ---------- */
-const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false};
+const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false,remote:false,aiRest:null};
 async function initCaps(){
-  if(!window.claude||!window.claude.use){ CAP.ready=true; return; }
+  if(!window.claude||!window.claude.use){
+    // Außerhalb von claude.ai: KI über den eigenen Server, sobald er eingerichtet ist (src/04c_ai.js)
+    if(aiReady()){ CAP.sample=remoteSample(); CAP.images=(await CAP.sample.limits()).images; CAP.remote=true; }
+    CAP.ready=true; if(CAP.remote) render(); return;
+  }
   const [sample,db,user,downloads]=await Promise.all(["sample","db","user","downloads"].map(n=>window.claude.use(n).catch(()=>null)));
   Object.assign(CAP,{sample,db,user,downloads});
   if(sample){ try{ const l=await sample.limits(); CAP.images=l.images||null; }catch{} }
@@ -89,11 +93,14 @@ function sampleErr(e){
   const c=e&&e.code;
   if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Merkwerk in claude.ai und erlaube die Nutzung.";
   if(c==="rate_limited") return "Zu viele Anfragen oder Nutzungslimit erreicht. Versuch es in ein paar Minuten noch einmal.";
+  if(c==="daily_limit") return e.message==="gesamt"?"Die kostenlosen KI-Anfragen für heute sind aufgebraucht. Morgen geht es weiter.":"Du hast dein Tageslimit für KI-Anfragen erreicht. Morgen geht es weiter.";
+  if(c==="overloaded") return "Claude ist gerade überlastet. Versuch es in einer Minute noch einmal.";
+  if(c==="network") return "Keine Verbindung zum Merkwerk-Server. Prüfe die Internetverbindung.";
   if(c==="prompt_too_large") return "Das Material ist für eine Anfrage zu groß. Teile es in kleinere Lernsets auf.";
   if(c==="invalid_json") return "Claudes Antwort war nicht lesbar. Versuch es noch einmal.";
   if(c==="images_unavailable"||c==="image_rejected") return "Bilder können hier nicht gelesen werden. Versuch ein anderes Format (JPG oder PNG).";
   if(c==="refused") return "Claude hat diese Anfrage abgelehnt. Prüfe das Material.";
-  if(c==="session_expired") return "Bitte melde dich bei claude.ai erneut an.";
+  if(c==="session_expired") return CAP.remote?"Die Anmeldung beim Merkwerk-Server ist abgelaufen. Lade die Seite neu.":"Bitte melde dich bei claude.ai erneut an.";
   return "Verbindung zu Claude unterbrochen. Versuch es noch einmal.";
 }
 const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Funktion braucht Merkwerk Claude. Das funktioniert nur, wenn du die Seite in claude.ai öffnest. Beim ersten Mal fragt sie nach einer Freigabe; die Nutzung zählt zu deinem Claude-Kontingent.</div>`;

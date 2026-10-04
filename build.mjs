@@ -10,7 +10,12 @@ const root = dirname(fileURLToPath(import.meta.url));
 const src = join(root, "src");
 const head = readFileSync(join(src, "01_head.html"), "utf8");
 const scripts = readdirSync(src).filter(f => f.endsWith(".js")).sort();
-const js = scripts.map(f => `/* ---- ${f} ---- */\n` + readFileSync(join(src, f), "utf8")).join("\n");
+// KI-Server (docs/ki-fuer-alle.md): Adresse und öffentlicher Schlüssel können statt in src/04c_ai.js auch als
+// Umgebungsvariablen kommen – der Pages-Workflow nimmt sie aus den Repository-Variablen MERKWERK_AI_URL und MERKWERK_AI_ANON_KEY.
+const aiEnv = s => s
+  .replace(/(\burl: )""/, (m, a) => process.env.MERKWERK_AI_URL ? a + JSON.stringify(process.env.MERKWERK_AI_URL) : m)
+  .replace(/(\banonKey: )""/, (m, a) => process.env.MERKWERK_AI_ANON_KEY ? a + JSON.stringify(process.env.MERKWERK_AI_ANON_KEY) : m);
+const js = scripts.map(f => `/* ---- ${f} ---- */\n` + (f === "04c_ai.js" ? aiEnv : String)(readFileSync(join(src, f), "utf8"))).join("\n");
 const body = `${head}\n<script>\n${js}\n</script>\n`;
 
 mkdirSync(join(root, "dist"), { recursive: true });
