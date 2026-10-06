@@ -16,6 +16,7 @@ VIEWS.home = async function(m){
    ${fresh?`<section class="sheet stack"><p>Merkwerk macht aus deinem Material Prüfungsfragen – jede mit einem wörtlichen Beleg. Dazu kommen eine Bibliothek für dein Fach, dein Stundenplan und ein Lernplan bis zur nächsten Klausur.</p>
      <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
    ${!fresh&&!SETS.some(x=>!x.example)?`<section class="sheet stack"><h3>Leg dein erstes Lernset an</h3><p class="small muted">Wähle Fach und Thema – Merkwerk schlägt dir passende Themen aus deinem Bildungsplan vor. Dann lädst du eigenes Material hoch oder lässt Merkwerk Lerninhalte generieren.</p><div class="row"><button class="btn primary" id="hNew">Neues Lernset</button><button class="btn" id="hEx">Beispiel ausprobieren</button></div></section>`:""}
+   <div id="installSlot"></div>
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
    ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
    ${fcRunning?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Karteikarten angefangen</span><b>${esc(active.name)} · ${active.fc.idx} von ${active.fc.ids.length} Karten</b></div><button class="btn primary" id="contFc">Weiter üben</button></section>`:""}
@@ -41,6 +42,6 @@ VIEWS.home = async function(m){
   const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
   const cf=$("#contFc"); if(cf) cf.onclick=()=>go("learn",{setId:active.id,cards:true});
   $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
-  bindRem(m); bindRows(m);
+  bindRem(m); bindRows(m); renderInstallSlot();
   $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
 };

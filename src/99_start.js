@@ -5,5 +5,6 @@ $$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
   if(window.opener&&/[#&?](code|error|id_token)=/.test(location.hash+location.search)) return;
   if(currentAccount()) await loadSets();
   go(ROUTE.v||"home");
+  renderFooter();
   initCaps();
 })();

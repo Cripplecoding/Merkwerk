@@ -111,15 +111,19 @@ async function openAccountMenu(){
   const name=a.provider==="claude"?(await claudeName())||"Claude-Konto":accountLabel(a);
   modal(`<div class="row" style="gap:14px;align-items:center"><span class="avatar big">${esc((name||"?").slice(0,1).toUpperCase())}</span><div class="stack" style="gap:2px"><h2>${esc(name)}</h2><span class="small muted">${a.provider==="local"?"Konto auf diesem Gerät":"Angemeldet über "+esc(providerName(a.provider))}${a.email?" · "+esc(a.email):""}</span></div></div>
     ${S.profile?`<div class="stack" style="gap:4px"><span class="label">${S.profile.track==="uni"?"Studium":"Schule"}</span><p>${esc(profileLabel(S.profile))}</p></div>`:""}
-    ${a.provider==="local"?`<p class="small muted">Lernsets, Termine und Profil liegen nur in diesem Browser.</p>`:a.provider==="claude"?`<p class="small muted">Deine Angaben werden mit deinem Claude-Konto auf deinen Geräten abgeglichen.</p>`:`<p class="small muted">Die Anmeldung erkennt dich wieder; Lernsets und Termine liegen in diesem Browser.</p>`}
+    ${a.provider==="local"?`<p class="small muted">Lernsets, Termine und Profil liegen nur in diesem Browser. Mit „Daten sichern“ nimmst du sie auf ein anderes Gerät mit.</p>`:a.provider==="claude"?`<p class="small muted">Deine Angaben werden mit deinem Claude-Konto auf deinen Geräten abgeglichen.</p>`:`<p class="small muted">Die Anmeldung erkennt dich wieder; Lernsets und Termine liegen in diesem Browser.</p>`}
     <div class="stack" style="gap:8px">
       <button class="btn" id="amProfile">Schule oder Studium ändern</button>
+      <button class="btn" id="amExport">Daten sichern</button>
+      <button class="btn" id="amImport">Sicherung laden</button>
       <button class="btn" id="amSwitch">Konto wechseln</button>
       <button class="btn" id="amOut">Abmelden</button>
       <button class="btn ghost danger" id="amDel">Konto von diesem Gerät entfernen</button>
     </div>
     <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#amProfile",m).onclick=()=>{ close(); openWizard(); };
+    $("#amExport",m).onclick=()=>{ close(); exportAll(); };
+    $("#amImport",m).onclick=()=>{ close(); importAll(); };
     const out=async(step)=>{ close(); await syncUp(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step,mode:"login",err:""}); render(); };
     $("#amSwitch",m).onclick=()=>out("auth");
     $("#amOut",m).onclick=()=>out("start");

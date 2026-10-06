@@ -13,6 +13,14 @@ Danach `dist/index.html` per Doppelklick in Chrome, Edge oder Firefox öffnen. N
 
 **GitHub Pages:** Der Workflow in `.github/workflows/pages.yml` testet, baut und veröffentlicht `dist/` bei jedem Push auf `main`. Einmalig im Repository unter *Settings → Pages → Source* „GitHub Actions“ auswählen.
 
+## Als App installieren
+
+Auf https://cripplecoding.github.io/Merkwerk/ ist Merkwerk eine installierbare Web-App, ohne App Store: am Handy über „Zum Home-Bildschirm“ (Safari) oder „App installieren“ (Chrome), am Computer über das Installationssymbol in der Adressleiste von Chrome oder Edge. Die Startseite und die Fußzeile bieten das an und erklären es je nach Gerät. Installiert startet Merkwerk im eigenen Fenster und auch ohne Internet; nur die KI, Wikipedia und Bibliotheken, die noch nie geladen wurden, brauchen eine Verbindung.
+
+Weil Lernsets und Termine nur im Browser liegen, gibt es im Kontomenü „Daten sichern“ (eine JSON-Datei mit Profil, Terminen, Stundenplan und allen Lernsets) und „Sicherung laden“, um alles auf ein anderes Gerät mitzunehmen.
+
+`public/` enthält Manifest, Symbole, die selbst gehosteten Schriften und die Seiten Datenschutz und Impressum; `build.mjs` kopiert sie nach `dist/` und erzeugt `dist/sw.js` aus `src/sw/service-worker.js`. **Vor der Veröffentlichung für Fremde** in `public/impressum.html` Name, Anschrift und E-Mail eintragen (gelb markierte Platzhalter).
+
 ## Zwei Betriebsarten
 
 Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewerten) und die gemeinsame Bibliothek gibt es nur, wenn die Seite als **claude.ai-Artifact** läuft. Dafür den Inhalt von `dist/merkwerk-artifact.html` als Artifact veröffentlichen, `dist/bildungsplaene.js` als zusätzliche Datei unter demselben Namen, mit diesen Fähigkeiten:
@@ -105,7 +113,10 @@ src/
   05c_generate.js  neues Lernset mit Vorschlägen, „Lerninhalte generieren“
   10_home.js       Ansicht „Heute“
   11_account.js    Begrüßung, Anmeldung, Abstimmung, Kontomenü
+  12_app.js        App installieren, Service Worker, Daten sichern und laden, Fußzeile
   99_start.js      Start
+  sw/              Vorlage des Service Workers (build.mjs schreibt daraus dist/sw.js)
+public/            Manifest, App-Symbole, Schriften, Datenschutz, Impressum (wird nach dist/ kopiert)
 data/              Master-Index der Bildungspläne und daraus erzeugtes bildungsplaene.js
 tools/             bildungsplaene.mjs: erzeugt data/bildungsplaene.js aus dem Index
 build.mjs          setzt src/ in Dateireihenfolge zu dist/ zusammen
@@ -114,7 +125,7 @@ tests/run.mjs      Logik-Prüfungen ohne Browser
 supabase/          eigener KI-Server: Edge Function merkwerk-ai und Tabelle für das Tageslimit
 ```
 
-Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit deutschen Sprachdaten, ca. 5 MB beim ersten Mal). Schriften kommen von Google Fonts.
+Externe Bibliotheken werden nur bei Bedarf von jsDelivr geladen: FullCalendar 6.1.21, pdf.js 3.11.174, mammoth 1.8.0, Tesseract.js 6.0.1 (nur ohne Claude, mit deutschen Sprachdaten, ca. 5 MB beim ersten Mal). Schriften liegen auf GitHub Pages selbst (`public/fonts/`, keine Anfrage an Google); nur das claude.ai-Artifact lädt sie von Google Fonts.
 
 ## Anmeldung einrichten
 

@@ -270,6 +270,13 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .fc-col.know .fc-val{color:var(--ok)}
 .fc-col.practice .fc-val{color:var(--orange)}
 .fc-cl{font-weight:700;font-size:.9rem;text-align:center;padding-bottom:8px;min-height:3.2em;line-height:1.3}
+/* Fußzeile und App-Installation */
+.foot{max-width:1040px;margin:0 auto;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.foot-in{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:.86rem;color:var(--muted)}
+.foot a{color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer}
+.install-card img{border-radius:10px;flex:none}
+.install-card>.grow{flex:1 1 180px!important}
 .fc-actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:420px;width:100%;margin:0 auto}
 </style>
 
@@ -291,4 +298,5 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
   </div>
 </header>
 <main id="main"></main>
+<footer class="foot" id="appFoot"></footer>
 <div id="modalRoot"></div>
