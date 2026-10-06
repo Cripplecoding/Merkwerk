@@ -7,15 +7,15 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js","12_app.js"];
 const store = {};
 const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, ReadableStream, DecompressionStream, TextDecoder, TextEncoder, btoa, AbortController,
-  localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
+  localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{addEventListener:()=>{}}, navigator:{userAgent:""}, location:{protocol:"https:"} };
 vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,backupData,parseBackup,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -322,6 +322,22 @@ ok("Warum ist das falsch?: Erklärung bekommt Frage, falsche Antwort und Beleg",
   assert.ok(p.includes(set.sections[0].text.slice(0,50)));
   const p2 = A.whyPrompt(set,q,res,[{q:null,a:"Weil …"}],"Und warum nicht A?");
   assert.ok(p2.includes("Du: Weil …") && p2.includes("Und warum nicht A?"));
+});
+ok("Datensicherung: Sicherung wird wieder gelesen, fremde Dateien abgelehnt", () => {
+  const set = { id:"s1", name:"Bio", files:[{id:"f",name:"a.txt",text:"Text"}] };
+  const json = JSON.stringify(A.backupData({ items:[{id:"i"}], profile:null }, [set, { id:"kaputt" }]));
+  const b = A.parseBackup(json);
+  assert.equal(b.sets.length, 1); assert.equal(b.sets[0].name, "Bio"); assert.equal(b.state.items.length, 1);
+  assert.throws(() => A.parseBackup("{}"), /keine Merkwerk-Sicherung/);
+  assert.throws(() => A.parseBackup("kein json"), /keine Merkwerk-Sicherung/);
+  assert.throws(() => A.parseBackup(JSON.stringify({ ...JSON.parse(json), format:2 })), /neueren/);
+});
+ok("App-Manifest ist gültig und nennt vorhandene Symbole", () => {
+  const pub = join(src, "..", "public");
+  const m = JSON.parse(readFileSync(join(pub, "manifest.webmanifest"), "utf8"));
+  assert.equal(m.display, "standalone"); assert.equal(m.start_url, "./");
+  assert.ok(m.icons.some(i => i.sizes === "512x512" && i.purpose === "maskable"));
+  for (const i of m.icons) assert.ok(readFileSync(join(pub, i.src)).length > 0, i.src);
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

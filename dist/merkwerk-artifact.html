@@ -270,6 +270,13 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .fc-col.know .fc-val{color:var(--ok)}
 .fc-col.practice .fc-val{color:var(--orange)}
 .fc-cl{font-weight:700;font-size:.9rem;text-align:center;padding-bottom:8px;min-height:3.2em;line-height:1.3}
+/* Fußzeile und App-Installation */
+.foot{max-width:1040px;margin:0 auto;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.foot-in{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:.86rem;color:var(--muted)}
+.foot a{color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer}
+.install-card img{border-radius:10px;flex:none}
+.install-card>.grow{flex:1 1 180px!important}
 .fc-actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:420px;width:100%;margin:0 auto}
 </style>
 
@@ -291,6 +298,7 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
   </div>
 </header>
 <main id="main"></main>
+<footer class="foot" id="appFoot"></footer>
 <div id="modalRoot"></div>
 
 <script>
@@ -3146,6 +3154,7 @@ VIEWS.home = async function(m){
    ${fresh?`<section class="sheet stack"><p>Merkwerk macht aus deinem Material Prüfungsfragen – jede mit einem wörtlichen Beleg. Dazu kommen eine Bibliothek für dein Fach, dein Stundenplan und ein Lernplan bis zur nächsten Klausur.</p>
      <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
    ${!fresh&&!SETS.some(x=>!x.example)?`<section class="sheet stack"><h3>Leg dein erstes Lernset an</h3><p class="small muted">Wähle Fach und Thema – Merkwerk schlägt dir passende Themen aus deinem Bildungsplan vor. Dann lädst du eigenes Material hoch oder lässt Merkwerk Lerninhalte generieren.</p><div class="row"><button class="btn primary" id="hNew">Neues Lernset</button><button class="btn" id="hEx">Beispiel ausprobieren</button></div></section>`:""}
+   <div id="installSlot"></div>
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
    ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
    ${fcRunning?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Karteikarten angefangen</span><b>${esc(active.name)} · ${active.fc.idx} von ${active.fc.ids.length} Karten</b></div><button class="btn primary" id="contFc">Weiter üben</button></section>`:""}
@@ -3171,7 +3180,7 @@ VIEWS.home = async function(m){
   const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
   const cf=$("#contFc"); if(cf) cf.onclick=()=>go("learn",{setId:active.id,cards:true});
   $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
-  bindRem(m); bindRows(m);
+  bindRem(m); bindRows(m); renderInstallSlot();
   $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
 };
 
@@ -3289,15 +3298,19 @@ async function openAccountMenu(){
   const name=a.provider==="claude"?(await claudeName())||"Claude-Konto":accountLabel(a);
   modal(`<div class="row" style="gap:14px;align-items:center"><span class="avatar big">${esc((name||"?").slice(0,1).toUpperCase())}</span><div class="stack" style="gap:2px"><h2>${esc(name)}</h2><span class="small muted">${a.provider==="local"?"Konto auf diesem Gerät":"Angemeldet über "+esc(providerName(a.provider))}${a.email?" · "+esc(a.email):""}</span></div></div>
     ${S.profile?`<div class="stack" style="gap:4px"><span class="label">${S.profile.track==="uni"?"Studium":"Schule"}</span><p>${esc(profileLabel(S.profile))}</p></div>`:""}
-    ${a.provider==="local"?`<p class="small muted">Lernsets, Termine und Profil liegen nur in diesem Browser.</p>`:a.provider==="claude"?`<p class="small muted">Deine Angaben werden mit deinem Claude-Konto auf deinen Geräten abgeglichen.</p>`:`<p class="small muted">Die Anmeldung erkennt dich wieder; Lernsets und Termine liegen in diesem Browser.</p>`}
+    ${a.provider==="local"?`<p class="small muted">Lernsets, Termine und Profil liegen nur in diesem Browser. Mit „Daten sichern“ nimmst du sie auf ein anderes Gerät mit.</p>`:a.provider==="claude"?`<p class="small muted">Deine Angaben werden mit deinem Claude-Konto auf deinen Geräten abgeglichen.</p>`:`<p class="small muted">Die Anmeldung erkennt dich wieder; Lernsets und Termine liegen in diesem Browser.</p>`}
     <div class="stack" style="gap:8px">
       <button class="btn" id="amProfile">Schule oder Studium ändern</button>
+      <button class="btn" id="amExport">Daten sichern</button>
+      <button class="btn" id="amImport">Sicherung laden</button>
       <button class="btn" id="amSwitch">Konto wechseln</button>
       <button class="btn" id="amOut">Abmelden</button>
       <button class="btn ghost danger" id="amDel">Konto von diesem Gerät entfernen</button>
     </div>
     <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#amProfile",m).onclick=()=>{ close(); openWizard(); };
+    $("#amExport",m).onclick=()=>{ close(); exportAll(); };
+    $("#amImport",m).onclick=()=>{ close(); importAll(); };
     const out=async(step)=>{ close(); await syncUp(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step,mode:"login",err:""}); render(); };
     $("#amSwitch",m).onclick=()=>out("auth");
     $("#amOut",m).onclick=()=>out("start");
@@ -3328,6 +3341,96 @@ const AUTH_ICON={
   claude:`<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
 };
 
+/* ---- 12_app.js ---- */
+/* ===================== Als App: installieren, offline starten, Daten sichern, Rechtliches ===================== */
+/* Auf GitHub Pages ist Merkwerk eine installierbare Web-App (manifest.webmanifest + sw.js aus public/ und build.mjs).
+   In claude.ai läuft die Seite in einem Artifact; dort gibt es keine Installation und keinen Service Worker. */
+const SITE_URL="https://cripplecoding.github.io/Merkwerk/";
+const inClaude=()=>!!(window.claude&&window.claude.use);
+const legalUrl=p=>(inClaude()||location.protocol==="file:"?SITE_URL:"")+p;
+const isStandalone=()=>{ try{ return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true; }catch{ return false; } };
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const canInstall=()=>!inClaude()&&!isStandalone()&&location.protocol!=="file:";
+
+let installEvt=null; // Chrome, Edge, Samsung Internet: eigener Installationsdialog
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); installEvt=e; renderInstallSlot(); });
+window.addEventListener("appinstalled",()=>{ installEvt=null; renderInstallSlot(); toast("Merkwerk ist jetzt als App installiert"); });
+
+if("serviceWorker" in navigator&&!inClaude()&&location.protocol==="https:"){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
+async function installApp(){
+  if(installEvt){
+    const e=installEvt; installEvt=null;
+    try{ await e.prompt(); await e.userChoice; }catch{}
+    renderInstallSlot(); return;
+  }
+  const ua=navigator.userAgent;
+  const steps=isIOS()
+    ? `<ol><li>Öffne Merkwerk in <b>Safari</b>.</li><li>Tippe unten auf <b>Teilen</b> (Quadrat mit Pfeil nach oben).</li><li>Wähle <b>Zum Home-Bildschirm</b> und tippe auf <b>Hinzufügen</b>.</li></ol>`
+    : /Android/i.test(ua)
+    ? `<ol><li>Öffne Merkwerk in <b>Chrome</b>.</li><li>Tippe oben rechts auf <b>⋮</b>.</li><li>Wähle <b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b>.</li></ol>`
+    : /Firefox/i.test(ua)
+    ? `<p>Firefox kann Web-Apps am Computer nicht installieren. Öffne ${esc(SITE_URL)} in <b>Chrome</b> oder <b>Edge</b> und klicke rechts in der Adressleiste auf das Symbol <b>App installieren</b>.</p>`
+    : /Safari/i.test(ua)&&!/Chrome|Edg/i.test(ua)
+    ? `<p>Klicke in Safari auf <b>Ablage → Zum Dock hinzufügen</b>.</p>`
+    : `<p>Klicke rechts in der Adressleiste auf das Symbol <b>App installieren</b> (Bildschirm mit Pfeil) oder öffne das Browsermenü und wähle <b>Merkwerk installieren</b>.</p>`;
+  modal(`<h2>Merkwerk als App</h2>
+    <p>Merkwerk lässt sich ohne App Store installieren. Danach startet es mit eigenem Symbol, im eigenen Fenster und auch ohne Internet.</p>
+    ${steps}
+    <p class="small muted">Deine Lernsets und Termine bleiben auf dem Gerät, auf dem du sie angelegt hast. Mit „Daten sichern“ im Kontomenü nimmst du sie auf ein anderes Gerät mit.</p>
+    <div class="row"><span class="spacer"></span><button class="btn" data-close>Schließen</button></div>`);
+}
+
+// Hinweis auf der Startseite, solange Merkwerk noch nicht installiert ist und der Browser es anbietet
+function renderInstallSlot(){
+  const el=$("#installSlot"); if(!el) return;
+  const show=canInstall()&&(installEvt||isIOS())&&!S.dismissed.install;
+  el.innerHTML=show?`<section class="sheet row install-card"><img src="icons/icon-192.png" alt="" width="44" height="44"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><b>Merkwerk als App installieren</b><span class="small muted">Eigenes Symbol auf dem Startbildschirm, startet auch offline.</span></div><button class="btn primary" id="instGo">Installieren</button><button class="btn ghost sm" id="instNo" aria-label="Hinweis ausblenden">Später</button></section>`:"";
+  if(!show) return;
+  $("#instGo",el).onclick=installApp;
+  $("#instNo",el).onclick=()=>{ S.dismissed.install=true; save(); renderInstallSlot(); };
+}
+
+function renderFooter(){
+  const f=$("#appFoot"); if(!f) return;
+  f.innerHTML=`<div class="foot-in">${canInstall()?`<button class="linkbtn" id="footInstall" type="button">App installieren</button><span aria-hidden="true">·</span>`:""}<a href="${legalUrl("datenschutz.html")}" target="${inClaude()?"_blank":"_self"}" rel="noopener">Datenschutz</a><span aria-hidden="true">·</span><a href="${legalUrl("impressum.html")}" target="${inClaude()?"_blank":"_self"}" rel="noopener">Impressum</a></div>`;
+  const b=$("#footInstall",f); if(b) b.onclick=installApp;
+}
+
+/* ---------- Alle Daten sichern und auf einem anderen Gerät laden ---------- */
+// Merkwerk speichert nur im Browser. Die Sicherung enthält Profil, Termine, Stundenplan und alle Lernsets mit Material.
+function backupData(state,sets){ return {app:"merkwerk",format:1,exportedAt:new Date().toISOString(),state,sets}; }
+function parseBackup(text){
+  let d; try{ d=JSON.parse(text); }catch{ throw new Error("Die Datei ist keine Merkwerk-Sicherung."); }
+  if(!d||d.app!=="merkwerk"||typeof d.state!=="object"||!Array.isArray(d.sets)) throw new Error("Die Datei ist keine Merkwerk-Sicherung.");
+  if(d.format>1) throw new Error("Diese Sicherung stammt aus einer neueren Merkwerk-Version. Lade die Seite neu und versuch es noch einmal.");
+  return {state:d.state, sets:d.sets.filter(s=>s&&s.id&&Array.isArray(s.files))};
+}
+async function exportAll(){
+  const sets=await idb.all();
+  const data=JSON.stringify(backupData(S,sets));
+  const filename=`merkwerk-sicherung-${isoDate(new Date())}.json`;
+  if(CAP.downloads){ try{ await CAP.downloads.save({filename,data}); }catch(e){ if(e&&e.code!=="declined") toast("Speichern nicht möglich"); } return; }
+  const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+  const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast(`Gesichert: ${sets.filter(s=>!s.example).length} Lernsets, ${S.items.length} Termine`);
+}
+function importAll(){
+  const inp=document.createElement("input"); inp.type="file"; inp.accept=".json,application/json";
+  inp.onchange=async()=>{
+    const file=inp.files&&inp.files[0]; if(!file) return;
+    let b; try{ b=parseBackup(await file.text()); }catch(e){ toast(e.message,4000); return; }
+    if(!await confirmBox(`Sicherung mit ${b.sets.length} Lernsets laden? Profil, Termine und Stundenplan auf diesem Gerät werden ersetzt, vorhandene Lernsets bleiben.`,"Laden")) return;
+    S=Object.assign(DEFAULT_STATE(),b.state); save();
+    for(const s of b.sets) await putSet(s);
+    await loadSets(); render(); toast("Sicherung geladen");
+  };
+  inp.click();
+}
+
 /* ---- 99_start.js ---- */
 /* ===================== Start (als letzte Datei, damit alle Ansichten definiert sind) ===================== */
 $$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
@@ -3336,6 +3439,7 @@ $$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
   if(window.opener&&/[#&?](code|error|id_token)=/.test(location.hash+location.search)) return;
   if(currentAccount()) await loadSets();
   go(ROUTE.v||"home");
+  renderFooter();
   initCaps();
 })();
 
