@@ -43,4 +43,4 @@ jobs:
           [ -n "$MODEL_DEFAULT" ] && args+=("MERKWERK_MODEL_DEFAULT=$MODEL_DEFAULT")
           supabase secrets set --project-ref "$PROJECT_REF" "${args[@]}"
       - name: Funktion merkwerk-ai veröffentlichen
-        run: supabase functions deploy merkwerk-ai --project-ref "$PROJECT_REF"
+        run: supabase functions deploy merkwerk-ai --no-verify-jwt --project-ref "$PROJECT_REF"

@@ -32,7 +32,8 @@ Browser (GitHub Pages)  ──►  Supabase Edge Function „merkwerk-ai“  ─
 2. *Authentication → Sign In / Providers →* „Allow anonymous sign-ins“ einschalten.
 3. Diese Werte notieren:
    - *Project Settings → General →* **Project ID** (die Projekt-Kennung, z. B. `abcd1234efgh5678`)
-   - *Project Settings → API →* **Project URL** (z. B. `https://abcd1234efgh5678.supabase.co`) und **anon public key**
+   - **Project URL** `https://<Project ID>.supabase.co` (steht auch im Fenster *Connect* oben im Dashboard)
+   - *Project Settings → API Keys →* **Publishable key** (beginnt mit `sb_publishable_`; bei älteren Projekten geht auch der „anon“-Schlüssel unter *Legacy API Keys*)
 4. Unter https://supabase.com/dashboard/account/tokens einen **Access Token** erstellen.
 
 Der kostenlose Supabase-Tarif reicht für den Anfang.
@@ -55,7 +56,7 @@ Im Repository unter *Settings → Secrets and variables → Actions*:
 | Name | Wert |
 |---|---|
 | `MERKWERK_AI_URL` | die Project URL |
-| `MERKWERK_AI_ANON_KEY` | der anon public key |
+| `MERKWERK_AI_ANON_KEY` | der Publishable key |
 
 ### 4. Starten
 

@@ -1012,7 +1012,7 @@ async function readGoodnotes(file,progress,readPdf,ocrImagesFn){
    Einrichtung: docs/ki-fuer-alle.md */
 const AI_CONFIG = {
   url: "",      // Supabase → Project Settings → API → Project URL, z. B. https://abcd1234.supabase.co
-  anonKey: "",  // Supabase → Project Settings → API → anon public key (darf öffentlich sein)
+  anonKey: "",  // Supabase → Project Settings → API Keys → Publishable key (oder alter „anon“-Schlüssel); darf öffentlich sein
 };
 const aiReady=()=>!!(AI_CONFIG.url&&AI_CONFIG.anonKey);
 const AI_SESSION_KEY="merkwerk.ki.sitzung";

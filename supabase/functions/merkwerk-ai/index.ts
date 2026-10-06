@@ -40,7 +40,12 @@ const MAX_IMAGE_B64 = 6_000_000; // ≈ 4,5 MB pro Bild (die Seite verkleinert v
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const anthropic = new Anthropic({ apiKey: env("ANTHROPIC_API_KEY") });
-const admin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+// Geheimer Schlüssel: neue Projekte haben „secret keys“ (SUPABASE_SECRET_KEYS, JSON), ältere den service_role-Schlüssel
+function secretKey() {
+  try { const k = Object.values(JSON.parse(env("SUPABASE_SECRET_KEYS", "{}")))[0]; if (typeof k === "string" && k) return k; } catch { /* nicht gesetzt */ }
+  return env("SUPABASE_SERVICE_ROLE_KEY");
+}
+const admin = createClient(env("SUPABASE_URL"), secretKey(), { auth: { persistSession: false } });
 
 function cors(origin: string | null): Record<string, string> {
   const ok = origin && (ORIGINS.includes("*") || ORIGINS.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));

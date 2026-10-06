@@ -7,5 +7,6 @@ site_url = "https://cripplecoding.github.io/Merkwerk/"
 enable_anonymous_sign_ins = true
 
 [functions.merkwerk-ai]
-# Supabase prüft das Zugangs-Token schon vor der Funktion
-verify_jwt = true
+# Die Funktion prüft das Zugangs-Token selbst (auth.getUser). Die Vorprüfung von Supabase ist aus, weil sie
+# mit den neuen Schlüsseln (publishable key, neue JWT-Signaturschlüssel) nicht zuverlässig funktioniert.
+verify_jwt = false
