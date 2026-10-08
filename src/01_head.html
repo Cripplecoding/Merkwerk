@@ -271,6 +271,33 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .fc-col.practice .fc-val{color:var(--orange)}
 .fc-cl{font-weight:700;font-size:.9rem;text-align:center;padding-bottom:8px;min-height:3.2em;line-height:1.3}
 .fc-actions{display:flex;flex-direction:column;gap:10px;align-items:stretch;max-width:420px;width:100%;margin:0 auto}
+
+/* Audio & Podcast */
+.aud-seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;background:var(--paper)}
+.aud-opt{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid transparent;border-radius:9px;background:none;padding:10px 12px;cursor:pointer;color:var(--muted);min-width:0}
+.aud-opt b{font-family:var(--f-display);font-size:1.1rem;color:var(--ink)}
+.aud-opt[aria-checked="true"]{background:var(--sheet);border-color:var(--accent);box-shadow:var(--shadow);color:var(--ink)}
+.aud-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:440px){.aud-seg{grid-template-columns:1fr}.aud-opt b{font-size:1rem}}
+.chip[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:700}
+.chip:disabled{opacity:.5;cursor:not-allowed}
+.aud-player{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--paper);display:flex;flex-direction:column;gap:10px}
+.aud-seek{width:100%;accent-color:var(--accent)}
+.aud-ctrl{display:flex;justify-content:center;align-items:center;gap:14px}
+.aud-ctrl .btn{min-width:64px;min-height:44px}
+.aud-play{width:64px;height:64px;border-radius:50%;font-size:1.4rem}
+.aud-sub{gap:10px}
+.aud-sub input[type=range]{accent-color:var(--accent)}
+.aud-steps ol{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
+.aud-steps li{color:var(--muted)}
+.aud-steps li.on{color:var(--ink);font-weight:700}
+.aud-steps li.ok{color:var(--ok)}
+.aud-tx{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
+.aud-tx li{padding:4px 6px;border-radius:6px;overflow-wrap:anywhere}
+.aud-tx li[data-t]{cursor:pointer}
+.aud-tx li[data-t]:hover{background:var(--accent-soft)}
+.aud-tx li.on{background:var(--mark);color:var(--mark-ink)}
+.aud-tx li:focus-visible{outline:2px solid var(--accent)}
 </style>
 
 <header class="top">

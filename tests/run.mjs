@@ -7,7 +7,7 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","05e_audio.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
 const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, ReadableStream, DecompressionStream, TextDecoder, TextEncoder, btoa, AbortController,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
@@ -15,7 +15,7 @@ vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
+;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;}};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -322,6 +322,190 @@ ok("Warum ist das falsch?: Erklärung bekommt Frage, falsche Antwort und Beleg",
   assert.ok(p.includes(set.sections[0].text.slice(0,50)));
   const p2 = A.whyPrompt(set,q,res,[{q:null,a:"Weil …"}],"Und warum nicht A?");
   assert.ok(p2.includes("Du: Weil …") && p2.includes("Und warum nicht A?"));
+});
+// ---------------- Audio & Podcast ----------------
+const FX = await import("./audio-fixture.mjs");
+const audioSet = () => { const set = { id:"set_audio", name:"Geld", files:FX.DOCS.map((d,i)=>({id:"f"+i,name:d.name,text:d.text})) }; set.sections = A.makeSections(set.files); return set; };
+const exampleSet = () => { const set = { id:"set_ex", name:"Beispiel", example:true, files:[{id:"f_ex",name:"Beispieltext Photosynthese",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files); return set; };
+const fakeSample = (state={}) => { const f = async () => ({text:""}); f.json = async (p) => FX.fakeClaude(p, state); return f; };
+ok("Audio: Dokumentenstand erkennt geänderte Dateien, Zahlen werden einheitlich gelesen", () => {
+  const s = audioSet(); const h = A.materialHash(s);
+  assert.equal(h, A.materialHash(audioSet()));
+  s.files[1].text += " Neu."; assert.notEqual(h, A.materialHash(s));
+  assert.deepEqual([...A.numbersOf("6 CO2 + 6 H2O → C6H12O6, 1.000 Euro, 2,5 % im Jahr 1848.")], ["6","6","1000","2.5","1848"]);
+});
+ok("Audio: Beispiel-Einheiten sind belegt, beide Beispielskripte decken dieselbe Grundlage ohne Zusätze ab", () => {
+  const set = exampleSet();
+  const units = A.EXAMPLE_UNITS.einheiten.map(u => A.validateUnit(set, u));
+  assert.ok(units.every(Boolean), "jede Beispiel-Einheit hat einen wörtlichen Beleg");
+  const m = A.mergeUnits([{themen:A.EXAMPLE_UNITS.themen, units}]);
+  const ids = A.selectBasis(m.units, "standard");
+  assert.equal(ids.length, 14);
+  for (const fmt of ["monolog","podcast"]) {
+    const segs = A.cleanSegments(A.EXAMPLE_SCRIPTS[fmt].segmente, fmt);
+    const r = A.localCheck({units:m.units}, ids, segs);
+    assert.equal(r.problems.length, 0, fmt+": "+JSON.stringify(r.problems)); assert.equal(r.covered, 14);
+  }
+  const cov = fmt => new Set(A.cleanSegments(A.EXAMPLE_SCRIPTS[fmt].segmente, fmt).filter(s=>s.teil==="haupt").flatMap(s=>s.einheiten));
+  assert.deepEqual([...cov("monolog")].sort(), [...cov("podcast")].sort());
+});
+okAsync("Audio: Einheiten aus zwei Dokumenten – unbelegte Zitate und falsche Zahlen fallen weg", async () => {
+  const set = audioSet(); A.CAP.sample = fakeSample(); A.CAP.remote = false;
+  const u = await A.buildUnits(set);
+  assert.equal(u.dropped, 2);
+  assert.deepEqual([...u.themen], ["Inflation","Geldpolitik"]);
+  assert.deepEqual([...u.units.map(x=>x.id+":"+x.fileName.split(".")[0])], ["E1:Inflation","E2:Inflation","E3:Inflation","E4:Geldpolitik","E5:Geldpolitik","E6:Geldpolitik"]);
+  assert.ok(!u.units.some(x=>/Gelddrucken|3 Prozent/.test(x.aussage)));
+  assert.deepEqual([...A.selectBasis(u.units,"kurz")], ["E1","E2","E5"]);
+  assert.deepEqual([...A.selectBasis(u.units,"standard")], ["E1","E2","E3","E5","E6"]);
+  assert.equal(A.selectBasis(u.units,"ausfuehrlich").length, 6);
+  A.CAP.sample = null;
+});
+ok("Audio: großes Material wird in Pakete geteilt statt abgeschnitten", () => {
+  const set = { files:[{id:"f",name:"lang",text:Array.from({length:400},(_,i)=>"Absatz "+i+" "+"x".repeat(600)).join("\n\n")}] }; set.sections = A.makeSections(set.files);
+  const ch = A.unitChunks(set);
+  assert.ok(ch.length >= 3); assert.equal(ch.flat().length, set.sections.length);
+  assert.ok(ch.every(c => c.reduce((a,s)=>a+s.text.length,0) <= 100000));
+});
+ok("Audio: lokale Prüfung findet fehlende Einheiten und fremde Zahlen", () => {
+  const meta = { units:[{id:"E1",aussage:"Ziel sind 2 Prozent.",zitat:"2 Prozent"},{id:"E2",aussage:"Kredite werden teurer.",zitat:"teurer"}] };
+  const segs = A.cleanSegments([{teil:"haupt",text:"Ziel sind 3 Prozent.",einheiten:["E1","E9"]},{teil:"abschluss",text:"Kredite werden teurer.",einheiten:["E2"]}], "monolog");
+  const r = A.localCheck(meta, ["E1","E2"], segs);
+  assert.deepEqual([...r.problems.map(p=>p.art)].sort(), ["erfunden","fehlend"]);
+  assert.equal(r.problems.find(p=>p.art==="fehlend").einheit, "E2", "Abschluss zählt nicht als Abdeckung");
+  assert.deepEqual([...segs[0].einheiten], ["E1"], "Verweis auf fremde Einheit entfernt");
+});
+ok("Audio: Korrekturen ersetzen und fügen an der richtigen Stelle ein", () => {
+  const segs = ["a","b","c"].map(t=>({teil:"haupt",text:t,einheiten:[]}));
+  const out = A.applyRepairs(segs, [{nach:-1,neu:[{text:"0"}]},{segment:1,neu:[{text:"B1"},{text:"B2"}]},{nach:2,neu:[{text:"d"}]},{segment:0,neu:[]}], "monolog");
+  assert.deepEqual([...out.map(s=>s.text)], ["0","B1","B2","c","d"]);
+});
+okAsync("Audio: Prüfung korrigiert beanstandete Stellen und prüft erneut", async () => {
+  const set = audioSet(); const state = {}; A.CAP.sample = fakeSample(state);
+  const u = await A.buildUnits(set); const meta = {units:u.units}; const ids = A.selectBasis(u.units,"standard");
+  const sc = {titel:"x", segments:A.cleanSegments(FX.MONOLOG_RESPONSE.segmente,"monolog")};
+  const r = await A.checkAndRepair(set, meta, ids, sc, "monolog", "de");
+  assert.ok(r.check.ok, JSON.stringify(r.check.problems)); assert.equal(r.check.rounds, 1); assert.ok(r.check.semantic);
+  assert.equal(state.repairs, 1); assert.equal(state.checks, 2);
+  assert.match(r.segments[2].text, /2 Prozent/);
+  // Bleibt ein Problem bestehen, wird das Ergebnis nicht als geprüft ausgegeben
+  const stubborn = async () => ({text:""}); stubborn.json = async p => p.includes("Du prüfst") ? {probleme:[{segment:1,art:"erfunden",detail:"Beispiel nicht im Material"}]} : {korrekturen:[]};
+  A.CAP.sample = stubborn;
+  const r2 = await A.checkAndRepair(set, meta, ids, {segments:A.cleanSegments(FX.PODCAST_RESPONSE.segmente,"podcast")}, "podcast", "de");
+  assert.equal(r2.check.ok, false); assert.equal(r2.check.rounds, 2); assert.equal(r2.check.problems[0].art, "erfunden");
+  // Fällt die inhaltliche Prüfung aus, steht das im Ergebnis
+  const down = async () => ({text:""}); down.json = async () => { throw {code:"overloaded"}; };
+  A.CAP.sample = down;
+  const r3 = await A.checkAndRepair(set, meta, ids, {segments:A.cleanSegments(FX.PODCAST_RESPONSE.segmente,"podcast")}, "podcast", "de");
+  assert.equal(r3.check.semantic, false); assert.ok(r3.check.ok);
+  A.CAP.sample = null;
+});
+ok("Audio: Skript-Anweisung enthält nur die Grundlage und verbietet Zusätze", () => {
+  const meta = {units:[{id:"E1",thema:"T",rang:1,aussage:"A1",zitat:"Z1"},{id:"E2",thema:"T",rang:3,aussage:"A2",zitat:"Z2"}]};
+  const p = A.scriptPrompt(meta, ["E1"], "podcast", "de");
+  assert.ok(p.includes("E1 [T · Rang 1] A1") && !p.includes("A2"));
+  assert.ok(p.includes("Moderatorin") && p.includes("Experte") && p.includes("Keine fachliche Aussage, die nicht durch eine Einheit gedeckt ist"));
+  assert.ok(A.scriptPrompt(meta, ["E1"], "monolog", "en").includes("Sprache: Englisch"));
+});
+ok("Audio: Sprachausgabe in passende Teile, Pausen und Rollen", () => {
+  const long = Array.from({length:30},(_,i)=>`Das ist Satz Nummer ${i} mit etwas Inhalt.`).join(" ");
+  const parts = A.splitSpeech(long, 300);
+  assert.ok(parts.length > 1 && parts.every(p=>p.length<=300)); assert.equal(parts.join(" "), long);
+  assert.ok(A.splitSpeech("x".repeat(2000), 900).every(p=>p.length<=900));
+  const segs = A.cleanSegments(FX.PODCAST_RESPONSE.segmente,"podcast");
+  const plan = A.ttsPlan(segs,"podcast");
+  assert.deepEqual([...new Set(plan.map(p=>p.role))].sort(), ["experte","moderation"]);
+  assert.equal(plan.at(-1).gap, 0); assert.equal(plan[0].gap, 750, "Pause nach der Einleitung");
+  assert.equal(plan[1].gap, 300, "Sprecherwechsel");
+  assert.ok(A.ttsPlan(A.cleanSegments(FX.MONOLOG_RESPONSE.segmente,"monolog"),"monolog").every(p=>p.role==="erzaehler"));
+  const b = A.ttsBatches(Array.from({length:30},()=>({text:"y".repeat(400)})));
+  assert.ok(b.every(x=>x.length<=12 && x.reduce((a,p)=>a+p.text.length,0)<=4500)); assert.equal(b.flat().length, 30);
+});
+ok("Audio: Stille kürzen, Lautstärke angleichen, Teile ohne Überlappung zusammensetzen, WAV schreiben", () => {
+  const rate = 1000;
+  const tone = (n,amp) => Float32Array.from({length:n},(_,i)=>amp*Math.sin(i/3));
+  const x = new Float32Array(1000); x.set(tone(400,0.5),300);
+  const t = A.trimSilence(x, rate); assert.ok(t.length >= 400 && t.length <= 400+2*60+4, String(t.length));
+  const loud = A.normalizeGain(tone(500,0.9)), quiet = A.normalizeGain(tone(500,0.05));
+  const rms = y => Math.sqrt(y.reduce((a,v)=>a+v*v,0)/y.length);
+  assert.ok(Math.abs(rms(loud)-rms(quiet)) < 0.01, "gleiche Lautheit");
+  assert.ok(Math.max(...loud.map(Math.abs)) <= 0.97);
+  const r = A.assemblePcm([{pcm:tone(100,0.5),gap:200},{pcm:tone(50,0.5),gap:0}], rate);
+  assert.deepEqual([...r.starts], [0, 0.3]); assert.equal(r.pcm.length, 350); assert.ok(Math.abs(r.duration-0.35)<1e-9);
+  assert.ok(r.pcm.slice(100,300).every(v=>v===0), "Pause ist still");
+  const wav = A.encodeWav(r.pcm, 24000);
+  assert.equal(String.fromCharCode(...wav.slice(0,4)), "RIFF"); assert.equal(wav.length, 44+350*2);
+});
+okAsync("Audio: Ablauf speichert Grundlage und Skripte, Formatwechsel nutzt dieselbe Grundlage, Änderung am Material wird erkannt", async () => {
+  const set = audioSet(); const state = {}; A.CAP.sample = fakeSample(state);
+  Object.assign(A.AI_CONFIG, { url:"", anonKey:"" }); // keine Sprachausgabe eingerichtet
+  const steps = []; const step = i => steps.push(i);
+  let r = await A.audPipeline(set, {len:"standard",fmt:"monolog",lang:"de"}, {step});
+  assert.equal(r.noAudio, "no_server", "ohne Server: Skript fertig, keine vorgetäuschte Audiodatei");
+  assert.deepEqual([...new Set(steps)], [0,1,2,3]);
+  let meta = await A.audMeta(set.id);
+  assert.equal(meta.hash, A.materialHash(set)); assert.equal(meta.units.length, 6);
+  assert.ok(meta.variants.standard.scripts["monolog|de"].check.ok);
+  assert.deepEqual(Object.keys(meta.variants.standard.audio), []);
+  // Wechsel zum Podcast: keine neue Analyse, gleiche Grundlage
+  r = await A.audPipeline(set, {len:"standard",fmt:"podcast",lang:"de"}, {step});
+  meta = await A.audMeta(set.id);
+  assert.equal(state.units, 1); assert.equal(state.podcast, 1);
+  const cov = k => [...new Set(meta.variants.standard.scripts[k].segments.filter(s=>s.teil==="haupt").flatMap(s=>s.einheiten))].sort();
+  assert.deepEqual(cov("monolog|de"), cov("podcast|de"));
+  assert.deepEqual(cov("podcast|de"), [...meta.variants.standard.unitIds].sort());
+  // Erneut öffnen: nichts wird neu erzeugt
+  await A.audPipeline(set, {len:"standard",fmt:"monolog",lang:"de"}, {step});
+  assert.equal(state.monolog, 1); assert.equal(state.units, 1);
+  // Material geändert → neue Analyse
+  set.files[0].text += "\n\nNeuer Absatz."; set.sections = A.makeSections(set.files);
+  await A.audPipeline(set, {len:"standard",fmt:"monolog",lang:"de"}, {step});
+  assert.equal(state.units, 2); assert.equal(state.monolog, 2);
+  await A.audDeleteSet(set.id); assert.equal(await A.audMeta(set.id), null);
+  A.CAP.sample = null;
+});
+okAsync("Audio: mehrfaches Klicken startet keinen zweiten Auftrag", async () => {
+  const set = audioSet(); set.id = "set_dbl"; const state = {}; A.CAP.sample = fakeSample(state);
+  const j1 = A.audStart(set, {len:"kurz",fmt:"monolog",lang:"de"});
+  const j2 = A.audStart(set, {len:"kurz",fmt:"monolog",lang:"de"});
+  assert.equal(j1, j2); await j1.promise;
+  assert.equal(state.units, 1); assert.equal(j1.running, false); assert.equal(j1.error, null);
+  assert.notEqual(A.audStart(set, {len:"kurz",fmt:"monolog",lang:"de"}), j1, "nach dem Ende ist ein neuer Auftrag möglich");
+  await A.audDeleteSet(set.id); A.CAP.sample = null;
+});
+okAsync("Audio: Beispiel funktioniert ohne Claude", async () => {
+  const set = exampleSet(); A.CAP.sample = null;
+  const r = await A.audPipeline(set, {len:"standard",fmt:"podcast",lang:"de"}, {step:()=>{}});
+  const sc = r.meta.variants.standard.scripts["podcast|de"];
+  assert.ok(sc.check.ok); assert.equal(sc.check.semantic, false); assert.equal(sc.check.total, 14);
+  assert.ok(A.transcriptText(sc,"podcast","T").includes("Moderatorin: Hallo"));
+  await A.audDeleteSet(set.id);
+});
+okAsync("Audio: Sprachausgabe-Server – Prüfung, Teile, Stimmen, Tageslimit", async () => {
+  Object.assign(A.AI_CONFIG, { url:"https://beispiel.supabase.co", anonKey:"anon" });
+  const calls = []; let mode = "ok";
+  A.setFetch(async (url, init) => {
+    if (url.endsWith("/auth/v1/signup")) return new Response(JSON.stringify({access_token:"t1",refresh_token:"r1",expires_in:3600}));
+    const body = JSON.parse(init.body); calls.push(body);
+    assert.equal(init.headers.Authorization, "Bearer t1");
+    if (mode === "unset") return new Response(JSON.stringify({code:"tts_not_configured"}), {status:503});
+    if (body.probe) return new Response(JSON.stringify({ok:true,provider:"google",label:"Google Cloud Text-to-Speech"}));
+    if (mode === "limit") return new Response(JSON.stringify({code:"daily_limit",message:"zeichen"}), {status:429});
+    return new Response(JSON.stringify({audio:body.segments.map(s=>({mime:"audio/mpeg",data:btoa(s.role)})),voices:{experte:"de-DE-Chirp3-HD-Charon",moderation:"de-DE-Chirp3-HD-Aoede"},provider:"google",rest:1234}));
+  });
+  const st = await A.ttsStatus(true); assert.ok(st.ok); assert.equal(st.provider, "google");
+  const plan = A.ttsPlan(A.cleanSegments(FX.PODCAST_RESPONSE.segmente,"podcast"),"podcast");
+  const prog = [];
+  const r = await A.synthesize(plan, "de", {onProgress:(d,n)=>prog.push(d+"/"+n)});
+  assert.equal(r.clips.length, plan.length);
+  assert.ok(r.clips.every((c,i)=>new TextDecoder().decode(c.bytes)===plan[i].role), "Reihenfolge der Teile bleibt");
+  assert.equal(prog.at(-1), plan.length+"/"+plan.length); assert.equal(r.voices.experte, "de-DE-Chirp3-HD-Charon"); assert.equal(A.TTS.rest, 1234);
+  assert.ok(calls.filter(c=>!c.probe).every(c=>c.lang==="de"));
+  mode = "limit";
+  await assert.rejects(A.synthesize(plan, "de"), e => e.code==="daily_limit" && /Tageslimit für die Sprachausgabe/.test(A.audErr(e)));
+  mode = "unset";
+  const st2 = await A.ttsStatus(true); assert.equal(st2.ok, false); assert.equal(st2.reason, "tts_not_configured");
+  Object.assign(A.AI_CONFIG, { url:"", anonKey:"" });
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

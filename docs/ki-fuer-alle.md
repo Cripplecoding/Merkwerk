@@ -96,3 +96,7 @@ Entschieden am 4. Oktober 2026: Die KI-Kosten externer Nutzer laufen über deine
 - **Datenschutzerklärung und Impressum:** Sobald Fremde Material an deinen Server schicken, braucht die Seite beides (DSGVO). Darin nennen: Supabase (Hosting in Frankfurt) und Anthropic (USA) als Auftragsverarbeiter, was gespeichert wird (nur Zähler pro Tag und gehashte IP-Adresse; das Material selbst speichert Merkwerk nicht) und dass Anthropic API-Daten nicht zum Training verwendet. Bei Schülern unter 16 ist die Einwilligung der Eltern ein Thema.
 - **Missbrauch:** Anonyme Konten kann man sich immer neu holen; das Limit pro Internetanschluss und das Gesamtlimit fangen das ab. Wenn das nicht reicht: in Supabase unter *Authentication → Attack Protection* ein Captcha (Cloudflare Turnstile) für die Anmeldung einschalten, oder die KI nur für angemeldete Google-/Microsoft-Konten freigeben.
 - **Geräteübergreifende Daten und die gemeinsame Bibliothek** laufen weiterhin nur in claude.ai. Supabase kann beides später übernehmen (siehe Roadmap), das ist ein eigener Schritt.
+
+## Sprachausgabe für Audio & Podcast
+
+Der Lernmodus „Audio & Podcast“ nutzt denselben Server mit einer zweiten Funktion `merkwerk-tts`. Dafür kommt ein Schlüssel für Google Cloud Text-to-Speech als Secret `GOOGLE_TTS_API_KEY` dazu, danach den Workflow erneut starten. Schritt für Schritt: [audio-podcast.md](audio-podcast.md).

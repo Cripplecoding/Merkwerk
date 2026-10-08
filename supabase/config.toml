@@ -9,3 +9,8 @@ enable_anonymous_sign_ins = true
 [functions.merkwerk-ai]
 # Supabase prüft das Zugangs-Token schon vor der Funktion
 verify_jwt = true
+
+[functions.merkwerk-tts]
+# Sprachausgabe für „Audio & Podcast“. Die Funktion prüft das Zugangs-Token selbst (auth.getUser);
+# die Vorprüfung von Supabase ist aus, weil sie mit den neuen Schlüsseln (publishable key) nicht zuverlässig funktioniert.
+verify_jwt = false
