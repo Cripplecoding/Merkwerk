@@ -36,9 +36,18 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}c
 const idb={
   _db:null, name:storageFor(currentAccount()).db,
   open(){ if(this._db) return Promise.resolve(this._db);
-    return new Promise((res,rej)=>{ try{ const r=indexedDB.open(this.name,1); r.onupgradeneeded=()=>{r.result.createObjectStore("sets",{keyPath:"id"});}; r.onsuccess=()=>{this._db=r.result;res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
+    // Version 2: zusätzlich „audio“ (Audio & Podcast: Inhaltsgrundlage, Skripte, Audiodateien je Lernset)
+    return new Promise((res,rej)=>{ try{ const r=indexedDB.open(this.name,2); r.onupgradeneeded=()=>{ const db=r.result;
+      if(!db.objectStoreNames.contains("sets")) db.createObjectStore("sets",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("audio")) db.createObjectStore("audio",{keyPath:"key"}); };
+      r.onsuccess=()=>{this._db=r.result; this._db.onversionchange=()=>{ try{this._db.close();}catch{} this._db=null; }; res(r.result)}; r.onerror=()=>rej(r.error);}catch(e){rej(e)} }); },
   async all(){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("sets").objectStore("sets").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}catch{ return lsGet(LS_KEY+".sets",[]); } },
   async put(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ const all=lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==v.id); all.push(v); if(!lsSet(LS_KEY+".sets",all)) toast("Speicher voll – sehr große Dateien müssen nach dem Neuladen evtl. neu hochgeladen werden"); } },
+  // Audio-Speicher; ohne IndexedDB nur im Arbeitsspeicher (bis zum Neuladen)
+  _mem:new Map(),
+  async aGet(key){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("audio").objectStore("audio").get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}catch{ return this._mem.get(key)||null; } },
+  async aPut(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("audio","readwrite");t.objectStore("audio").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ this._mem.set(v.key,v); } },
+  async aDelPrefix(prefix){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("audio","readwrite");t.objectStore("audio").delete(IDBKeyRange.bound(prefix,prefix+"\uffff"));t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ for(const k of [...this._mem.keys()]) if(k.startsWith(prefix)) this._mem.delete(k); } },
   async del(id){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ lsSet(LS_KEY+".sets",lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==id)); } },
 };
 
