@@ -32,9 +32,9 @@ function buildCalEvents(start,end){
     if(it.time){ const endM=Math.min(toMin(it.time)+(it.type==="klausur"?90:30),1439); out.push({...base,start:`${it.date}T${it.time}`,end:`${it.date}T${fromMin(endM)}`}); }
     else out.push({...base,start:it.date,allDay:true});
     // Lerneinheiten aus dem Lernplan
-    if(it.plan&&!it.done) for(const d of it.plan.days){
-      out.push({id:`P|${it.id}|${d.date}|${d.kind}`,title:`${d.kind==="wiederholung"?"Wiederholen":"Lernen"}: ${it.title}`,start:d.date,allDay:true,classNames:["ev-plan",d.done?"ev-done":"",(!d.done&&d.date<tISO&&d.kind==="neu")?"ev-missed":""],extendedProps:{kind:"plan",itemId:it.id,date:d.date,pk:d.kind},durationEditable:false});
-    }
+    if(it.plan&&!it.done) it.plan.days.forEach((d,i)=>{
+      out.push({id:`P|${it.id}|${d.date}|${d.kind}|${i}`,title:`${d.kind==="wiederholung"?"Wiederholen":d.kind==="hoeren"?"Anhören":"Lernen"}: ${it.title}`,start:d.date,allDay:true,classNames:["ev-plan",d.done?"ev-done":"",(!d.done&&d.date<tISO&&d.kind==="neu")?"ev-missed":""],extendedProps:{kind:"plan",itemId:it.id,date:d.date,pk:d.kind,idx:i},durationEditable:false});
+    });
   }
   // eigene Termine & freie Tage
   for(const e of S.events||[]){
@@ -92,10 +92,10 @@ async function mountCalendar(box,bar,gotoDate){
 function onCalClick(ev){
   const p=ev.extendedProps; const t=calStore();
   if(p.kind==="item"){ go("due",{id:p.itemId}); return; }
-  if(p.kind==="plan"){ const it=S.items.find(x=>x.id===p.itemId); if(!it||!it.plan) return; const d=it.plan.days.find(x=>x.date===p.date&&x.kind===p.pk); if(!d) return;
-    modal(`<span class="label">${d.kind==="wiederholung"?"Wiederholung":"Lerneinheit"} · ${fmtDate(d.date,{weekday:"long",day:"numeric",month:"long"})}</span><h2>${esc(it.title)}</h2>
-      <p class="small muted">${d.kind==="wiederholung"?"Gemischter Durchgang über das ganze Material.":`${d.sectionIds.length} Abschnitt${d.sectionIds.length>1?"e":""} aus deinem Lernplan.`} ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(today0(),parseISO(it.date)))}.</p>
-      <div class="row"><button class="btn primary" id="pcL">${d.done?"Noch einmal lernen":"Jetzt lernen"}</button><button class="btn" id="pcD">${d.done?"Nicht erledigt":"Abhaken"}</button><button class="btn" id="pcO">Lernplan öffnen</button><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+  if(p.kind==="plan"){ const it=S.items.find(x=>x.id===p.itemId); if(!it||!it.plan) return; const d=(p.idx!=null&&it.plan.days[p.idx]&&it.plan.days[p.idx].date===p.date&&it.plan.days[p.idx].kind===p.pk)?it.plan.days[p.idx]:it.plan.days.find(x=>x.date===p.date&&x.kind===p.pk); if(!d) return;
+    modal(`<span class="label">${d.kind==="wiederholung"?"Wiederholung":d.kind==="hoeren"?"Hörphase":"Lerneinheit"} · ${fmtDate(d.date,{weekday:"long",day:"numeric",month:"long"})}</span><h2>${esc(it.title)}</h2>
+      <p class="small muted">${d.kind==="wiederholung"?"Gemischter Durchgang über das ganze Material.":d.kind==="hoeren"?`${esc((AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n)}, ca. ${Math.round(d.minutes||0)} Minuten. Ergänzt die Lerneinheiten, zählt nicht als gelernt.`:`${d.sectionIds.length} Abschnitt${d.sectionIds.length>1?"e":""} aus deinem Lernplan.`} ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(today0(),parseISO(it.date)))}.</p>
+      <div class="row"><button class="btn primary" id="pcL">${d.kind==="hoeren"?"Anhören":d.done?"Noch einmal lernen":"Jetzt lernen"}</button><button class="btn" id="pcD">${d.done?"Nicht erledigt":"Abhaken"}</button><button class="btn" id="pcO">Lernplan öffnen</button><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
       $("#pcL",m).onclick=()=>{close();startPlanDay(it,d);};
       $("#pcD",m).onclick=()=>{d.done=!d.done; if(!d.done) delete d.pct; save(); close(); calRefresh();};
       $("#pcO",m).onclick=()=>{close();go("due",{id:it.id});}; }); return; }

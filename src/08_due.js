@@ -25,8 +25,10 @@ function calLinks(it){
 
 /* ---------- Lernplan ---------- */
 const secTitle=s=>{ const first=s.text.split("\n").map(x=>x.trim()).find(Boolean)||""; return first.length>70?first.slice(0,67)+"…":first; };
-function buildPlan(it,set,{weekdays,reviewDays,keepDone=true}){
-  const old=it.plan&&keepDone? it.plan.days.filter(d=>d.done):[];
+function buildPlan(it,set,{weekdays,reviewDays,keepDone=true,minutesPerDay}){
+  // Hörphasen bleiben beim Neuverteilen stehen (sie ersetzen keine Lerneinheit und belegen keinen Lerntag)
+  const hear=it.plan&&keepDone? it.plan.days.filter(d=>d.kind==="hoeren"&&d.date<it.date):[];
+  const old=it.plan&&keepDone? it.plan.days.filter(d=>d.done&&d.kind!=="hoeren"):[];
   const doneSecs=new Set(old.filter(d=>d.kind==="neu").flatMap(d=>d.sectionIds));
   const secs=set.sections.filter(s=>!doneSecs.has(s.id));
   const start=today0(); const end=parseISO(it.date); end.setDate(end.getDate()-1);
@@ -54,15 +56,59 @@ function buildPlan(it,set,{weekdays,reviewDays,keepDone=true}){
     }
   }
   revDates.forEach(date=>days.push({date,kind:"wiederholung",sectionIds:set.sections.map(s=>s.id),done:false}));
-  days.sort((a,b)=>a.date.localeCompare(b.date));
-  return {plan:{setId:set.id,weekdays,reviewDays:rev,days,createdAt:Date.now()}};
+  days.push(...hear);
+  days.sort((a,b)=>a.date.localeCompare(b.date)||(a.kind==="hoeren")-(b.kind==="hoeren"));
+  return {plan:{setId:set.id,weekdays,reviewDays:rev,minutesPerDay:Number(minutesPerDay)||(it.plan&&it.plan.minutesPerDay)||45,days,createdAt:Date.now()}};
+}
+/* Geschätzte Lernzeit: Lesen (etwa 4 Minuten je Seite) und Abfrage (etwa 1,5 Minuten je Frage); Hörphasen mit ihrer Audiodauer */
+function dayMinutes(d,set){
+  if(d.kind==="hoeren") return Math.max(1,Math.round(d.minutes||0));
+  if(d.kind==="wiederholung") return 25;
+  const chars=d.sectionIds.map(id=>set.sections.find(s=>s.id===id)).filter(Boolean).reduce((a,s)=>a+s.text.length,0);
+  return Math.round(chars/2200*4+clamp(d.sectionIds.length*4,6,15)*1.5);
+}
+// Tage, an denen die eingeplante Zeit nicht reicht
+function planOverload(plan,set){
+  const per={}; for(const d of plan.days) if(!d.done) per[d.date]=(per[d.date]||0)+dayMinutes(d,set);
+  const budget=plan.minutesPerDay||45;
+  const over=Object.entries(per).filter(([,m])=>m>budget).sort((a,b)=>b[1]-a[1]);
+  return {budget,over,max:over.length?over[0][1]:0};
+}
+// Hörphase in einen Lernplan eintragen (Audiozusammenfassung oder Podcastdialog aus einem Lernset)
+function openHearPhase(set,pre={}){
+  const plans=S.items.filter(it=>!it.done&&it.plan&&it.plan.setId===set.id&&it.date>isoDate(today0()));
+  if(!audEligible(set).length){ toast("Audio entsteht nur aus hochgeladenen Dateien – lade zuerst Dateien in dieses Lernset"); return; }
+  if(!plans.length){ modal(`<h3>Hörphase einplanen</h3><p>Für dieses Lernset gibt es noch keinen Lernplan. Öffne unter „Abgaben &amp; Klausuren“ deinen Termin und erstelle mit diesem Lernset einen Lernplan; danach kannst du Hörphasen eintragen.</p><div class="row"><button class="btn primary" id="hpDue">Zu Abgaben &amp; Klausuren</button><button class="btn" data-close>Schließen</button></div>`,(m,close)=>{ $("#hpDue",m).onclick=()=>{ close(); go("due"); }; }); return; }
+  let fmt=pre.fmt||"monolog", len=pre.len||"standard";
+  const est=()=>pre.minutes||estMinutes({view:audView(set,audDefaultSel(set)),len,fmt});
+  modal(`<h2>Hörphase einplanen</h2>
+    <p class="small muted">${pre.title?`Aufnahme: <b>${esc(pre.title)}</b>. `:""}Eine Hörphase ergänzt den Plan. Sie ersetzt keine Lerneinheit und zählt nicht als Nachweis deines Wissensstands.</p>
+    <label class="f">Lernplan<select id="hpIt">${plans.map(it=>`<option value="${it.id}">${esc(TYPE_NAME[it.type]+": "+it.title)} (${fmtDate(it.date)})</option>`).join("")}</select></label>
+    <label class="f">Tag<input type="date" id="hpD" min="${isoDate(today0())}" value="${isoDate(today0())}"></label>
+    ${pre.recId?"":`<div class="stack" style="gap:6px"><span class="label">Sprecherformat</span><div class="row">${Object.entries(AUD_FORMATS).map(([k,f])=>`<button class="chip" data-hf="${k}" aria-pressed="${k===fmt}">${esc(f.n)}</button>`).join("")}</div></div>
+    <div class="stack" style="gap:6px"><span class="label">Umfang</span><div class="row">${Object.entries(AUD_LENGTHS).map(([k,l])=>`<button class="chip" data-hl="${k}" aria-pressed="${k===len}">${esc(l.n)}</button>`).join("")}</div></div>`}
+    <p class="small" id="hpEst"></p>
+    <div class="row"><button class="btn primary" id="hpOk">Eintragen</button><button class="btn" data-close>Abbrechen</button></div>`,(m,close)=>{
+    const sel=$("#hpIt",m), d=$("#hpD",m);
+    const upd=()=>{ const it=S.items.find(x=>x.id===sel.value); const max=parseISO(it.date); max.setDate(max.getDate()-1); d.max=isoDate(max); if(d.value>d.max) d.value=d.max;
+      $("#hpEst",m).innerHTML=`Dauer im Plan: <b>ca. ${est()} Min.</b>${pre.minutes?" (Länge der Aufnahme)":" (geschätzt)"}`; };
+    sel.onchange=upd; upd();
+    $$("[data-hf]",m).forEach(b=>b.onclick=()=>{ fmt=b.dataset.hf; $$("[data-hf]",m).forEach(x=>x.setAttribute("aria-pressed",String(x===b))); upd(); });
+    $$("[data-hl]",m).forEach(b=>b.onclick=()=>{ len=b.dataset.hl; $$("[data-hl]",m).forEach(x=>x.setAttribute("aria-pressed",String(x===b))); upd(); });
+    $("#hpOk",m).onclick=()=>{ const it=S.items.find(x=>x.id===sel.value); if(!d.value||d.value>=it.date||d.value<isoDate(today0())){ toast("Wähle einen Tag zwischen heute und dem Termin"); return; }
+      it.plan.days.push({date:d.value,kind:"hoeren",fmt,len,recId:pre.recId||null,minutes:est(),done:false,sectionIds:[]});
+      it.plan.days.sort((a,b)=>a.date.localeCompare(b.date)||(a.kind==="hoeren")-(b.kind==="hoeren"));
+      save(); close(); toast("Hörphase eingetragen");
+      const o=planOverload(it.plan,set); if(o.over.some(([dt])=>dt===d.value)) toast(`An diesem Tag sind jetzt ca. ${o.over.find(([dt])=>dt===d.value)[1]} Minuten geplant – mehr als deine ${o.budget} Minuten`,4200);
+      if(ROUTE.v==="due") render(); };
+  });
 }
 /* Termin verschoben: Lernplan an das neue Datum anpassen (erledigte Tage bleiben) */
 function adaptPlanToDate(it){
   if(!it.plan) return;
   const late=it.plan.days.some(d=>!d.done && d.date>=it.date);
   const set=setById(it.plan.setId); if(!late||!set) return;
-  const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,keepDone:true});
+  const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,keepDone:true,minutesPerDay:it.plan.minutesPerDay});
   if(!r.error){ it.plan=r.plan; toast("Lernplan an das neue Datum angepasst"); }
 }
 function planProgress(it,set){ if(!it.plan||!set) return {pct:0,secDone:0,n:0}; const n=set.sections.length; const done=new Set(it.plan.days.filter(d=>d.done&&d.kind==="neu").flatMap(d=>d.sectionIds)); return {pct:n?Math.round(done.size/n*100):0,secDone:done.size,n}; }
@@ -70,6 +116,7 @@ function markPlanDone(ref,pct){ const it=S.items.find(x=>x.id===ref.itemId); if(
 async function startPlanDay(it,day){
   if(!SETS.length) await loadSets();
   const set=setById(it.plan.setId); if(!set){ toast("Das Lernset zu diesem Plan gibt es nicht mehr"); return; }
+  if(day.kind==="hoeren"){ openAudio(set,{fmt:day.fmt,len:day.len,open:day.recId||null}); return; }
   const n=day.kind==="wiederholung"?15:clamp(day.sectionIds.length*4,6,15);
   S.activeSet=set.id; save(false);
   go("learn",{manage:true});
@@ -170,19 +217,28 @@ function renderItem(m,it){
   if(it.plan&&set){
     const missed=it.plan.days.filter(d=>!d.done&&d.kind==="neu"&&d.date<tISO);
     const n=it.plan.days.length; let k=0;
+    const ov=planOverload(it.plan,set);
+    const left=it.plan.days.filter(d=>!d.done&&d.kind!=="hoeren"&&d.date>=tISO).reduce((a,d)=>a+dayMinutes(d,set),0);
     ps.innerHTML=`<div class="row"><h2>Lernplan</h2><span class="spacer"></span><span class="small muted">Material: ${esc(set.name)} · ${set.sections.length} Abschnitte</span></div>
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Durchgearbeitet</span><span class="spacer"></span><span class="mono small">${pr.secDone}/${pr.n} Abschnitte · ${pr.pct} %</span></div><div class="bar"><i style="width:${pr.pct}%"></i></div></div>
+     <p class="small muted">Lernzeit pro Lerntag: ${ov.budget} Minuten · noch ca. ${Math.round(left/6)/10} Stunden Lernen bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"}${it.plan.days.some(d=>d.kind==="hoeren")?" (Hörphasen zusätzlich)":""}</p>
+     ${ov.over.length?`<div class="note warn small">Der Zeitraum reicht für den Umfang nicht ganz: An ${ov.over.length} Tag${ov.over.length>1?"en":""} sind bis zu ${ov.max} Minuten geplant, mehr als deine ${ov.budget} Minuten (${esc(ov.over.slice(0,4).map(([d,mn])=>fmtDate(d)+": "+mn+" Min.").join(", "))}${ov.over.length>4?" …":""}). Passe den Plan unten an: mehr Lerntage, weniger Wiederholungstage oder mehr Zeit pro Tag.</div>`:""}
+     <div class="row"><button class="btn sm" id="addHear">Hörphase einplanen</button><span class="small muted">Audiozusammenfassung oder Podcastdialog aus den hochgeladenen Dateien dieses Lernsets</span></div>
      ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Merkwerk kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
      <div>${it.plan.days.map(d=>{ k++; const secs=d.sectionIds.map(id=>set.sections.find(s=>s.id===id)).filter(Boolean); const chars=secs.reduce((a,s)=>a+s.text.length,0);
-        const what=d.kind==="wiederholung"?`<b>Wiederholung:</b> gemischter Durchgang über das ganze Material`:`<b>${secs.length} Abschnitt${secs.length>1?"e":""}</b> (ca. ${Math.max(1,Math.round(chars/2200))} Seite${Math.round(chars/2200)>1?"n":""}): ${esc(secs.slice(0,3).map(secTitle).join(" · "))}${secs.length>3?" …":""}`;
+        const key=`${d.date}|${d.kind}|${k}`;
+        const what=d.kind==="hoeren"?`<b>Hörphase:</b> ${esc((AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n)} · ${esc((AUD_LENGTHS[d.len]||AUD_LENGTHS.standard).n)} · ca. ${dayMinutes(d,set)} Min. <span class="muted">(ergänzt die Lerneinheiten, zählt nicht als gelernt)</span>`
+          :d.kind==="wiederholung"?`<b>Wiederholung:</b> gemischter Durchgang über das ganze Material · ca. ${dayMinutes(d,set)} Min.`:`<b>${secs.length} Abschnitt${secs.length>1?"e":""}</b> (ca. ${Math.max(1,Math.round(chars/2200))} Seite${Math.round(chars/2200)>1?"n":""}, ca. ${dayMinutes(d,set)} Min.): ${esc(secs.slice(0,3).map(secTitle).join(" · "))}${secs.length>3?" …":""}`;
         return `<div class="plan-day ${d.date===tISO?"today":""} ${d.done?"done":""}"><div class="d"><b>${fmtDate(d.date)}</b>${d.date===tISO?' <span class="small">heute</span>':""}</div><div class="what small">${what}${d.done&&d.pct!=null?` · <span class="pill ok">${d.pct} %</span>`:""}</div>
-          <div class="row" style="gap:6px;justify-content:flex-end">${d.done?`<button class="btn ghost sm" data-undo="${d.date}|${d.kind}">Rückgängig</button>`:`<button class="btn sm ${d.date===tISO?"primary":""}" data-learn="${d.date}|${d.kind}">Lernen</button><button class="btn ghost sm" data-check="${d.date}|${d.kind}">Abhaken</button>`}</div></div>`; }).join("")}</div>
+          <div class="row" style="gap:6px;justify-content:flex-end">${d.done?`<button class="btn ghost sm" data-undo="${key}">Rückgängig</button>`:`<button class="btn sm ${d.date===tISO?"primary":""}" data-learn="${key}">${d.kind==="hoeren"?"Anhören":"Lernen"}</button><button class="btn ghost sm" data-check="${key}">Abhaken</button>${d.kind==="hoeren"?`<button class="btn ghost sm danger" data-rmhear="${key}">Entfernen</button>`:""}`}</div></div>`; }).join("")}</div>
      <details><summary class="small">Plan neu erstellen</summary><div id="planForm" style="margin-top:10px"></div></details>`;
-    const find=v=>{const [date,kind]=v.split("|"); return it.plan.days.find(d=>d.date===date&&d.kind===kind);};
-    $$("[data-learn]",ps).forEach(b=>b.onclick=()=>startPlanDay(it,find(b.dataset.learn)));
+    const find=v=>it.plan.days[Number(v.split("|")[2])-1];
+    $$("[data-learn]",ps).forEach(b=>b.onclick=()=>{ const d=find(b.dataset.learn); if(d.kind==="hoeren") openAudio(set,{fmt:d.fmt,len:d.len,open:d.recId||null}); else startPlanDay(it,d); });
+    $$("[data-rmhear]",ps).forEach(b=>b.onclick=()=>{ const d=find(b.dataset.rmhear); it.plan.days=it.plan.days.filter(x=>x!==d); save(); render(); });
+    $("#addHear",ps).onclick=()=>openHearPhase(set);
     $$("[data-check]",ps).forEach(b=>b.onclick=()=>{find(b.dataset.check).done=true;save();render();});
     $$("[data-undo]",ps).forEach(b=>b.onclick=()=>{const d=find(b.dataset.undo); d.done=false; delete d.pct; save(); render();});
-    const rp=$("#replan",ps); if(rp) rp.onclick=()=>{ const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays}); if(r.error){toast(r.error);return;} it.plan=r.plan; save(); render(); toast("Plan neu verteilt"); };
+    const rp=$("#replan",ps); if(rp) rp.onclick=()=>{ const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,minutesPerDay:it.plan.minutesPerDay}); if(r.error){toast(r.error);return;} it.plan=r.plan; save(); render(); toast("Plan neu verteilt"); };
     planForm($("#planForm",ps),it,set);
   } else {
     ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Merkwerk teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
@@ -190,13 +246,14 @@ function renderItem(m,it){
   }
 }
 function planForm(el,it,set){
-  const wds=it.plan?it.plan.weekdays:[0,1,2,3,4,6]; const rev=it.plan?it.plan.reviewDays:2;
+  const wds=it.plan?it.plan.weekdays:[0,1,2,3,4,6]; const rev=it.plan?it.plan.reviewDays:2; const mpd=it.plan&&it.plan.minutesPerDay||45;
   const candidates=SETS.filter(s=>!s.example);
   el.innerHTML=`<div class="stack">
     <label class="f">Material<select id="pSet"><option value="">Neues Lernset mit Dateien anlegen …</option>${candidates.map(s=>`<option value="${s.id}" ${set&&set.id===s.id?"selected":""}>${esc(s.name)} (${s.sections.length} Abschnitte)</option>`).join("")}</select></label>
     <div id="pUp" class="stack" ${set&&!candidates.every(s=>s.id!==set.id)?"hidden":""}><div class="dropzone" id="pDz" tabindex="0" role="button"><b>Material hochladen</b><br><span class="small muted">Skript, Folien, Mitschriften – PDF, DOCX, TXT, GoodNotes oder Fotos</span><input type="file" id="pFi" multiple accept="${FILE_ACCEPT}" hidden></div><div id="pSt" class="small"></div></div>
     <div class="stack" style="gap:6px"><span class="label">An diesen Tagen lernen</span><div class="row" style="gap:6px">${DAYS.map((d,i)=>`<button class="chip" data-wd="${i}" aria-pressed="${wds.includes(i)}">${d}</button>`).join("")}</div></div>
-    <label class="f" style="max-width:280px">Wiederholungstage vor dem Termin<select id="pRev">${[0,1,2,3,4].map(n=>`<option ${n===rev?"selected":""}>${n}</option>`).join("")}</select></label>
+    <div class="row"><label class="f" style="max-width:280px">Wiederholungstage vor dem Termin<select id="pRev">${[0,1,2,3,4].map(n=>`<option ${n===rev?"selected":""}>${n}</option>`).join("")}</select></label>
+    <label class="f" style="max-width:280px">Lernzeit pro Lerntag<select id="pMin">${[20,30,45,60,90,120].map(n=>`<option value="${n}" ${n===mpd?"selected":""}>${n} Minuten</option>`).join("")}</select></label></div>
     <div class="row"><button class="btn primary" id="pGo">Lernplan erstellen</button></div><div id="pErr"></div></div>`;
   const sel=$("#pSet",el), up=$("#pUp",el); const days=new Set(wds);
   sel.onchange=()=>{ up.hidden=!!sel.value; };
@@ -215,14 +272,15 @@ function planForm(el,it,set){
     if(!s){
       if(!pending.length){ err.innerHTML=`<div class="note bad">Wähle ein Lernset oder lade Material hoch.</div>`; return; }
       s=newSet(`${it.title}`,it.subject); const errs=[];
-      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""}); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
+      for(const f of pending){ try{ const r=await readFile(f,t=>{$("#pSt",el).innerHTML=`<span class="spin"></span> ${esc(t)}`;}); if(r.text.trim()) s.files.push(fileEntry(f.name,r)); else errs.push(`„${f.name}“: Kein Text gefunden.`); }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); } }
       if(!s.files.length){ err.innerHTML=`<div class="note bad">${errs.map(esc).join("<br>")||"Kein Text gefunden."}</div>`; return; }
       s.sections=makeSections(s.files); await putSet(s);
       if(errs.length) toast(errs.join(" "),5000);
     }
     if(!s.sections.length){ err.innerHTML=`<div class="note bad">Das Lernset enthält noch keinen Text.</div>`; return; }
-    const r=buildPlan(it,s,{weekdays:[...days].sort(),reviewDays:Number($("#pRev",el).value),keepDone:!!(it.plan&&it.plan.setId===s.id)});
+    const r=buildPlan(it,s,{weekdays:[...days].sort(),reviewDays:Number($("#pRev",el).value),keepDone:!!(it.plan&&it.plan.setId===s.id),minutesPerDay:Number($("#pMin",el).value)});
     if(r.error){ err.innerHTML=`<div class="note bad">${esc(r.error)}</div>`; return; }
-    it.plan=r.plan; it.setId=s.id; save(); render(); toast("Lernplan erstellt");
+    it.plan=r.plan; it.setId=s.id; save(); render();
+    const ov=planOverload(r.plan,s); toast(ov.over.length?`Lernplan erstellt – an ${ov.over.length} Tag${ov.over.length>1?"en":""} reicht die Lernzeit nicht, siehe Hinweis`:"Lernplan erstellt",ov.over.length?4200:2600);
   };
 }

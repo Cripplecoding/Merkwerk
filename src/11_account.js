@@ -41,8 +41,11 @@ async function signInWith(k){
 
 // Nach erfolgreicher Anmeldung oder Registrierung
 async function enterAccount(ident){
+  const fromGuest=WEL.fromGuest; WEL.fromGuest=false;
   const {acc,created}=upsertAccount(ident);
   await useAccountStorage();
+  if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Merkwerk jetzt ohne Konto"); return; }
+  if(fromGuest) setTimeout(()=>offerGuestTransfer(),60);
   if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
   WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home");
   toast(created?"Konto angelegt":`Willkommen zurück${acc.name?", "+acc.name.split(" ")[0]:""}`);
@@ -62,9 +65,13 @@ function renderWelcome(m){
       <div class="grid2 welcome-choice">
         <button class="wizard-opt" id="wHave"><b>Ich habe schon ein Konto</b><span class="small muted">Anmelden und weiterlernen</span></button>
         <button class="wizard-opt primary-opt" id="wNew"><b>Verändere mein Lernen</b><span class="small muted">Neues Konto anlegen</span></button>
+      </div>
+      <div class="stack welcome-guest" style="gap:6px;align-items:center;text-align:center">
+        <button class="btn" id="wGuest">Ohne Konto fortfahren</button>
+        <p class="small muted" style="max-width:520px">Ohne Konto bleiben deine Lernsets, Audios und Termine nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst (im privaten Fenster nur bis zum Schließen). Keine Sicherung, kein Zugriff von anderen Geräten; Wichtiges kannst du herunterladen. Meldest du dich später an, entscheidest du selbst, was du mitnimmst.</p>
       </div>`;
   } else if(w.step==="auth"){
-    const local=ACC.list.filter(a=>a.provider==="local"||a.provider==="claude"||!authReady(a.provider));
+    const local=ACC.list.filter(a=>a.provider!=="guest"&&(a.provider==="local"||a.provider==="claude"||!authReady(a.provider)));
     html=`<section class="sheet stack welcome-card">
       <h1>${w.mode==="login"?"Schön, dass du wieder am Start bist":"Leg dein Konto an"}</h1>
       <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Merkwerk auf dich ab."}</p>
@@ -89,6 +96,7 @@ function renderWelcome(m){
   const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
   on("wHave",()=>{ Object.assign(WEL,{step:"auth",mode:"login",err:""}); render(); });
   on("wNew",()=>{ Object.assign(WEL,{step:"auth",mode:"register",err:""}); render(); });
+  on("wGuest",async()=>{ const g=guestAccount(); await enterAccount(g?{provider:"guest",sub:g.sub,name:"Gast"}:{provider:"guest",sub:"gast",name:"Gast"}); });
   on("wBackStart",()=>{ Object.assign(WEL,{step:"start",err:""}); render(); });
   on("wBackAuth",()=>{ Object.assign(WEL,{step:"auth",err:""}); render(); });
   on("wClaude",async()=>{ if(!CAP.uid){ WEL.err="Dein Claude-Konto ist hier nicht verfügbar. Lade die Seite neu."; render(); return; } await enterAccount({provider:"claude",sub:CAP.uid,name:""}); });
@@ -106,8 +114,64 @@ function renderWelcome(m){
 }
 
 /* ---------- Kontomenü ---------- */
+// Gastzugang: Hinweis auf die Speichergrenzen, Anmelden oder Konto anlegen (mit Auswahl, was übernommen wird)
+function openGuestMenu(){
+  modal(`<div class="row" style="gap:14px;align-items:center"><span class="avatar big">G</span><div class="stack" style="gap:2px"><h2>Ohne Konto</h2><span class="small muted">Gastzugang auf diesem Gerät</span></div></div>
+    <p class="small">Deine Lernsets, Audios und Termine liegen nur in diesem Browser auf diesem Gerät. Sie bleiben, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Audios und Transkripte herunter.</p>
+    <div class="stack" style="gap:8px">
+      <button class="btn primary" id="gmLogin">Ich habe schon ein Konto</button>
+      <button class="btn" id="gmNew">Konto anlegen</button>
+      <button class="btn ghost danger" id="gmDel">Alle Gastinhalte von diesem Gerät löschen</button>
+    </div>
+    <p class="small muted">Beim Anmelden fragt Merkwerk, welche Gastinhalte du in dein Konto übernehmen willst. Ohne deine Auswahl wird nichts übernommen.</p>
+    <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    const leave=async mode=>{ close(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step:"auth",mode,err:"",fromGuest:true}); render(); };
+    $("#gmLogin",m).onclick=()=>leave("login"); $("#gmNew",m).onclick=()=>leave("register");
+    $("#gmDel",m).onclick=async()=>{ close(); if(!await confirmBox("Alle Lernsets, Audios und Termine des Gastzugangs von diesem Gerät löschen?","Löschen")) return;
+      const g=guestAccount(), st=storageFor(g); try{ localStorage.removeItem(st.ls); localStorage.removeItem(st.ls+".sets"); }catch{}
+      if(idb._db){ try{idb._db.close();}catch{} idb._db=null; } try{ indexedDB.deleteDatabase(st.db); }catch{}
+      removeAccount(g.id); await useAccountStorage(); Object.assign(WEL,{step:"start",err:""}); render(); toast("Gastinhalte gelöscht"); };
+  });
+}
+// Nach dem Anmelden aus dem Gastzugang: Gastinhalte nur nach ausdrücklicher Auswahl übernehmen
+async function offerGuestTransfer(){
+  const g=guestAccount(); const me=currentAccount(); if(!g||!me||me.provider==="guest") return;
+  const st=storageFor(g), gs=lsGet(st.ls,{}); let db, sets=[], audio=[];
+  try{ db=await idbOpenNamed(st.db); sets=(await idbTx(db,"sets","readonly",o=>o.getAll())||[]).filter(s=>!s.example); audio=await idbTx(db,"audio","readonly",o=>o.getAll())||[]; }catch{ try{db&&db.close();}catch{} return; }
+  const items=gs.items||[], events=gs.events||[], tt=((gs.timetable||{}).entries)||[];
+  if(!sets.length&&!items.length&&!events.length&&!tt.length){ db.close(); return; }
+  const recCount=id=>{ const meta=audio.find(a=>a.key==="m|"+id); return meta&&Array.isArray(meta.recs)?meta.recs.length:audio.filter(a=>a.key.startsWith("a|"+id+"|")).length; };
+  modal(`<h2>Gastinhalte übernehmen?</h2>
+    <p class="small">Du hast ohne Konto Inhalte angelegt. Wähle aus, was in dein Konto „${esc(accountLabel(me))}“ wandern soll. Übernommenes wird aus dem Gastbereich entfernt; alles andere bleibt dort.</p>
+    <div class="list">${sets.map(s=>`<label class="li aud-file"><input type="checkbox" data-gs="${s.id}" checked><div class="grow"><b>${esc(s.name)}</b><div class="small muted">${s.files.length} Datei${s.files.length===1?"":"en"}${recCount(s.id)?` · ${recCount(s.id)} Audio${recCount(s.id)>1?"s":""}`:""}</div></div></label>`).join("")}
+      ${items.length||events.length||tt.length?`<label class="li aud-file"><input type="checkbox" id="gsPlan" checked><div class="grow"><b>Termine, Lernpläne und Stundenplan</b><div class="small muted">${items.length} Abgaben/Klausuren · ${events.length} Termine · ${tt.length} Stunden</div></div></label>`:""}</div>
+    <div class="row"><button class="btn primary" id="gsOk">Ausgewählte übernehmen</button><button class="btn" id="gsNo">Nichts übernehmen</button></div>`,(m,close)=>{
+    $("#gsNo",m).onclick=()=>{ close(); db.close(); toast("Nichts übernommen – die Gastinhalte bleiben im Gastbereich"); };
+    $("#gsOk",m).onclick=async()=>{
+      const pick=new Set($$("[data-gs]",m).filter(c=>c.checked).map(c=>c.dataset.gs)), plans=$("#gsPlan",m)&&$("#gsPlan",m).checked;
+      $("#gsOk",m).disabled=true;
+      try{
+        for(const s of sets.filter(x=>pick.has(x.id))){
+          await putSet(s);
+          for(const a of audio.filter(a=>a.key==="m|"+s.id||a.key.startsWith("a|"+s.id+"|"))) await idb.aPutStrict({...a,...(a.key.startsWith("m|")?{account:me.id}:{})});
+          await idbTx(db,"sets","readwrite",o=>o.delete(s.id));
+          await idbTx(db,"audio","readwrite",o=>o.delete(IDBKeyRange.bound("m|"+s.id,"m|"+s.id)));
+          await idbTx(db,"audio","readwrite",o=>o.delete(IDBKeyRange.bound("a|"+s.id+"|","a|"+s.id+"|\uffff")));
+        }
+        if(plans){
+          S.items.push(...items.filter(x=>!S.items.some(y=>y.id===x.id))); S.events=[...(S.events||[]),...events.filter(x=>!(S.events||[]).some(y=>y.id===x.id))];
+          if(tt.length){ if(!S.timetable.entries.length) S.timetable=gs.timetable; else S.timetable.entries.push(...tt.filter(x=>!S.timetable.entries.some(y=>y.id===x.id))); }
+          lsSet(st.ls,{...gs,items:[],events:[],timetable:{...(gs.timetable||{}),entries:[]}});
+        }
+        save(); close(); db.close(); toast(`${pick.size} Lernset${pick.size===1?"":"s"}${plans?" und Termine":""} übernommen`); render();
+      }catch{ db.close(); close(); toast("Übernehmen hat nicht vollständig geklappt – nicht Übernommenes ist noch im Gastbereich",5000); render(); }
+    };
+  });
+}
+
 async function openAccountMenu(){
   const a=currentAccount(); if(!a) return;
+  if(a.provider==="guest") return openGuestMenu();
   const name=a.provider==="claude"?(await claudeName())||"Claude-Konto":accountLabel(a);
   modal(`<div class="row" style="gap:14px;align-items:center"><span class="avatar big">${esc((name||"?").slice(0,1).toUpperCase())}</span><div class="stack" style="gap:2px"><h2>${esc(name)}</h2><span class="small muted">${a.provider==="local"?"Konto auf diesem Gerät":"Angemeldet über "+esc(providerName(a.provider))}${a.email?" · "+esc(a.email):""}</span></div></div>
     ${S.profile?`<div class="stack" style="gap:4px"><span class="label">${S.profile.track==="uni"?"Studium":"Schule"}</span><p>${esc(profileLabel(S.profile))}</p></div>`:""}
