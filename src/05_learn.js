@@ -359,17 +359,18 @@ VIEWS.learn = async function(m,arg){
   if(arg&&arg.setId) S.activeSet=arg.setId;
   if(!SETS.length) await loadSets();
   const set=setById(S.activeSet)||SETS[0];
-  if(set&&arg&&arg.cards) return renderCards(m,set);
-  if(set&&arg&&arg.audio) return renderAudio(m,set);
-  if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
+  if(set&&arg&&arg.cards){ touchSet(set.id,"cards"); return renderCards(m,set); }
+  if(set&&arg&&arg.audio){ touchSet(set.id,audPrefs(set).fmt); return renderAudio(m,set); }
+  if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ touchSet(set.id,"quiz"); return renderRound(m,set); }
+  if(set) touchSet(set.id);
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten oder zum Anhören als Audiozusammenfassung oder Podcast.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernsets</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten, zum Anhören als Audiozusammenfassung oder Podcast oder als Probeklausur.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
   const chips=$("#setChips");
   chips.innerHTML=SETS.map(s=>`<button class="chip" aria-pressed="${s.id===(set&&set.id)}" data-id="${s.id}">${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</button>`).join("")+
-    `<button class="chip" id="newSet">+ Neues Lernset</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
+    `<button class="chip" id="newSet">+ Neues Lernset erstellen</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
   $$("[data-id]",chips).forEach(b=>b.onclick=()=>{S.activeSet=b.dataset.id;save(false);go("learn",{manage:true});});
   $("#newSet").onclick=()=>openNewSetDialog();
   const ex=$("#exBtn"); if(ex) ex.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
@@ -389,7 +390,10 @@ function renderSetPanel(el,set){
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
   const last=(set.history||[]).slice(-1)[0];
   const openExam=(S.exams||[]).find(e=>e.phase!=="done"&&e.setIds.includes(set.id));
-  el.innerHTML=`<div class="grid2">
+  const pend=PENDING&&PENDING.setId===set.id?modeByK(PENDING.mode):null;
+  el.innerHTML=`${pend?`<div class="note row" style="margin-bottom:16px" id="pendNote">${set.files.length?`<span class="grow" style="flex:1;min-width:200px">Dein Material ist da. Du kannst jetzt mit „${esc(pend.t)}“ loslegen.</span><button class="btn primary sm" id="pendGo">${esc(pend.t)} starten</button>`
+      :`<span class="grow" style="flex:1;min-width:200px"><b>Nächster Schritt:</b> Lade dein Lernmaterial hoch. Danach geht es direkt mit „${esc(pend.t)}“ weiter.</span>`}<button class="btn ghost sm" id="pendX">Ausblenden</button></div>`:""}
+  <div class="grid2">
    <section class="sheet stack">
      ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
@@ -402,7 +406,8 @@ function renderSetPanel(el,set){
        <div class="grid2" style="gap:10px">
          <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
          <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
-         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung / Podcast</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien: Einzelstimme oder Podcastdialog":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
+         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
+         <button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
          <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
        </div>
      </div>
@@ -432,7 +437,10 @@ function renderSetPanel(el,set){
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
-  $("#audioBtn").onclick=()=>openAudio(set);
+  $("#audioBtn").onclick=()=>launchMode(set,"monolog");
+  $("#podcastBtn").onclick=()=>launchMode(set,"podcast");
+  const pg=$("#pendGo"); if(pg) pg.onclick=()=>{ const k=PENDING.mode; PENDING=null; launchMode(set,k); };
+  const px=$("#pendX"); if(px) px.onclick=()=>{ PENDING=null; $("#pendNote").remove(); };
   $("#examBtn").onclick=()=>openExam?go("exam",{id:openExam.id}):openExamDialog(set);
   const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); await audDeleteSet(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
@@ -471,7 +479,8 @@ function renderRound(m,set){
   const q=R.qs[R.idx]; const res=R.results[R.idx];
   const pct=Math.round(R.idx/R.qs.length*100);
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${R.label?`<span class="pill mark">${esc(R.label)}</span>`:""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   ${modeBarHTML(set,"quiz")}
+   ${R.label?`<div class="row"><span class="pill mark">${esc(R.label)}</span></div>`:""}
    <section class="sheet stack" style="gap:16px">
      <div class="q-head"><span class="mono small">Frage ${R.idx+1} / ${R.qs.length}</span><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">${AFB_LABEL[q.afb]}</span></div>
      <div class="bar"><i style="width:${pct}%"></i></div>
@@ -480,7 +489,7 @@ function renderRound(m,set){
      <div id="qBody" class="stack"></div>
      <div id="qFb"></div>
    </section></div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"quiz");
   const body=$("#qBody"); const fb=$("#qFb");
   const done=!!res;
   const finish=async(r)=>{ R.results[R.idx]=r; await putSet(set); renderRound(m,set); };

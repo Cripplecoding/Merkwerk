@@ -143,7 +143,7 @@ let cleanup=[];
 function go(v,arg){
   cleanup.forEach(f=>{try{f()}catch{}}); cleanup=[];
   S.lastView=v; save(false);
-  $$(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.v===v)));
+  $$(".tab").forEach(t=>{ if(t.dataset.v===v) t.setAttribute("aria-current","page"); else t.removeAttribute("aria-current"); });
   ROUTE.v=v; ROUTE.arg=arg; render();
   window.scrollTo({top:0});
 }

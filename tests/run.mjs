@@ -7,7 +7,7 @@ import vm from "node:vm";
 import { deflateRawSync } from "node:zlib";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","05e_audio.js","07_timetable.js","08_due.js","09_calendar.js"];
+const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","05e_audio.js","05f_modes.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
 const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, ReadableStream, DecompressionStream, TextDecoder, TextEncoder, btoa, AbortController,
   localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };

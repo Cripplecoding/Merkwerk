@@ -51,17 +51,17 @@ a{color:var(--accent)}
 .small{font-size:.86rem}
 .label{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 
-/* Kopf mit Karopapier */
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-  background-size:18px 18px;border-bottom:1px solid var(--line)}
-.top-in{max-width:1040px;margin:0 auto;padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
-.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.brand b{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+/* Kopfzeile: Logo, Hauptnavigation, Konto */
+.top{position:sticky;top:0;z-index:20;background:var(--sheet);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px}
+.brand{display:flex;align-items:center;gap:9px;background:none;border:0;padding:4px 6px 4px 2px;margin-left:-2px;border-radius:10px;cursor:pointer;color:var(--ink)}
+.brand:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.logo-mark{width:34px;height:34px;flex:none}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:1.4rem;letter-spacing:-.03em;line-height:1}
 .brand b span{background:var(--mark);color:var(--mark-ink);padding:0 .15em;border-radius:3px}
-.brand .who{margin-left:auto}
-.brand .acc{padding:3px 10px 3px 3px}
-.brand #profileChip[hidden]+.acc{margin-left:auto}
+.top-acc{display:flex;align-items:center;gap:8px;margin-left:auto;order:3;min-width:0}
+.top-acc .acc{padding:3px 10px 3px 3px;min-height:36px}
+.top-acc .who{max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
 .avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.85rem;flex:none}
 .avatar.big{width:48px;height:48px;font-size:1.3rem}
 .acc-name{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -81,13 +81,15 @@ a{color:var(--accent)}
 .track-pick .wizard-opt{min-height:120px;justify-content:center;align-items:center;text-align:center}
 .track-pick .wizard-opt b{font-family:var(--f-display);font-size:1.3rem}
 .gen-src{display:flex;flex-direction:column;gap:6px}
-.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;order:2;min-width:0}
 .tabs::-webkit-scrollbar{display:none}
-.tab{border:1px solid transparent;border-bottom:none;background:none;padding:9px 14px;border-radius:9px 9px 0 0;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap}
-.tab[aria-selected="true"]{background:var(--sheet);color:var(--ink);border-color:var(--line);margin-bottom:-1px}
-.tab:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tab{border:0;background:none;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap;min-height:40px}
+.tab:hover{color:var(--ink);background:var(--paper)}
+.tab[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.tab:focus-visible,.btn:focus-visible,.chip:focus-visible,.subj:focus-visible,.wizard-opt:focus-visible,.opt:focus-visible,.pick:focus-visible,.org-tile:focus-visible,.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:860px){.tabs{order:4;flex:none;width:calc(100% + 32px);margin:0 -16px;padding:0 12px 2px}.top-acc .who{display:none}.tab{padding:9px 10px}.tab-long{display:none}.top-in{padding-bottom:6px}}
 
-main{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:22px 60px}
+main{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:22px 60px}
 .view{display:flex;flex-direction:column;gap:18px}
 .sheet{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -97,13 +99,21 @@ main{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:22px 60px}
 .spacer{flex:1}
 
 .btn{border:1px solid var(--line);background:var(--sheet);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;display:inline-flex;gap:6px;align-items:center;justify-content:center;text-decoration:none;color:var(--ink)}
+.btn{min-height:38px;flex-shrink:0;max-width:100%}
 .btn:hover{border-color:var(--accent)}
+.btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.96)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.btn-lg{padding:11px 18px;min-height:46px;font-size:1rem}
+.btn .ic{width:18px;height:18px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:none;border-color:transparent;color:var(--accent);padding-inline:6px}
 .btn.danger{color:var(--bad)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.sm{padding:5px 10px;font-size:.88rem}
+.btn.sm{padding:5px 10px;font-size:.88rem;min-height:32px}
+.btn.ghost.sm{min-height:32px}
 .chip{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.9rem;display:inline-flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--accent)}
+.chip:active{transform:translateY(1px)}
 .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:700}
 .pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;font-weight:700;background:var(--accent-soft);color:var(--ink)}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
@@ -136,6 +146,71 @@ details>summary{cursor:pointer;font-weight:700}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){.spin{animation-duration:3s}}
+
+/* Symbole */
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.chip .ic{width:16px;height:16px}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-weight:700;text-decoration:underline;cursor:pointer}
+
+/* Startseite */
+.home{gap:30px}
+.view>section,.view>div{scroll-margin-top:120px}
+.sec-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:38px}
+.sec-head h2{font-size:1.25rem}
+.hero{display:flex;align-items:flex-end;gap:16px 24px;flex-wrap:wrap;justify-content:space-between}
+.hero h1{font-size:clamp(1.8rem,4vw,2.5rem)}
+.hero p{max-width:60ch}
+.intro{gap:16px;padding:22px}
+.intro h2{font-size:1.3rem}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;counter-reset:st}
+.steps li{display:flex;flex-direction:column;gap:3px;padding:14px 14px 14px 52px;border:1px solid var(--line);border-radius:12px;background:var(--paper);position:relative;counter-increment:st}
+.steps li::before{content:counter(st);position:absolute;left:14px;top:13px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:.9rem}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
+.set-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--sheet);box-shadow:var(--shadow);min-width:0}
+.set-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+.set-name{font-size:1.08rem;overflow-wrap:anywhere}
+.set-next{font-weight:700}
+.cur-set{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.cur-set b{overflow-wrap:anywhere}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:14px}
+@media (min-width:980px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--sheet);box-shadow:var(--shadow);cursor:pointer;color:var(--ink);min-height:208px;min-width:0;transition:border-color .15s,box-shadow .15s}
+.tile:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+.tile:active{background:var(--accent-soft)}
+.tile:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tile[aria-busy="true"]{cursor:progress;opacity:.8}
+.tile-ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-bottom:4px}
+.tile-ic .ic{width:26px;height:26px}
+.tile-t{font-family:var(--f-display);font-weight:700;font-size:1.16rem;line-height:1.2}
+.tile-d{color:var(--muted);font-size:.95rem}
+.tile-s{font-size:.86rem;font-weight:700}
+.tile-s.warn{color:var(--warn)}
+.tile-s.warn::before{content:"! ";}
+.tile-cta{margin-top:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;min-height:40px}
+.tile-cta .ic{width:18px;height:18px}
+.tile:hover .tile-cta{filter:brightness(1.08)}
+@media (max-width:560px){.tile{min-height:0;display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:14px;row-gap:4px}.tile>*{grid-column:2}.tile-ic{grid-column:1;grid-row:1/span 3;margin:0}.tile-cta{justify-self:start;margin-top:6px}}
+.org{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.org-tile{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--sheet);cursor:pointer;color:var(--ink);min-height:68px;box-shadow:var(--shadow)}
+.org-tile>.ic{width:28px;height:28px;color:var(--accent)}
+.org-tile:hover{border-color:var(--accent)}
+.org-tile:active{background:var(--accent-soft)}
+.li-now{background:var(--accent-soft);border-radius:8px;padding-inline:8px}
+/* Lernset auswählen */
+.pick-list{display:flex;flex-direction:column;gap:8px;max-height:min(52vh,420px);overflow:auto;padding:2px}
+.pick{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--sheet);cursor:pointer;color:var(--ink);min-height:56px}
+.pick:hover{border-color:var(--accent)}
+.pick[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pick b{overflow-wrap:anywhere}
+.pick>.ic{width:18px;height:18px;color:var(--muted)}
+/* Lernset-Leiste in den Lernansichten */
+.modebar{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--sheet)}
+.modebar-set{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;min-width:0}
+.modebar-k{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.modebar-n{font-family:var(--f-display);font-size:1.1rem;overflow-wrap:anywhere}
+.modebar-modes{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.modebar-modes .chip{white-space:nowrap;min-height:36px}
+.modebar-modes .chip[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 
 /* Quiz */
 .q-head{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -319,19 +394,18 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 
 <header class="top">
   <div class="top-in">
-    <div class="brand">
-      <b>Merk<span>werk</span></b>
-      <span class="muted small">Belegte Prüfungsfragen aus deinem Material</span>
+    <button class="brand" id="brandHome" type="button" aria-label="Merkwerk – zur Startseite"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="9" y="14" width="46" height="34" rx="5" fill="#e9f26b" transform="rotate(-5 32 32)"/><path d="M17 45V19h7.5l7.5 13.5L39.5 19H47v26h-7V31l-6 10.5h-4L24 31v14z" fill="#1b2130"/><rect x="17" y="50" width="30" height="3.5" rx="1.75" fill="#2a46c4"/></svg><b>Merk<span>werk</span></b></button>
+    <nav class="tabs" id="tabs" aria-label="Hauptnavigation">
+      <button class="tab" type="button" data-v="home" id="tab-home">Start</button>
+      <button class="tab" type="button" data-v="learn" id="tab-learn">Lernsets</button>
+      <button class="tab" type="button" data-v="lib" id="tab-lib">Bibliothek</button>
+      <button class="tab" type="button" data-v="tt" id="tab-tt">Stundenplan</button>
+      <button class="tab" type="button" data-v="due" id="tab-due">Termine<span class="tab-long"> &amp; Lernplan</span></button>
+    </nav>
+    <div class="top-acc">
       <button class="chip who" id="profileChip" type="button" hidden></button>
       <button class="chip acc" id="accountChip" type="button" hidden></button>
     </div>
-    <nav class="tabs" role="tablist" id="tabs">
-      <button class="tab" role="tab" data-v="home" id="tab-home">Heute</button>
-      <button class="tab" role="tab" data-v="learn" id="tab-learn">Lernen</button>
-      <button class="tab" role="tab" data-v="lib" id="tab-lib">Bibliothek</button>
-      <button class="tab" role="tab" data-v="tt" id="tab-tt">Kalender</button>
-      <button class="tab" role="tab" data-v="due" id="tab-due">Abgaben &amp; Klausuren</button>
-    </nav>
   </div>
 </header>
 <main id="main"></main>
@@ -881,7 +955,7 @@ let cleanup=[];
 function go(v,arg){
   cleanup.forEach(f=>{try{f()}catch{}}); cleanup=[];
   S.lastView=v; save(false);
-  $$(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.v===v)));
+  $$(".tab").forEach(t=>{ if(t.dataset.v===v) t.setAttribute("aria-current","page"); else t.removeAttribute("aria-current"); });
   ROUTE.v=v; ROUTE.arg=arg; render();
   window.scrollTo({top:0});
 }
@@ -1545,17 +1619,18 @@ VIEWS.learn = async function(m,arg){
   if(arg&&arg.setId) S.activeSet=arg.setId;
   if(!SETS.length) await loadSets();
   const set=setById(S.activeSet)||SETS[0];
-  if(set&&arg&&arg.cards) return renderCards(m,set);
-  if(set&&arg&&arg.audio) return renderAudio(m,set);
-  if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
+  if(set&&arg&&arg.cards){ touchSet(set.id,"cards"); return renderCards(m,set); }
+  if(set&&arg&&arg.audio){ touchSet(set.id,audPrefs(set).fmt); return renderAudio(m,set); }
+  if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ touchSet(set.id,"quiz"); return renderRound(m,set); }
+  if(set) touchSet(set.id);
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten oder zum Anhören als Audiozusammenfassung oder Podcast.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernsets</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten, zum Anhören als Audiozusammenfassung oder Podcast oder als Probeklausur.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
   const chips=$("#setChips");
   chips.innerHTML=SETS.map(s=>`<button class="chip" aria-pressed="${s.id===(set&&set.id)}" data-id="${s.id}">${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</button>`).join("")+
-    `<button class="chip" id="newSet">+ Neues Lernset</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
+    `<button class="chip" id="newSet">+ Neues Lernset erstellen</button>${SETS.some(s=>s.example)?"":`<button class="chip" id="exBtn">Beispiel ausprobieren</button>`}`;
   $$("[data-id]",chips).forEach(b=>b.onclick=()=>{S.activeSet=b.dataset.id;save(false);go("learn",{manage:true});});
   $("#newSet").onclick=()=>openNewSetDialog();
   const ex=$("#exBtn"); if(ex) ex.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
@@ -1575,7 +1650,10 @@ function renderSetPanel(el,set){
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
   const last=(set.history||[]).slice(-1)[0];
   const openExam=(S.exams||[]).find(e=>e.phase!=="done"&&e.setIds.includes(set.id));
-  el.innerHTML=`<div class="grid2">
+  const pend=PENDING&&PENDING.setId===set.id?modeByK(PENDING.mode):null;
+  el.innerHTML=`${pend?`<div class="note row" style="margin-bottom:16px" id="pendNote">${set.files.length?`<span class="grow" style="flex:1;min-width:200px">Dein Material ist da. Du kannst jetzt mit „${esc(pend.t)}“ loslegen.</span><button class="btn primary sm" id="pendGo">${esc(pend.t)} starten</button>`
+      :`<span class="grow" style="flex:1;min-width:200px"><b>Nächster Schritt:</b> Lade dein Lernmaterial hoch. Danach geht es direkt mit „${esc(pend.t)}“ weiter.</span>`}<button class="btn ghost sm" id="pendX">Ausblenden</button></div>`:""}
+  <div class="grid2">
    <section class="sheet stack">
      ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
@@ -1588,7 +1666,8 @@ function renderSetPanel(el,set){
        <div class="grid2" style="gap:10px">
          <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
          <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
-         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung / Podcast</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien: Einzelstimme oder Podcastdialog":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
+         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
+         <button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
          <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
        </div>
      </div>
@@ -1618,7 +1697,10 @@ function renderSetPanel(el,set){
   $("#startBtn").onclick=()=>startRound(set,{n:15});
   const sb=$("#sameBtn"); if(sb) sb.onclick=()=>startRound(set,{reuse:true});
   $("#cardsBtn").onclick=()=>openCards(set);
-  $("#audioBtn").onclick=()=>openAudio(set);
+  $("#audioBtn").onclick=()=>launchMode(set,"monolog");
+  $("#podcastBtn").onclick=()=>launchMode(set,"podcast");
+  const pg=$("#pendGo"); if(pg) pg.onclick=()=>{ const k=PENDING.mode; PENDING=null; launchMode(set,k); };
+  const px=$("#pendX"); if(px) px.onclick=()=>{ PENDING=null; $("#pendNote").remove(); };
   $("#examBtn").onclick=()=>openExam?go("exam",{id:openExam.id}):openExamDialog(set);
   const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); await audDeleteSet(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
@@ -1657,7 +1739,8 @@ function renderRound(m,set){
   const q=R.qs[R.idx]; const res=R.results[R.idx];
   const pct=Math.round(R.idx/R.qs.length*100);
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${R.label?`<span class="pill mark">${esc(R.label)}</span>`:""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   ${modeBarHTML(set,"quiz")}
+   ${R.label?`<div class="row"><span class="pill mark">${esc(R.label)}</span></div>`:""}
    <section class="sheet stack" style="gap:16px">
      <div class="q-head"><span class="mono small">Frage ${R.idx+1} / ${R.qs.length}</span><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">${AFB_LABEL[q.afb]}</span></div>
      <div class="bar"><i style="width:${pct}%"></i></div>
@@ -1666,7 +1749,7 @@ function renderRound(m,set){
      <div id="qBody" class="stack"></div>
      <div id="qFb"></div>
    </section></div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"quiz");
   const body=$("#qBody"); const fb=$("#qFb");
   const done=!!res;
   const finish=async(r)=>{ R.results[R.idx]=r; await putSet(set); renderRound(m,set); };
@@ -1846,7 +1929,8 @@ function renderCards(m,set){
   const card=byId[F.ids[F.idx]]; if(!card){ F.ids=F.ids.filter(id=>byId[id]); F.idx=Math.min(F.idx,F.ids.length); if(F.idx>=F.ids.length) F.phase="end"; putSet(set); return renderCards(m,set); }
   const total=F.ids.length, done=F.idx, pct=Math.round(done/total*100);
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${F.retry?'<span class="pill warn">Nicht gewusste</span>':""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   ${modeBarHTML(set,"cards")}
+   ${F.retry?'<div class="row"><span class="pill warn">Nicht gewusste</span></div>':""}
    <div class="fc-progress" aria-label="Fortschritt"><span class="mono"><b>${done}</b> / ${total}</span><div class="fc-bar"><i style="width:${pct}%"></i></div></div>
    <div class="fc-stage">
      <button class="fc-zone know" id="zKnow" type="button" aria-label="Weiß ich (${F.known.length})"><span class="fc-count mono">${F.known.length}</span><span class="fc-zl">weiß ich</span><span class="fc-arrow" aria-hidden="true">←</span></button>
@@ -1860,7 +1944,7 @@ function renderCards(m,set){
    </div>
    <p class="small muted" style="text-align:center">Karte antippen zum Umdrehen · nach links oder rechts ziehen zum Einordnen · Tastatur: Leertaste, ← und →</p>
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"cards");
   const el=$("#fcCard"), inner=$(".fc-inner",el), zK=$("#zKnow"), zP=$("#zPractice");
   let flipped=false, busy=false;
   const flip=()=>{ flipped=!flipped; inner.classList.toggle("flipped",flipped); $(".fc-front",el).setAttribute("aria-hidden",String(flipped)); $(".fc-back",el).setAttribute("aria-hidden",String(!flipped)); };
@@ -1892,7 +1976,7 @@ function renderCardsEnd(m,set){
   setFcKeys(null); const F=set.fc; const r=fcResult(F);
   const kPct=r.pct, pPct=r.n?100-r.pct:0;
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button></div>
+   ${modeBarHTML(set,"cards")}
    <section class="sheet stack" style="gap:20px">
      <div class="row" style="align-items:flex-end;gap:18px"><div class="score mono">${kPct}<span style="font-size:1.6rem"> %</span></div><div class="stack" style="gap:2px"><h2>Alle Karten durchgearbeitet</h2><p class="muted">Du hast ${r.known} von ${r.n} Karten gewusst${F.retry?" · Durchlauf mit nicht gewussten Karten":""}</p></div></div>
      <div class="fc-chart" role="img" aria-label="Gewusst ${kPct} Prozent, muss ich noch üben ${pPct} Prozent">
@@ -1909,7 +1993,7 @@ function renderCardsEnd(m,set){
    </section>
    ${r.practice?`<section class="sheet stack"><h3>Muss ich noch üben (${r.practice})</h3><div class="list">${F.practice.map(id=>set.cards.find(c=>c.id===id)).filter(Boolean).map(c=>`<div class="li"><div class="grow stack" style="gap:2px"><b>${esc(c.term)}</b><p class="small">${esc(c.definition)}</p></div></div>`).join("")}</div></section>`:`<div class="note">Alles gewusst. Mit „Karten noch einmal durcharbeiten“ startest du einen neuen Durchlauf.</div>`}
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"cards");
   $("#fcAll").onclick=async()=>{ fcStart(set,set.cards.map(c=>c.id)); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcRetry").onclick=async()=>{ if(!F.practice.length) return; fcStart(set,[...F.practice],true); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcHome").onclick=()=>go("home");
@@ -1998,7 +2082,9 @@ function openNewSetDialog(preset={}){
     const create=async mode=>{
       subject=sIn.value.trim(); topic=tIn.value.trim();
       const s=newSet(topic||subject||"Lernset "+(SETS.length+1),subject); s.topic=topic;
-      await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true});
+      await putSet(s); S.activeSet=s.id; touchSet(s.id); save(); close();
+      if(preset.then&&!mode) PENDING={setId:s.id,mode:preset.then};
+      go("learn",{setId:s.id,manage:true});
       if(mode) generateIntoSet(s,{mode});
     };
     $("#nsOwn",m).onclick=()=>create(null);
@@ -3163,11 +3249,6 @@ function audStorageNote(){
   if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Merkwerk ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
   return `<p class="small muted">Gespeichert wird auf diesem Gerät im Browser, im Bereich deines Kontos „${esc(a?accountLabel(a):"")}“, nicht auf einem Server und nicht auf anderen Geräten. Andere Konten auf diesem Gerät sehen deine Aufnahmen nicht.</p>`;
 }
-const audSwitchRow=set=>`<nav class="row aud-modes" aria-label="Lernangebote in diesem Lernset"><button class="chip" id="toQuiz">Interaktive Abfrage</button><button class="chip" id="toCards">Karteikarten</button><button class="chip" aria-pressed="true" aria-current="page">Audiozusammenfassung / Podcast</button></nav>`;
-function bindSwitchRow(set){
-  const q=$("#toQuiz"); if(q) q.onclick=()=>{ if(set.round&&set.round.phase==="q") go("learn",{setId:set.id}); else go("learn",{manage:true}); };
-  const c=$("#toCards"); if(c) c.onclick=()=>openCards(set);
-}
 
 async function renderAudio(m,set){
   const P=audPrefs(set);
@@ -3176,17 +3257,16 @@ async function renderAudio(m,set){
   audStop(); if(!cleanup.includes(audStop)) cleanup.push(audStop);
   if(!TTS.checked) ttsStatus().then(()=>{ if(ROUTE.arg&&ROUTE.arg.audio&&!audPlaying()) renderAudio(m,set); });
   const eligible=audEligible(set), generated=set.files.filter(f=>f.kind==="generiert");
-  const head=`<div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
-   ${audSwitchRow(set)}
-   <div class="stack" style="gap:4px"><h1>Audiozusammenfassung / Podcast</h1><p class="muted">Dein Lernstoff zum Anhören, ausschließlich aus den Dateien, die du hier auswählst: keine Internetrecherche, kein YouTube, kein Bildungsplan, kein Zusatzwissen. Einzelstimme und Podcastdialog beruhen auf derselben geprüften Inhaltsgrundlage.</p></div>`;
+  const head=`${modeBarHTML(set,P.fmt)}
+   <div class="stack" style="gap:4px"><h1>${P.fmt==="podcast"?"Podcast":"Audiozusammenfassung"}</h1><p class="muted">${P.fmt==="podcast"?"Dein Lernstoff als Gespräch zwischen zwei Stimmen":"Dein Lernstoff zum Anhören mit einer Stimme"}, ausschließlich aus den Dateien, die du hier auswählst: keine Internetrecherche, kein YouTube, kein Bildungsplan, kein Zusatzwissen. Einzelstimme und Podcastdialog beruhen auf derselben geprüften Inhaltsgrundlage.</p></div>`;
   // Keine eigenen Dateien: zum Hochladen auffordern, Erstellung deaktiviert
   if(!eligible.length){
     m.innerHTML=`<div class="view">${head}<section class="sheet stack">
       <div class="note warn">${generated.length?"Dieses Lernset enthält nur recherchierte Inhalte aus „Lerninhalte generieren“. Audio entsteht ausschließlich aus Dateien, die du selbst hochlädst; recherchierte Texte, Karteikarten und Fragen sind keine Quelle dafür.":"In diesem Lernset liegen noch keine Dateien."} Lade zuerst deine PDF-, DOCX- oder Bilddateien hoch.</div>
-      <div class="row"><button class="btn primary" id="audUpload">Dateien hochladen</button><button class="btn" disabled title="Erst Dateien hochladen">Audio erzeugen</button></div>
+      <div class="row"><button class="btn primary" id="audUpload">${ic("upload")} Lernmaterial hochladen</button><button class="btn" disabled title="Erst Lernmaterial hochladen">Audio erzeugen</button></div>
       <p class="small muted">Die Erstellung ist deaktiviert, weil keine hochgeladene Datei vorhanden ist.</p></section></div>`;
-    $("#backSets").onclick=()=>go("learn",{manage:true}); bindSwitchRow(set);
-    $("#audUpload").onclick=()=>go("learn",{manage:true}); return;
+    bindModeBar(set,P.fmt);
+    $("#audUpload").onclick=()=>needMaterial(set,P.fmt); return;
   }
   const {view,blockers,warnings}=audCheckFiles(set,P.files);
   const src=materialHash(view), base=meta&&meta.bases[src];
@@ -3245,11 +3325,11 @@ async function renderAudio(m,set){
    ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Merkwerk hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
    <p class="small muted">Anhören zählt nicht als gelernt: Eine gehörte Aufnahme ist kein richtig beantworteter Durchgang und keine gewusste Karte. Prüfe dein Wissen mit der interaktiven Abfrage oder den Karteikarten.</p>
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true}); bindSwitchRow(set);
+  bindModeBar(set,P.fmt);
   const rer=()=>{ S.audio={fmt:P.fmt,len:P.len,lang:P.lang,voices:P.voices}; (S.audioSel ||= {})[set.id]=[...P.files]; save(false); renderAudio(m,set); };
   $$("[data-file]",m).forEach(c=>c.onchange=()=>{ const id=c.dataset.file; P.files=c.checked?[...new Set([...P.files,id])]:P.files.filter(x=>x!==id); P.themen=null; rer(); });
-  $$("[data-fmt]",m).forEach(b=>b.onclick=()=>{ if(P.fmt===b.dataset.fmt) return; P.fmt=b.dataset.fmt; rer(); });
-  $(".aud-seg",m).onkeydown=e=>{ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){ e.preventDefault(); P.fmt=P.fmt==="monolog"?"podcast":"monolog"; rer(); setTimeout(()=>{ const b=$(`[data-fmt="${P.fmt}"]`); b&&b.focus(); },0); } };
+  $$("[data-fmt]",m).forEach(b=>b.onclick=()=>{ if(P.fmt===b.dataset.fmt) return; P.fmt=b.dataset.fmt; touchSet(set.id,P.fmt); rer(); });
+  $(".aud-seg",m).onkeydown=e=>{ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){ e.preventDefault(); P.fmt=P.fmt==="monolog"?"podcast":"monolog"; touchSet(set.id,P.fmt); rer(); setTimeout(()=>{ const b=$(`[data-fmt="${P.fmt}"]`); b&&b.focus(); },0); } };
   $$("[data-len]",m).forEach(b=>b.onclick=()=>{ P.len=b.dataset.len; rer(); });
   $$("[data-lang]",m).forEach(b=>b.onclick=()=>{ P.lang=b.dataset.lang; rer(); });
   $$("[data-topic]",m).forEach(b=>b.onclick=()=>{ const t=b.dataset.topic; if(!t){ P.themen=null; } else { const cur=P.themen?[...P.themen]:[]; const i=cur.findIndex(x=>relax(x)===relax(t)); if(i>=0) cur.splice(i,1); else cur.push(t); P.themen=cur.length&&cur.length<base.themen.length?cur:null; } rer(); });
@@ -3335,7 +3415,7 @@ async function renderRecs(box,set,meta,P){
       ${r.storage==="mem"?`<span class="small bad-t">Nicht gespeichert: nur bis zum Schließen der Seite verfügbar. <button class="btn sm" data-resave="${r.id}">Erneut speichern</button></span>`:""}
       ${st.length?`<span class="small warn-t">Basiert auf einem früheren Stand: ${esc(st.map(x=>`„${x.name}“ ${x.why}`).join(", "))}. Die Aufnahme bleibt diesem Quellenstand zugeordnet.</span>`:""}
       ${r.lastPos>5&&r.lastPos<(r.duration||0)-5?`<span class="small muted">Weiter bei ${fmtTime(r.lastPos)}</span>`:""}</div></div>
-      <div class="row" style="gap:6px"><button class="btn sm ${r.id===P.open?"primary":""}" data-open="${r.id}" aria-expanded="${r.id===P.open}">${r.id===P.open?"Geöffnet":"Öffnen"}</button><button class="btn ghost sm" data-ren="${r.id}">Umbenennen</button><button class="btn ghost sm" data-txdl="${r.id}">Transkript herunterladen</button>${S.items.some(it=>!it.done&&it.date>=isoDate(today0()))?`<button class="btn ghost sm" data-plan="${r.id}">Als Hörphase einplanen</button>`:""}${st.length?`<button class="btn ghost sm" data-renew="${r.id}">Aus aktueller Auswahl neu erstellen</button>`:""}<button class="btn ghost sm danger" data-del="${r.id}">Löschen</button></div>
+      <div class="row" style="gap:6px"><button class="btn sm ${r.id===P.open?"primary":""}" data-open="${r.id}" aria-expanded="${r.id===P.open}">${r.id===P.open?"Ausgewählt":`${ic("play")} Anhören`}</button><button class="btn ghost sm" data-ren="${r.id}">Umbenennen</button><button class="btn ghost sm" data-txdl="${r.id}">Transkript herunterladen</button>${S.items.some(it=>!it.done&&it.date>=isoDate(today0()))?`<button class="btn ghost sm" data-plan="${r.id}">Als Hörphase einplanen</button>`:""}${st.length?`<button class="btn ghost sm" data-renew="${r.id}">Aus aktueller Auswahl neu erstellen</button>`:""}<button class="btn ghost sm danger" data-del="${r.id}">Löschen</button></div>
       ${r.id===P.open?`<div id="recPlayer"></div><details><summary class="small">Transkript mit Quellen</summary><div style="margin-top:8px">${transcriptHTML(r.script.segments,r.fmt,r.sources,r)}</div></details>`:""}</div>`; }).join("")}</div>`;
   const rec=recs.find(r=>r.id===P.open);
   $$("[data-open]",box).forEach(b=>b.onclick=()=>{ P.open=b.dataset.open; renderRecs(box,set,meta,P); });
@@ -3481,6 +3561,237 @@ function mountDeviceReader(box,sc,fmt,lang){
   $("#dvPrev",box).onclick=()=>{ i=Math.max(0,i-1); speak(); };
   $("#dvNext",box).onclick=()=>{ i=Math.min(sc.segments.length-1,i+1); speak(); };
   audTeardown.push(()=>{ on=false; try{synth.cancel();}catch{} });
+}
+
+/* ---- 05f_modes.js ---- */
+/* ===================== Lernoptionen: Kacheln, Lernset-Auswahl, Wechsel zwischen Funktionen ===================== */
+// Symbole (24er-Raster, Strich in Textfarbe)
+const ICON={
+  quiz:`<path d="M4 4.5h16v11.5H9.5L4 20z"/><path d="M9.8 8.6a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.4"/><path d="M12 14.6v.1"/>`,
+  cards:`<rect x="3" y="7.5" width="14" height="12" rx="2"/><path d="M7 7.5V5.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/>`,
+  audio:`<path d="M4 15.5v-3.5a8 8 0 0 1 16 0v3.5"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/>`,
+  podcast:`<path d="M3 4.5h11v8.5H7.5L3 16.5z"/><path d="M17 8.5h4v9l-3.2-2.3H11.5V13"/>`,
+  spark:`<path d="M11 3.5l1.9 5 5 1.9-5 1.9-1.9 5-1.9-5-5-1.9 5-1.9z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>`,
+  exam:`<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M9 12.5l2.2 2.2 4-4.2"/>`,
+  lib:`<path d="M4.5 4h4v16h-4zM10.5 4h4v16h-4z"/><path d="M16.6 5.2l3.4.9-3.6 14.1-3.4-.9"/>`,
+  cal:`<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>`,
+  plan:`<path d="M10.5 6.5H20M10.5 12H20M10.5 17.5H20"/><path d="M3.5 6.5l1.6 1.6 2.6-2.8M3.5 12l1.6 1.6 2.6-2.8"/><circle cx="5.3" cy="17.5" r="1.3"/>`,
+  due:`<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>`,
+  plus:`<path d="M12 5v14M5 12h14"/>`,
+  arrow:`<path d="M5 12h14M13 6l6 6-6 6"/>`,
+  swap:`<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>`,
+  upload:`<path d="M12 15.5V4M7 8.5L12 4l5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>`,
+  play:`<path d="M8 5.5v13l10.5-6.5z"/>`,
+};
+const ic=(k,cls="")=>`<svg class="ic${cls?" "+cls:""}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON[k]||""}</svg>`;
+
+// Die Lernoptionen in fester Reihenfolge (Startseite, Lernset-Leiste)
+const MODES=[
+  {k:"quiz",t:"Interaktive Abfrage",d:"Teste dein Wissen mit abwechslungsreichen Fragen.",icon:"quiz"},
+  {k:"cards",t:"Karteikarten",d:"Wiederhole Begriffe und Definitionen in deinem Tempo.",icon:"cards"},
+  {k:"monolog",t:"Audiozusammenfassung",d:"Höre eine Zusammenfassung deiner hochgeladenen Lernmaterialien.",icon:"audio"},
+  {k:"podcast",t:"Podcast",d:"Lerne dieselben Inhalte als Gespräch zwischen zwei Stimmen.",icon:"podcast"},
+  {k:"generate",t:"Lerninhalte generieren",d:"Erstelle passende Lerninhalte zu deinem Fach und Thema.",icon:"spark"},
+  {k:"exam",t:"Probeklausur",d:"Schreib eine Klausur mit Zeitlimit und lass sie korrigieren.",icon:"exam"},
+];
+const modeByK=k=>MODES.find(x=>x.k===k)||null;
+
+/* ---------- Zuletzt verwendet ---------- */
+// S.recent: Lernset-ID → {at, mode}; liegt im App-Zustand des Kontos, die Lernsets selbst bleiben unverändert
+function touchSet(id,mode){
+  if(!id) return; const r=S.recent||(S.recent={}); const old=r[id]||{};
+  r[id]={at:Date.now(),mode:mode||old.mode||null}; save(false);
+}
+const usedAt=s=>((S.recent||{})[s.id]||{}).at||s.createdAt||0;
+const recentSets=()=>[...SETS].sort((a,b)=>usedAt(b)-usedAt(a));
+const activeSetOrNull=()=>setById(S.activeSet)||null;
+function agoLabel(t){
+  if(!t) return ""; const d=daysBetween(new Date(t),today0());
+  if(d<=0) return "heute"; if(d===1) return "gestern"; if(d<7) return `vor ${d} Tagen`;
+  return new Date(t).toLocaleDateString("de-DE",{day:"numeric",month:"short"});
+}
+const runningExam=set=>(S.exams||[]).find(e=>e.phase!=="done"&&e.setIds.includes(set.id))||null;
+// Womit „Weiterlernen“ fortsetzt: angefangene Abfrage, angefangene Karteikarten, sonst die zuletzt genutzte Lernoption
+function resumeInfo(s){
+  const R=s.round, F=s.fc, last=((S.recent||{})[s.id]||{}).mode;
+  const quiz=R&&R.phase==="q"&&R.qs?{mode:"quiz",info:`Abfrage angefangen: Frage ${R.idx+1} von ${R.qs.length}`}:null;
+  const cards=F&&F.phase==="card"&&F.idx>0&&s.cards?{mode:"cards",info:`Karteikarten angefangen: ${F.idx} von ${F.ids.length}`}:null;
+  if(last==="cards"&&cards) return cards;
+  if(quiz) return quiz;
+  if(cards) return cards;
+  if(last&&last!=="generate"&&modeByK(last)) return {mode:last,info:`Zuletzt: ${modeByK(last).t}`};
+  return {mode:null,info:s.files.length?"Lernoption wählen":"Noch kein Material"};
+}
+function resumeSet(s){ const r=resumeInfo(s); S.activeSet=s.id; save(false); if(!r.mode) return go("learn",{setId:s.id,manage:true}); launchMode(s,r.mode); }
+
+/* ---------- Lernoption für ein Lernset öffnen ---------- */
+// Gewählte Lernoption, die nach dem Hochladen weitergeht (Hinweis im Lernset), nur bis zum Neuladen
+let PENDING=null;
+async function launchMode(set,mode){
+  if(!set) return pickSetFor(mode);
+  S.activeSet=set.id; save(false);
+  const hasFiles=!!(set.files&&set.files.length);
+  if(mode==="quiz"){
+    if(set.round&&set.round.phase==="q"&&set.round.qs) return go("learn",{setId:set.id});
+    if(!hasFiles) return needMaterial(set,mode);
+    if(!CAP.sample&&!set.example) return needAI(set,mode);
+    touchSet(set.id,"quiz"); go("learn",{setId:set.id,manage:true}); setTimeout(()=>startRound(set,{n:15}),30); return;
+  }
+  if(mode==="cards"){
+    if(!hasFiles) return needMaterial(set,mode);
+    if(set.cards&&set.cards.length) return openCards(set);
+    go("learn",{setId:set.id,manage:true}); setTimeout(()=>openCards(set),30); return;
+  }
+  if(mode==="monolog"||mode==="podcast"){
+    let open=null; try{ const meta=await audMeta(set.id); const r=((meta&&meta.recs)||[]).find(x=>x.fmt===mode); if(r) open=r.id; }catch{}
+    return openAudio(set,{fmt:mode,...(open?{open}:{})});
+  }
+  if(mode==="generate"){
+    if(set.example) return openNewSetDialog();
+    touchSet(set.id); go("learn",{setId:set.id,manage:true});
+    return set.topic?openGenModes(set):askTopic(set);
+  }
+  if(mode==="exam"){
+    if(!hasFiles) return needMaterial(set,mode);
+    const open=runningExam(set); if(open) return go("exam",{id:open.id});
+    if(!CAP.sample) return needAI(set,mode);
+    touchSet(set.id,"exam"); return openExamDialog(set);
+  }
+}
+// Fehlt Material: ins Lernset, dort steht der nächste Schritt
+function needMaterial(set,mode){
+  PENDING={setId:set.id,mode}; go("learn",{setId:set.id,manage:true});
+  setTimeout(()=>{ const d=$("#dz"); if(d){ d.scrollIntoView({block:"center"}); d.focus(); } },60);
+}
+// Fehlt die KI: erklären und eine Lernoption anbieten, die auch ohne funktioniert
+function needAI(set,mode){
+  const M=modeByK(mode);
+  modal(`<h2>${esc(M.t)} braucht KI</h2>
+    <p>${mode==="exam"?"Bei der Probeklausur stellt Claude die Aufgaben zusammen und korrigiert sie.":"Bei der interaktiven Abfrage erstellt Claude die Fragen aus deinem Material und bewertet deine Antworten."} Auf dieser Seite ist die KI noch nicht eingerichtet. In Merkwerk in claude.ai funktioniert es.</p>
+    <p class="small muted">Ohne KI kannst du mit Karteikarten lernen oder die Abfrage am Beispiel zur Photosynthese ausprobieren.</p>
+    <div class="row"><button class="btn primary" id="naCards">${ic("cards")} Karteikarten öffnen</button><button class="btn" id="naEx">Beispiel ausprobieren</button><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    $("#naCards",m).onclick=()=>{ close(); launchMode(set,"cards"); };
+    $("#naEx",m).onclick=async()=>{ close(); const s=await makeExampleSet(); launchMode(s,mode==="exam"?"quiz":mode); };
+  });
+}
+// Lerninhalte generieren braucht ein Thema
+function askTopic(set){
+  const topics=curatedTopics(set.subject);
+  modal(`<h2>Lerninhalte generieren</h2><p class="small muted">Für das Lernset „${esc(set.name)}“${set.subject?` · ${esc(set.subject)}`:""}</p>
+    <label class="f">Zu welchem Thema?<input type="text" id="atT" list="atList" placeholder="z. B. Lineare Funktionen" autocomplete="off"><datalist id="atList">${topics.map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>
+    <div class="row"><button class="btn primary" id="atOk">Weiter</button><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    const i=$("#atT",m); i.focus();
+    const ok=async()=>{ const t=i.value.trim(); if(!t){ toast("Gib zuerst ein Thema ein"); i.focus(); return; }
+      set.topic=t; if(/^Lernset \d+$/.test(set.name)||set.name==="Neues Lernset") set.name=t; await putSet(set); close(); go("learn",{setId:set.id,manage:true}); openGenModes(set); };
+    $("#atOk",m).onclick=ok; i.onkeydown=e=>{ if(e.key==="Enter") ok(); };
+  });
+}
+
+/* ---------- Lernset auswählen oder neu erstellen ---------- */
+// mode: Lernoption, die danach startet (null = nur auswählen)
+function setInfoLine(s,mode){
+  const n=s.files.length, own=audEligible(s).length;
+  const parts=[s.subject||"", n?`${n} Datei${n===1?"":"en"}`:"noch kein Material"];
+  if((mode==="monolog"||mode==="podcast")&&n&&!own) parts.push("keine hochgeladenen Dateien");
+  return parts.filter(Boolean).join(" · ");
+}
+function pickSetFor(mode,{title}={}){
+  const M=modeByK(mode), list=recentSets(), cur=activeSetOrNull();
+  modal(`<div class="stack" style="gap:4px"><h2>${esc(title||(M?`${M.t}: Lernset wählen`:"Lernset wählen"))}</h2>
+      <p class="small muted">${M?`Wähle, mit welchem Lernset du ${mode==="generate"?"Lerninhalte generieren":"„"+esc(M.t)+"“ öffnen"} willst, oder erstelle ein neues.`:"Das ausgewählte Lernset nutzen alle Lernoptionen."}</p></div>
+    ${list.length?`<div class="pick-list" role="list">${list.map(s=>`<button type="button" class="pick" role="listitem" data-pick="${s.id}" ${cur&&cur.id===s.id?'aria-current="true"':""}>
+        <span class="grow stack" style="gap:2px;min-width:0"><b>${esc(s.name)}${s.example?' <span class="pill mark">Beispiel</span>':""}</b><span class="small muted">${esc(setInfoLine(s,mode))}</span></span>
+        ${cur&&cur.id===s.id?'<span class="pill">ausgewählt</span>':""}${ic("arrow")}</button>`).join("")}</div>`
+      :`<div class="empty">Du hast noch kein Lernset.</div>`}
+    <div class="row"><button class="btn primary" id="pkNew">${ic("plus")} Neues Lernset erstellen</button>${SETS.some(s=>s.example)?"":`<button class="btn" id="pkEx">Beispiel ausprobieren</button>`}<span class="spacer"></span><button class="btn ghost" data-close>Abbrechen</button></div>`,(m,close)=>{
+    $$("[data-pick]",m).forEach(b=>b.onclick=()=>{ const s=setById(b.dataset.pick); close(); S.activeSet=s.id; save(false);
+      if(mode) launchMode(s,mode); else { touchSet(s.id); render(); toast(`Lernset „${s.name}“ ausgewählt`); } });
+    $("#pkNew",m).onclick=()=>{ close(); openNewSetDialog(mode&&mode!=="generate"?{then:mode}:{}); };
+    const ex=$("#pkEx",m); if(ex) ex.onclick=async()=>{ close(); const s=await makeExampleSet(); S.activeSet=s.id; save();
+      if(mode&&mode!=="generate") launchMode(s,mode); else go("learn",{setId:s.id,manage:true}); };
+    const first=$("[aria-current='true']",m)||$("[data-pick]",m)||$("#pkNew",m); if(first) first.focus();
+  });
+}
+
+/* ---------- Lernset-Leiste in den Lernansichten ---------- */
+// Zeigt, welches Lernset gerade läuft, und wechselt Lernset oder Lernoption; Fortschritte bleiben am Lernset gespeichert
+function modeBarHTML(set,cur){
+  return `<div class="modebar">
+    <div class="modebar-set"><span class="modebar-k">Lernset</span><b class="modebar-n">${esc(set.name)}</b>${set.subject?`<span class="small muted">${esc(set.subject)}</span>`:""}${set.example?'<span class="pill mark">Beispiel</span>':""}
+      <span class="spacer"></span><button class="btn sm" id="mbSwitch" type="button">${ic("swap")} Lernset wechseln</button><button class="btn ghost sm" id="backSets" type="button">Material &amp; Einstellungen</button></div>
+    <nav class="modebar-modes" aria-label="Lernoptionen für dieses Lernset">${MODES.filter(x=>x.k!=="generate").map(x=>`<button type="button" class="chip" data-mb="${x.k}" aria-pressed="${x.k===cur}"${x.k===cur?' aria-current="page"':""}>${ic(x.icon)}<span>${esc(x.t)}</span></button>`).join("")}</nav>
+  </div>`;
+}
+function bindModeBar(set,cur){
+  const sw=$("#mbSwitch"); if(sw) sw.onclick=()=>pickSetFor(cur,{title:"Lernset wechseln"});
+  const bk=$("#backSets"); if(bk) bk.onclick=()=>go("learn",{setId:set.id,manage:true});
+  $$("[data-mb]").forEach(b=>b.onclick=()=>{ if(b.dataset.mb===cur) return; launchMode(set,b.dataset.mb); });
+}
+
+/* ---------- Kacheln ---------- */
+// Zustand einer Lernoption für das ausgewählte Lernset: Hinweiszeile, Warnung (fehlende Voraussetzung), Beschriftung der Schaltfläche
+function modeState(set,k){
+  if(!set) return {s:"Lernset wählen oder neu erstellen",warn:false,cta:"Auswählen"};
+  const files=set.files.length, ai=!!CAP.sample||set.example;
+  if(k==="quiz"){
+    const R=set.round;
+    if(R&&R.phase==="q"&&R.qs) return {s:`Angefangen: Frage ${R.idx+1} von ${R.qs.length}`,cta:"Weiterlernen"};
+    if(!files) return {s:"Lade zuerst Lernmaterial hoch",warn:true,cta:"Material hochladen"};
+    if(!ai) return {s:"Braucht KI (in claude.ai verfügbar)",warn:true,cta:"Mehr erfahren"};
+    const last=(set.history||[]).slice(-1)[0];
+    return {s:last?`Letzter Durchgang: ${last.pct} %`:"15 belegte Prüfungsfragen",cta:"Starten"};
+  }
+  if(k==="cards"){
+    const F=set.fc;
+    if(!files) return {s:"Lade zuerst Lernmaterial hoch",warn:true,cta:"Material hochladen"};
+    if(F&&F.phase==="card"&&F.idx>0&&set.cards) return {s:`Angefangen: ${F.idx} von ${F.ids.length} Karten`,cta:"Weiterlernen"};
+    if(set.cards&&set.cards.length) return {s:`${set.cards.length} Karten`,cta:"Üben"};
+    return {s:"Karten entstehen aus deinem Material",cta:"Starten"};
+  }
+  if(k==="monolog"||k==="podcast"){
+    if(!audEligible(set).length) return {s:"Braucht hochgeladene Dateien",warn:true,cta:"Material hochladen"};
+    return {s:"Noch keine Aufnahme",cta:"Erstellen"};
+  }
+  if(k==="generate"){
+    if(set.example) return {s:"Für ein neues Lernset",cta:"Generieren"};
+    return {s:set.topic?`Thema: ${set.topic}`:"Thema wählen",cta:"Generieren"};
+  }
+  if(k==="exam"){
+    const open=runningExam(set);
+    if(open) return {s:`Angefangen: ${open.title}`,cta:"Fortsetzen"};
+    if(!files) return {s:"Lade zuerst Lernmaterial hoch",warn:true,cta:"Material hochladen"};
+    if(!CAP.sample) return {s:"Braucht KI (in claude.ai verfügbar)",warn:true,cta:"Mehr erfahren"};
+    return {s:"Aus allen Lernsets des Fachs",cta:"Starten"};
+  }
+  return {s:"",cta:"Öffnen"};
+}
+function tileHTML(M,set){
+  const st=modeState(set,M.k);
+  return `<button type="button" class="tile" data-mode="${M.k}" aria-describedby="td_${M.k} ts_${M.k}">
+    <span class="tile-ic">${ic(M.icon)}</span>
+    <span class="tile-t">${esc(M.t)}</span>
+    <span class="tile-d" id="td_${M.k}">${esc(M.d)}</span>
+    <span class="tile-s${st.warn?" warn":""}" id="ts_${M.k}">${esc(st.s)}</span>
+    <span class="tile-cta"><span class="tile-cta-t">${esc(st.cta)}</span>${ic("arrow")}</span>
+  </button>`;
+}
+function bindTiles(root){
+  $$(".tile[data-mode]",root).forEach(b=>b.onclick=async()=>{
+    if(b.getAttribute("aria-busy")==="true") return;
+    const k=b.dataset.mode, set=activeSetOrNull();
+    if(!set) return pickSetFor(k);
+    const t=$(".tile-cta-t",b), was=t.textContent; b.setAttribute("aria-busy","true"); t.textContent="Wird geöffnet …";
+    try{ await launchMode(set,k); }finally{ if(document.body.contains(b)){ b.removeAttribute("aria-busy"); t.textContent=was; } }
+  });
+}
+// Aufnahmen nachladen (IndexedDB): „2 Aufnahmen“ und „Anhören“
+async function fillAudioTiles(root,set){
+  if(!set||!audEligible(set).length) return;
+  let recs=[]; try{ const meta=await audMeta(set.id); recs=(meta&&meta.recs)||[]; }catch{ return; }
+  for(const k of ["monolog","podcast"]){
+    const n=recs.filter(r=>r.fmt===k).length, b=$(`.tile[data-mode="${k}"]`,root); if(!b||!n) continue;
+    $(".tile-s",b).textContent=`${n} Aufnahme${n===1?"":"n"} vorhanden`; $(".tile-cta-t",b).textContent="Anhören";
+  }
 }
 
 /* ---- 06_library.js ---- */
@@ -4020,11 +4331,13 @@ VIEWS.due = async function(m,arg){
   const t=today0();
   const items=[...S.items].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||"").localeCompare(b.time||""));
   const upcoming=items.filter(i=>!i.done&&daysBetween(t,parseISO(i.date))>=0), past=items.filter(i=>i.done||daysBetween(t,parseISO(i.date))<0);
-  const rem=dueReminders();
+  const rem=dueReminders(), planned=upcoming.filter(i=>i.plan);
   m.innerHTML=`<div class="view">
-   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Abgaben & Klausuren</h1><p class="muted">Termine eintragen, erinnern lassen und mit deinem Material einen Lernplan bis zur Klausur erstellen.</p></div><span class="spacer"></span><button class="btn primary" id="addIt">+ Termin eintragen</button></div>
+   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Termine &amp; Lernplan</h1><p class="muted">Abgaben und Klausuren eintragen, erinnern lassen und mit deinem Material einen Lernplan bis zum Termin erstellen.</p></div><span class="spacer"></span><button class="btn primary" id="addIt">+ Termin eintragen</button></div>
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
-   <section class="sheet stack"><h3>Anstehend</h3>${upcoming.length?`<div class="list">${upcoming.map(itemRow).join("")}</div>`:`<div class="empty">Keine anstehenden Termine. Trag deine nächste Klausur oder Abgabe ein.</div>`}</section>
+   <section class="sheet stack" id="plansSec" tabindex="-1"><h3>Lernpläne</h3>${planned.length?`<div class="list">${planned.map(itemRow).join("")}</div>`
+     :`<p class="small muted">Noch kein Lernplan. Trag eine Klausur oder Abgabe ein und öffne sie: Dort erstellst du mit einem Lernset einen Lernplan bis zum Termin.</p>${upcoming.length?"":`<div><button class="btn" id="addIt2">Klausur eintragen</button></div>`}`}</section>
+   <section class="sheet stack"><h3>Abgaben &amp; Klausuren</h3>${upcoming.length?`<div class="list">${upcoming.map(itemRow).join("")}</div>`:`<div class="empty">Keine anstehenden Termine. Trag deine nächste Klausur oder Abgabe ein.</div>`}</section>
    <section class="sheet stack"><div class="row"><h3>Erinnerungen einstellen</h3></div>
      <div class="grid2">
        ${["klausur","abgabe"].map(k=>`<div class="stack" style="gap:8px"><label class="row" style="gap:8px;font-weight:700"><input type="checkbox" data-ron="${k}" ${S.remind[k]?"checked":""}> An ${k==="klausur"?"Klausuren":"Abgaben"} erinnern</label>
@@ -4035,8 +4348,9 @@ VIEWS.due = async function(m,arg){
    ${past.length?`<details class="sheet"><summary>Erledigt und vergangen (${past.length})</summary><div class="list" style="margin-top:8px">${past.reverse().map(itemRow).join("")}</div></details>`:""}
    <div class="row"><span class="spacer"></span><button class="btn ghost sm" id="backup">Termine & Stundenplan sichern (.json)</button></div>
   </div>`;
-  $("#addIt").onclick=()=>editItem();
+  $("#addIt").onclick=()=>editItem(); const a2=$("#addIt2"); if(a2) a2.onclick=()=>editItem();
   bindRem(m); bindRows(m);
+  if(arg&&arg.plans) setTimeout(()=>{ const p=$("#plansSec"); if(p){ p.scrollIntoView({block:"start"}); p.focus({preventScroll:true}); } },30);
   $$("[data-ron]").forEach(c=>c.onchange=()=>{S.remind[c.dataset.ron]=c.checked;save();});
   $$("[data-rd]").forEach(c=>c.onclick=()=>{ const k=c.dataset.rd+"Days", d=Number(c.dataset.d); const s=new Set(S.remind[k]||[]); s.has(d)?s.delete(d):s.add(d); S.remind[k]=[...s].sort((a,b)=>b-a); c.setAttribute("aria-pressed",s.has(d)); save(); });
   $("#backup").onclick=async()=>{ if(!CAP.downloads){ copyText(JSON.stringify(S,null,1)); return; } try{ await CAP.downloads.save({filename:`merkwerk-sicherung-${isoDate(new Date())}.json`,data:JSON.stringify(S,null,1)}); }catch(e){ if(e&&e.code!=="declined") toast("Speichern nicht möglich"); } };
@@ -4370,51 +4684,114 @@ function editEvent(e,prefill){
 }
 
 /* ---- 10_home.js ---- */
-/* ===================== Heute ===================== */
+/* ===================== Startseite ===================== */
+// Aufbau: Begrüßung mit Hauptaktion → (neu: kurze Einführung) → zuletzt verwendete Lernsets → alle Lernoptionen als Kacheln
+// → Bibliothek, Stundenplan, Lernplan → anstehende Lerneinheiten, Abgaben und Klausuren → heutiger Stundenplan
+const firstName=n=>String(n||"").trim().split(/\s+/)[0]||"";
+function setCardHTML(s,active){
+  const cov=coverageOf(s), last=(s.history||[]).slice(-1)[0], r=resumeInfo(s), F=s.fc;
+  const known=F&&F.phase==="end"?fcResult(F).known:null;
+  return `<article class="set-card${active?" on":""}">
+    <div class="stack" style="gap:3px;min-width:0">${s.example||active?`<div class="row" style="gap:6px">${active?'<span class="pill">ausgewählt</span>':""}${s.example?'<span class="pill mark">Beispiel</span>':""}</div>`:""}
+      <h3 class="set-name">${esc(s.name)}</h3>
+      <span class="small muted">${esc([s.subject,`${s.files.length} Datei${s.files.length===1?"":"en"}`,usedAt(s)?"genutzt "+agoLabel(usedAt(s)):""].filter(Boolean).join(" · "))}</span></div>
+    <div class="stack" style="gap:4px"><div class="bar mark" role="img" aria-label="${cov.pct} % der Abschnitte abgefragt"><i style="width:${cov.pct}%"></i></div>
+      <span class="small muted">${cov.n?`${cov.pct} % abgefragt`:"Noch keine Abschnitte"}${last?` · letzter Durchgang ${last.pct} %`:""}${known!=null?` · ${known} Karten gewusst`:""}</span></div>
+    <p class="small set-next">${esc(r.info)}</p>
+    <div class="row" style="gap:6px;margin-top:auto"><button class="btn primary" data-resume="${s.id}">${s.files.length?`${ic("play")} Weiterlernen`:`${ic("upload")} Material hochladen`}</button>${active?"":`<button class="btn ghost sm" data-select="${s.id}">Auswählen</button>`}</div>
+  </article>`;
+}
+// Lerneinheiten aus allen Lernplänen ab heute (heute zuerst), mit direkter Aktion
+function upcomingSessions(days=7){
+  const t0=today0(), tISO=isoDate(t0), end=isoDate(new Date(t0.getTime()+days*864e5));
+  return S.items.filter(it=>!it.done&&it.plan).flatMap(it=>it.plan.days.filter(d=>!d.done&&d.date>=tISO&&d.date<=end).map(d=>({it,d})))
+    .sort((a,b)=>a.d.date.localeCompare(b.d.date)).slice(0,6);
+}
+function sessionHTML({it,d}){
+  const t0=today0(), left=daysBetween(t0,parseISO(d.date));
+  const when=left===0?"Heute":left===1?"Morgen":fmtDate(d.date,{weekday:"long"});
+  const what=d.kind==="wiederholung"?"Wiederholung":d.kind==="hoeren"?`Hörphase: ${(AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n}, ca. ${Math.round(d.minutes||0)} Min.`:`Neue Abschnitte: ${d.sectionIds.length}`;
+  return `<div class="li"><span class="pill ${left===0?"mark":""}">${esc(when)}</span><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${esc(what)} · ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(t0,parseISO(it.date)))}</div></div>
+    <button class="btn sm ${left===0?"primary":""}" data-pl="${it.id}|${d.date}|${d.kind}">${d.kind==="hoeren"?"Anhören":"Starten"}</button></div>`;
+}
 VIEWS.home = async function(m){
   if(!SETS.length) await loadSets();
-  const now=new Date(); const t0=today0(); const tISO=isoDate(t0);
-  const lessons=lessonsOn(now); const nowM=now.getHours()*60+now.getMinutes();
-  const next=lessons.find(l=>!l.cancelled&&toMin(l.end)>nowM);
+  const acc=currentAccount(), guest=!!acc&&acc.provider==="guest";
+  const now=new Date(), t0=today0(), tISO=isoDate(t0);
+  const own=SETS.filter(s=>!s.example), active=activeSetOrNull(), recent=recentSets().slice(0,4);
+  const intro=!own.length;
+  const name=guest||!acc||acc.provider==="claude"?"":firstName(accountLabel(acc));
+  const rem=dueReminders(), sessions=upcomingSessions();
+  const soon=S.items.filter(it=>!it.done).map(it=>({it,left:daysBetween(t0,parseISO(it.date))})).filter(x=>x.left>=0&&x.left<=21&&!rem.some(r=>r.it.id===x.it.id)).sort((a,b)=>a.left-b.left).slice(0,5);
+  const lessons=lessonsOn(now), nowM=now.getHours()*60+now.getMinutes(), next=lessons.find(l=>!l.cancelled&&toMin(l.end)>nowM);
   const evToday=(S.events||[]).filter(e=>e.kind!=="frei"&&e.start.slice(0,10)===tISO).sort((a,b)=>a.start.localeCompare(b.start));
-  const rem=dueReminders();
-  const sessions=S.items.filter(it=>!it.done&&it.plan).flatMap(it=>it.plan.days.filter(d=>d.date===tISO).map(d=>({it,d})));
-  const soon=S.items.filter(it=>!it.done).map(it=>({it,left:daysBetween(t0,parseISO(it.date))})).filter(x=>x.left>=0&&x.left<=21).sort((a,b)=>a.left-b.left);
-  const active=setById(S.activeSet); const running=active&&active.round&&active.round.phase==="q";
-  const fcRunning=active&&active.fc&&active.fc.phase==="card"&&active.fc.idx>0&&active.cards;
-  const fresh=!S.profile&&!SETS.length&&!S.items.length&&!S.timetable.entries.length;
-  m.innerHTML=`<div class="view">
-   <div class="stack" style="gap:4px"><span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span><h1>${fresh?"Willkommen bei Merkwerk":"Heute"}</h1></div>
-   ${fresh?`<section class="sheet stack"><p>Merkwerk macht aus deinem Material Prüfungsfragen – jede mit einem wörtlichen Beleg. Dazu kommen eine Bibliothek für dein Fach, dein Stundenplan und ein Lernplan bis zur nächsten Klausur.</p>
-     <div class="grid2"><button class="wizard-opt" id="h1"><b>Beispiel ausprobieren</b><span class="small muted">15 Fragen zu einem kurzen Text über Photosynthese</span></button><button class="wizard-opt" id="h2"><b>Angaben machen</b><span class="small muted">Schule oder Studium, Fächer, Bundesland</span></button></div></section>`:""}
-   ${!fresh&&!SETS.some(x=>!x.example)?`<section class="sheet stack"><h3>Leg dein erstes Lernset an</h3><p class="small muted">Wähle Fach und Thema – Merkwerk schlägt dir passende Themen aus deinem Bildungsplan vor. Dann lädst du eigenes Material hoch oder lässt Merkwerk Lerninhalte generieren.</p><div class="row"><button class="btn primary" id="hNew">Neues Lernset</button><button class="btn" id="hEx">Beispiel ausprobieren</button></div></section>`:""}
-   ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
-   ${running?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Angefangen</span><b>${esc(active.name)} · Frage ${active.round.idx+1} von ${active.round.qs.length}</b></div><button class="btn primary" id="cont">Weiterlernen</button></section>`:""}
-   ${fcRunning?`<section class="sheet row"><div class="grow stack" style="gap:2px;flex:1;min-width:0"><span class="label">Karteikarten angefangen</span><b>${esc(active.name)} · ${active.fc.idx} von ${active.fc.ids.length} Karten</b></div><button class="btn primary" id="contFc">Weiter üben</button></section>`:""}
-   <div class="grid2">
-     <section class="sheet stack"><div class="row"><h3>Lernplan heute</h3></div>
-       ${sessions.length?`<div class="list">${sessions.map(({it,d})=>`<div class="li"><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${d.kind==="wiederholung"?"Wiederholung":d.kind==="hoeren"?`Hörphase: ${(AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n}, ca. ${Math.round(d.minutes||0)} Min.`:"Neue Abschnitte: "+d.sectionIds.length} · ${leftLabel(daysBetween(t0,parseISO(it.date)))} ${TYPE_NAME[it.type]}</div></div>${d.done?'<span class="pill ok">erledigt</span>':`<button class="btn sm primary" data-pl="${it.id}|${d.date}|${d.kind}">${d.kind==="hoeren"?"Anhören":"Lernen"}</button>`}</div>`).join("")}</div>`
-        :`<p class="muted small">Heute steht nichts im Lernplan. ${S.items.some(i=>!i.done)?"Öffne einen Termin, um einen Lernplan zu erstellen.":"Trag eine Klausur ein und lass dir einen Lernplan erstellen."}</p>`}
-     </section>
-     <section class="sheet stack"><div class="row"><h3>Stundenplan</h3><span class="spacer"></span><button class="btn ghost sm" id="toTT">Kalender</button></div>
-       ${evToday.length?`<div class="list">${evToday.map(e=>`<div class="li"><span class="mono small" style="min-width:92px">${e.allDay?"ganztägig":e.start.slice(11,16)+"–"+(e.end||"").slice(11,16)}</span><div class="grow"><b>${esc(e.title)}</b><div class="small muted">Termin</div></div></div>`).join("")}</div>`:""}
-       ${lessons.length?`<div class="list">${lessons.map(l=>`<div class="li" ${l===next?'style="background:var(--accent-soft);border-radius:8px;padding-inline:8px"':""}><span class="mono small" style="min-width:92px">${l.start}–${l.end}</span><div class="grow"><b style="${l.cancelled?"text-decoration:line-through;opacity:.6":""}">${esc(l.subject)}</b>${l.cancelled?' <span class="pill bad">entfällt</span>':""}${l.moved?' <span class="pill">verlegt</span>':""}<div class="small muted">${esc([l.room,l.teacher].filter(Boolean).join(" · "))}</div></div>${l===next?`<span class="pill">${toMin(l.start)<=nowM?"jetzt":"als Nächstes"}</span>`:""}</div>`).join("")}</div>`
-        :`<p class="muted small">${S.timetable.entries.length?"Heute kein Unterricht eingetragen.":"Noch kein Stundenplan – importiere ihn per Screenshot."}</p>`}
-     </section>
-   </div>
-   <section class="sheet stack"><div class="row"><h3>Die nächsten drei Wochen</h3><span class="spacer"></span><button class="btn ghost sm" id="toDue">Alle Termine</button></div>
-     ${soon.length?`<div class="list">${soon.map(({it})=>itemRow(it)).join("")}</div>`:`<p class="muted small">Keine Abgaben oder Klausuren in den nächsten 21 Tagen.</p>`}
+  m.innerHTML=`<div class="view home">
+   <section class="hero">
+     <div class="stack" style="gap:6px;min-width:0">
+       <span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span>
+       <h1>Hallo<span id="hiName">${name?", "+esc(name):""}</span>!</h1>
+       <p class="muted">${guest?`Du lernst ohne Konto, deine Inhalte bleiben nur in diesem Browser. <button class="linkbtn" id="hGuest">Konto anlegen</button>`
+         :intro?"Schön, dass du da bist. Leg los mit deinem ersten Lernset.":"Schön, dass du wieder da bist. Mach weiter, wo du aufgehört hast."}</p>
+     </div>
+     ${intro?"":`<button class="btn primary btn-lg" id="hNew">${ic("plus")} Neues Lernset erstellen</button>`}
+   </section>
+   ${intro?`<section class="sheet intro stack">
+     <h2>So startest du mit Merkwerk</h2>
+     <ol class="steps">
+       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Merkwerk schlägt Themen aus deinem Bildungsplan vor.</span></li>
+       <li><b>Material hinzufügen</b><span class="small muted">PDF, Word, Fotos oder GoodNotes hochladen oder Lerninhalte generieren lassen.</span></li>
+       <li><b>Lernoption wählen</b><span class="small muted">Abfrage, Karteikarten, Audiozusammenfassung, Podcast oder Probeklausur.</span></li>
+     </ol>
+     <div class="row"><button class="btn primary btn-lg" id="hFirst">${ic("plus")} Erstes Lernset erstellen</button>${SETS.some(s=>s.example)?"":`<button class="btn btn-lg" id="hEx">Beispiel ausprobieren</button>`}${S.profile?"":`<button class="btn ghost" id="hProf">Schule oder Studium angeben</button>`}</div>
+   </section>`:""}
+   <div id="installSlot"></div>
+   ${recent.length?`<section class="stack" aria-labelledby="hRecent">
+     <div class="sec-head"><h2 id="hRecent">Zuletzt verwendet</h2><span class="spacer"></span>${SETS.length>recent.length?`<button class="btn ghost sm" id="hAll">Alle Lernsets (${SETS.length})</button>`:`<button class="btn ghost sm" id="hAll">Lernsets verwalten</button>`}</div>
+     <div class="set-grid">${recent.map(s=>setCardHTML(s,active&&active.id===s.id)).join("")}</div>
+   </section>`:""}
+   <section class="stack" aria-labelledby="hModes">
+     <div class="sec-head"><h2 id="hModes">Lernoptionen</h2><span class="spacer"></span>
+       <div class="cur-set">${active?`<span class="small muted">für</span> <b>${esc(active.name)}</b> <button class="btn sm" id="hSwitch">${ic("swap")} Wechseln</button>`
+         :`<span class="small muted">${SETS.length?"Noch kein Lernset ausgewählt":"Wähle eine Lernoption und erstelle dabei dein Lernset"}</span>${SETS.length?` <button class="btn sm" id="hSwitch">Lernset wählen</button>`:""}`}</div></div>
+     <div class="tiles" id="tiles">${MODES.map(M=>tileHTML(M,active)).join("")}</div>
+   </section>
+   <section class="stack" aria-labelledby="hOrg">
+     <div class="sec-head"><h2 id="hOrg">Lernorganisation</h2></div>
+     <div class="org">
+       <button type="button" class="org-tile" data-org="lib">${ic("lib")}<span class="stack" style="gap:1px"><b>Bibliothek</b><span class="small muted">Material anderer zu deinen Fächern</span></span></button>
+       <button type="button" class="org-tile" data-org="tt">${ic("cal")}<span class="stack" style="gap:1px"><b>Stundenplan</b><span class="small muted">${S.timetable.entries.length?"Unterricht und Termine im Kalender":"Per Screenshot oder Kalender importieren"}</span></span></button>
+       <button type="button" class="org-tile" data-org="plan">${ic("plan")}<span class="stack" style="gap:1px"><b>Lernplan</b><span class="small muted">${S.items.some(i=>!i.done&&i.plan)?"Lerneinheiten bis zur Klausur":"Bis zur nächsten Klausur planen"}</span></span></button>
+     </div>
+     <div class="grid2">
+       <section class="sheet stack"><div class="row"><h3>Anstehende Lerneinheiten</h3><span class="spacer"></span><button class="btn ghost sm" data-org="plan">Lernpläne</button></div>
+         ${sessions.length?`<div class="list">${sessions.map(sessionHTML).join("")}</div>`
+           :`<p class="small muted">${S.items.some(i=>!i.done)?"In den nächsten sieben Tagen ist nichts eingeplant. Öffne eine Klausur oder Abgabe, um einen Lernplan zu erstellen.":"Noch kein Lernplan. Trag eine Klausur ein und lass dir einen Lernplan bis zum Termin erstellen."}</p>
+             <div><button class="btn sm" id="hAddIt">${ic("plus")} Klausur oder Abgabe eintragen</button></div>`}
+       </section>
+       <section class="sheet stack"><div class="row"><h3>Abgaben &amp; Klausuren</h3><span class="spacer"></span><button class="btn ghost sm" id="toDue">Alle Termine</button></div>
+         ${rem.length?remHTML(rem):""}
+         ${soon.length?`<div class="list">${soon.map(({it})=>itemRow(it)).join("")}</div>`:rem.length?"":`<p class="small muted">Keine Abgaben oder Klausuren in den nächsten drei Wochen.</p>`}
+       </section>
+     </div>
+     ${lessons.length||evToday.length?`<section class="sheet stack"><div class="row"><h3>Heute im Stundenplan</h3><span class="spacer"></span><button class="btn ghost sm" id="toTT">Kalender</button></div>
+       <div class="list">${evToday.map(e=>`<div class="li"><span class="mono small" style="min-width:92px">${e.allDay?"ganztägig":e.start.slice(11,16)+"–"+(e.end||"").slice(11,16)}</span><div class="grow"><b>${esc(e.title)}</b><div class="small muted">Termin</div></div></div>`).join("")}
+       ${lessons.map(l=>`<div class="li${l===next?" li-now":""}"><span class="mono small" style="min-width:92px">${l.start}–${l.end}</span><div class="grow"><b style="${l.cancelled?"text-decoration:line-through;opacity:.6":""}">${esc(l.subject)}</b>${l.cancelled?' <span class="pill bad">entfällt</span>':""}${l.moved?' <span class="pill">verlegt</span>':""}<div class="small muted">${esc([l.room,l.teacher].filter(Boolean).join(" · "))}</div></div>${l===next?`<span class="pill">${toMin(l.start)<=nowM?"jetzt":"als Nächstes"}</span>`:""}</div>`).join("")}</div></section>`:""}
    </section>
   </div>`;
-  const h1=$("#h1"); if(h1) h1.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
-  const h2=$("#h2"); if(h2) h2.onclick=()=>go("lib");
-  const hn=$("#hNew"); if(hn) hn.onclick=()=>openNewSetDialog();
-  const hx=$("#hEx"); if(hx) hx.onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
-  const c=$("#cont"); if(c) c.onclick=()=>go("learn",{setId:active.id});
-  const cf=$("#contFc"); if(cf) cf.onclick=()=>go("learn",{setId:active.id,cards:true});
-  $("#toTT").onclick=()=>go("tt"); $("#toDue").onclick=()=>go("due");
-  bindRem(m); bindRows(m);
-  $$("[data-pl]").forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
+  const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
+  on("hNew",()=>openNewSetDialog()); on("hFirst",()=>openNewSetDialog());
+  on("hEx",async()=>{ const s=await makeExampleSet(); S.activeSet=s.id; touchSet(s.id); save(); go("learn",{setId:s.id,manage:true}); });
+  on("hProf",()=>openWizard()); on("hGuest",()=>openGuestMenu());
+  on("hAll",()=>go("learn",{manage:true})); on("hSwitch",()=>pickSetFor(null));
+  on("hAddIt",()=>editItem()); on("toDue",()=>go("due")); on("toTT",()=>go("tt"));
+  $$("[data-org]",m).forEach(b=>b.onclick=()=>{ const k=b.dataset.org; k==="plan"?go("due",{plans:true}):go(k); });
+  $$("[data-resume]",m).forEach(b=>b.onclick=()=>resumeSet(setById(b.dataset.resume)));
+  $$("[data-select]",m).forEach(b=>b.onclick=()=>{ const s=setById(b.dataset.select); S.activeSet=s.id; touchSet(s.id); render(); toast(`Lernset „${s.name}“ ausgewählt`); });
+  $$("[data-pl]",m).forEach(b=>b.onclick=()=>{ const [id,date,kind]=b.dataset.pl.split("|"); const it=S.items.find(x=>x.id===id); startPlanDay(it,it.plan.days.find(d=>d.date===date&&d.kind===kind)); });
+  bindTiles(m); bindRem(m); bindRows(m);
+  fillAudioTiles(m,active);
+  if(typeof renderInstallSlot==="function") renderInstallSlot();
+  if(acc&&acc.provider==="claude") claudeName().then(n=>{ const e=$("#hiName"); if(e&&n) e.textContent=", "+firstName(n); });
 };
 
 /* ---- 11_account.js ---- */
@@ -4637,6 +5014,7 @@ const AUTH_ICON={
 /* ---- 99_start.js ---- */
 /* ===================== Start (als letzte Datei, damit alle Ansichten definiert sind) ===================== */
 $$(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
+$("#brandHome").onclick=()=>{ if(currentAccount()) go("home"); };
 (async()=>{
   // Rückkehr aus dem Anmeldefenster eines Anbieters: Das Hauptfenster liest das Ergebnis, hier nichts starten
   if(window.opener&&/[#&?](code|error|id_token)=/.test(location.hash+location.search)) return;

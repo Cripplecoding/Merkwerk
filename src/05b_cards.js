@@ -103,7 +103,8 @@ function renderCards(m,set){
   const card=byId[F.ids[F.idx]]; if(!card){ F.ids=F.ids.filter(id=>byId[id]); F.idx=Math.min(F.idx,F.ids.length); if(F.idx>=F.ids.length) F.phase="end"; putSet(set); return renderCards(m,set); }
   const total=F.ids.length, done=F.idx, pct=Math.round(done/total*100);
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${F.retry?'<span class="pill warn">Nicht gewusste</span>':""}${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
+   ${modeBarHTML(set,"cards")}
+   ${F.retry?'<div class="row"><span class="pill warn">Nicht gewusste</span></div>':""}
    <div class="fc-progress" aria-label="Fortschritt"><span class="mono"><b>${done}</b> / ${total}</span><div class="fc-bar"><i style="width:${pct}%"></i></div></div>
    <div class="fc-stage">
      <button class="fc-zone know" id="zKnow" type="button" aria-label="Weiß ich (${F.known.length})"><span class="fc-count mono">${F.known.length}</span><span class="fc-zl">weiß ich</span><span class="fc-arrow" aria-hidden="true">←</span></button>
@@ -117,7 +118,7 @@ function renderCards(m,set){
    </div>
    <p class="small muted" style="text-align:center">Karte antippen zum Umdrehen · nach links oder rechts ziehen zum Einordnen · Tastatur: Leertaste, ← und →</p>
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"cards");
   const el=$("#fcCard"), inner=$(".fc-inner",el), zK=$("#zKnow"), zP=$("#zPractice");
   let flipped=false, busy=false;
   const flip=()=>{ flipped=!flipped; inner.classList.toggle("flipped",flipped); $(".fc-front",el).setAttribute("aria-hidden",String(flipped)); $(".fc-back",el).setAttribute("aria-hidden",String(!flipped)); };
@@ -149,7 +150,7 @@ function renderCardsEnd(m,set){
   setFcKeys(null); const F=set.fc; const r=fcResult(F);
   const kPct=r.pct, pPct=r.n?100-r.pct:0;
   m.innerHTML=`<div class="view">
-   <div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button></div>
+   ${modeBarHTML(set,"cards")}
    <section class="sheet stack" style="gap:20px">
      <div class="row" style="align-items:flex-end;gap:18px"><div class="score mono">${kPct}<span style="font-size:1.6rem"> %</span></div><div class="stack" style="gap:2px"><h2>Alle Karten durchgearbeitet</h2><p class="muted">Du hast ${r.known} von ${r.n} Karten gewusst${F.retry?" · Durchlauf mit nicht gewussten Karten":""}</p></div></div>
      <div class="fc-chart" role="img" aria-label="Gewusst ${kPct} Prozent, muss ich noch üben ${pPct} Prozent">
@@ -166,7 +167,7 @@ function renderCardsEnd(m,set){
    </section>
    ${r.practice?`<section class="sheet stack"><h3>Muss ich noch üben (${r.practice})</h3><div class="list">${F.practice.map(id=>set.cards.find(c=>c.id===id)).filter(Boolean).map(c=>`<div class="li"><div class="grow stack" style="gap:2px"><b>${esc(c.term)}</b><p class="small">${esc(c.definition)}</p></div></div>`).join("")}</div></section>`:`<div class="note">Alles gewusst. Mit „Karten noch einmal durcharbeiten“ startest du einen neuen Durchlauf.</div>`}
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true});
+  bindModeBar(set,"cards");
   $("#fcAll").onclick=async()=>{ fcStart(set,set.cards.map(c=>c.id)); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcRetry").onclick=async()=>{ if(!F.practice.length) return; fcStart(set,[...F.practice],true); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcHome").onclick=()=>go("home");
