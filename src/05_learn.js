@@ -30,9 +30,40 @@ function locateQuote(set,quote){
   const rq=relax(quote); if(rq.length<12) return null;
   for(const f of set.files){ if(relax(f.text).includes(rq)){
       const head=rq.slice(0,40); const secs=set.sections.filter(s=>s.fileId===f.id && (relax(s.text).includes(head)||relax(s.text).includes(rq.slice(-40))));
-      return {fileName:f.name,sectionIds:secs.map(s=>s.id)}; } }
+      return {fileName:f.name,fileId:f.id,sectionIds:secs.map(s=>s.id)}; } }
   return null;
 }
+/* ---------- Fundstellen: wo steht ein Zitat in seiner Datei? ---------- */
+// Nur aus dem, was beim Lesen gespeichert wurde: Seiten bei PDFs, Überschriften und Absätze bei DOCX, Zeilen bei Bildern.
+// Lässt sich eine Stelle nicht bestimmen, sagt die Fundstelle das, statt eine Seite zu raten.
+function relaxPos(parts,rq){ // in welchem Teil beginnt und endet das Zitat? (Teile aneinandergehängt wie relax(Gesamttext))
+  const R=parts.map(relax), all=R.join(""), at=all.indexOf(rq); if(at<0) return null;
+  let c=0, a=-1, b=-1; for(let i=0;i<R.length;i++){ const n=c+R[i].length; if(a<0&&at<n) a=i; if(at+rq.length<=n){ b=i; break; } c=n; }
+  return {a,b:b<0?R.length-1:b};
+}
+function quoteWhere(f,quote){
+  const rq=relax(quote); if(!f||rq.length<12) return "";
+  const head=rq.slice(0,40);
+  if(Array.isArray(f.pages)&&f.pages.length){
+    const i=f.pages.findIndex(t=>t&&relax(t).includes(head));
+    if(i>=0){ const j=f.pages.findIndex((t,k)=>k>=i&&t&&relax(t).includes(rq.slice(-40))); return j>i?`Seite ${i+1}–${j+1}`:`Seite ${i+1}`; }
+    return "Seite nicht bestimmbar (Text wurde nachträglich geändert)";
+  }
+  if(f.kind==="pdf") return "Seite nicht bestimmbar (vor der Seitenerfassung hochgeladen)";
+  if(Array.isArray(f.paras)&&f.paras.length){
+    const r=relaxPos(f.paras.map(p=>p.t),rq);
+    if(r){ const p=f.paras[r.a]; const k=f.paras.slice(0,r.a+1).filter(x=>x.h===p.h).length; return p.h?`Überschrift „${p.h}“, Absatz ${k}`:`Absatz ${r.a+1}`; }
+  }
+  const text=String(f.text||"");
+  if(f.kind==="bild"){
+    const lines=text.split("\n"), r=relaxPos(lines,rq); if(!r) return "Bereich nicht bestimmbar";
+    const n=lines.length, third=x=>x<n/3?"oberes":x<2*n/3?"mittleres":"unteres";
+    return `${r.a===r.b?"Zeile "+(r.a+1):"Zeilen "+(r.a+1)+"–"+(r.b+1)} des erkannten Texts (${third(r.a)} Drittel)`;
+  }
+  const paras=text.replace(/\r/g,"").split(/\n\s*\n/), r=relaxPos(paras,rq);
+  return r?(r.a===r.b?`Absatz ${r.a+1}`:`Absatz ${r.a+1}–${r.b+1}`):"";
+}
+const fundText=(fileName,where)=>where?`${fileName}, ${where}`:fileName;
 
 /* ---------- Dateien lesen ---------- */
 const scriptCache={};
@@ -85,7 +116,12 @@ const INK_PATHS=150;
 async function readPdf(data,name,progress,opt={}){
   progress&&progress(`Lese ${name} …`); await loadScript(PDFJS);
   const lib=window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
-  const pdf=await lib.getDocument({data:new Uint8Array(data)}).promise;
+  let pdf;
+  try{ pdf=await lib.getDocument({data:new Uint8Array(data)}).promise; }
+  catch(e){
+    if(e&&e.name==="PasswordException") throw new Error(`„${name}“ ist passwortgeschützt. Entferne den Schutz (zum Beispiel über „Drucken als PDF“) und lade die Datei erneut hoch.`);
+    throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt oder keine echte PDF. Exportiere sie neu und lade sie erneut hoch.`);
+  }
   const claude=!!(CAP.sample&&CAP.images);
   const pages=[]; const scans=[]; let inkOnly=0;
   for(let p=1;p<=pdf.numPages;p++){
@@ -112,14 +148,29 @@ async function readPdf(data,name,progress,opt={}){
   let ocr=false, ocrBy="";
   if(scans.length){ const r=await ocrImages(scans.map(s=>()=>render(s)),progress); scans.forEach((s,i)=>{pages[s.p-1]=(r.texts[i]||"").trim()||s.t;}); ocr=true; ocrBy=r.by; }
   const text=pages.filter(Boolean).join("\n\n");
+  // Text je Seite (für Fundstellen „Seite 3“); leere Seiten bleiben leer, damit die Nummern stimmen
+  const pageTexts=pages.map(t=>t||"");
   const note=inkOnly?`„${name}“: Auf ${inkOnly===1?"einer Seite":inkOnly+" Seiten"} steht vermutlich Handschrift neben gedrucktem Text. Ohne Claude wurde dort nur der gedruckte Text gelesen.`:"";
-  return {text,ocr,ocrBy,kind:"pdf",note};
+  return {text,ocr,ocrBy,kind:"pdf",note,pages:pageTexts};
 }
+// Absätze mit ihrer Überschrift (für Fundstellen „Überschrift …, Absatz 2“)
+async function docxParas(buf){
+  try{ const h=await window.mammoth.convertToHtml({arrayBuffer:buf}); const doc=new DOMParser().parseFromString(h.value,"text/html");
+    const out=[]; let head="";
+    for(const el of doc.body.querySelectorAll("h1,h2,h3,h4,h5,h6,p,li")){ const t=el.textContent.replace(/\s+/g," ").trim(); if(!t) continue;
+      if(/^H\d$/.test(el.tagName)) head=t.slice(0,90); else out.push({h:head,t}); }
+    return out; }catch{ return null; }
+}
+// Eintrag für set.files aus dem Ergebnis von readFile
+const fileEntry=(name,r)=>({id:rid("f_"),name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||"",...(r.pages?{pages:r.pages}:{}),...(r.paras?{paras:r.paras}:{}),addedAt:Date.now()});
 async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
-  if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const r=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()}); return {text:r.value,ocr:false,kind:"docx"}; }
+  if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const buf=await file.arrayBuffer();
+    let r; try{ r=await window.mammoth.extractRawText({arrayBuffer:buf}); }
+    catch{ throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt, passwortgeschützt oder keine echte DOCX. Speichere sie in Word neu oder als PDF.`); }
+    return {text:r.value,ocr:false,kind:"docx",paras:await docxParas(buf)}; }
   if(ext==="pdf") return readPdf(await file.arrayBuffer(),name,progress);
   if(ext==="goodnotes") return readGoodnotes(file,progress,readPdf,ocrImages);
   if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ const r=await ocrImages([file],progress); return {text:r.texts[0]||"",ocr:true,ocrBy:r.by,kind:"bild"}; }
@@ -237,7 +288,7 @@ function prepQuestion(q){
   return d;
 }
 async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef=null,fresh=false}={}){
-  let qs;
+  let qs, short=null; // short: Das Material gab weniger belegbare (neue) Fragen her als gewünscht
   if(reuse && set.round){ qs=shuffle(set.round.qs.filter(q=>!q.disputed).map(q=>prepQuestion(q))); if(!qs.length){ toast("Keine Fragen übrig – starte einen neuen Durchgang"); return; } }
   else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
   else{
@@ -248,12 +299,12 @@ async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef
       const r=await generateQuestions(set,{n,restrict,signal:ctl.signal,onStatus:t=>{const e=$("#rsTxt"); if(e) e.textContent=t;}});
       if(!r.qs.length){ if(box) box.innerHTML=`<div class="note bad">Es konnte keine belegte Frage erzeugt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.</div>`; return; }
       qs=r.qs.map(prepQuestion);
-      if(r.qs.length<n) toast(`${r.qs.length} von ${n} Fragen belegt – ${r.dropped} ohne gültigen Beleg oder mit falscher Lösung verworfen`,4200);
+      if(r.qs.length<n) short={got:r.qs.length,want:n,fresh:!!(set.history&&set.history.length)};
       else if(r.dropped) toast(`${r.dropped} Fragen ohne gültigen Beleg oder mit falscher Lösung verworfen und ersetzt`,3500);
     }catch(e){ if(box){ if(e&&e.code==="cancelled"){box.hidden=true;} else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
     qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; }));
   }
-  set.round={qs,idx:0,results:[],phase:"q",label,restrict,planRef,startedAt:Date.now()};
+  set.round={qs,idx:0,results:[],phase:"q",label,restrict,planRef,short,startedAt:Date.now()};
   await putSet(set); S.activeSet=set.id; save(); go("learn",{setId:set.id});
 }
 
@@ -312,7 +363,7 @@ VIEWS.learn = async function(m,arg){
   if(set&&arg&&arg.audio) return renderAudio(m,set);
   if(set&&set.round&&set.round.phase!=="done"&&!(arg&&arg.manage)){ return renderRound(m,set); }
   m.innerHTML=`<div class="view">
-    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten oder zum Anhören als Audio und Podcast.</p></div></div>
+    <div class="row"><div class="stack" style="gap:4px"><h1>Lernen</h1><p class="muted">Lade PDF-, DOCX-, GoodNotes- oder Bilddateien hoch und wähle dann, wie du lernen willst: als interaktive Abfrage mit 15 belegten Prüfungsfragen, mit Karteikarten oder zum Anhören als Audiozusammenfassung oder Podcast.</p></div></div>
     <div class="row" id="setChips"></div>
     <div id="setPanel"></div>
   </div>`;
@@ -351,7 +402,7 @@ function renderSetPanel(el,set){
        <div class="grid2" style="gap:10px">
          <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
          <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
-         <button class="wizard-opt" id="audioBtn" ${set.files.length?"":"disabled"}><b>Audio &amp; Podcast</b><span class="small muted">Dein Lernstoff zum Anhören: als Zusammenfassung mit einer Stimme oder als Podcast mit zwei Stimmen</span></button>
+         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung / Podcast</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien: Einzelstimme oder Podcastdialog":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
          <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
        </div>
      </div>
@@ -398,8 +449,8 @@ async function addFiles(set,files){
   const st=$("#upStatus"); const errs=[]; const notes=[];
   for(const f of files){
     try{ const r=await readFile(f,t=>{st.innerHTML=`<span class="spin"></span> ${esc(t)}`;});
-      if(!r.text.trim()){ errs.push(`„${f.name}“: Kein Text gefunden.`); continue; }
-      set.files.push({id:rid("f_"),name:f.name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||""});
+      if(!r.text.trim()){ errs.push(r.kind==="bild"?`„${f.name}“: Die Texterkennung hat keinen Text gefunden. Fotografiere die Seite gerade, scharf und mit mehr Licht oder lade eine PDF hoch.`:`„${f.name}“: Kein Text gefunden. Ist es ein Scan? Dann lade die Seiten als Fotos oder als PDF mit Text hoch.`); continue; }
+      set.files.push(fileEntry(f.name,r));
       if(r.note) notes.push(r.note);
       if(r.ocrBy==="browser"&&!notes.includes(BROWSER_OCR_NOTE)) notes.push(BROWSER_OCR_NOTE);
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
@@ -410,6 +461,11 @@ async function addFiles(set,files){
   if(!errs.length) toast(`${files.length} Datei(en) gelesen`);
 }
 
+// Erklärung, wenn das Material keine 15 (neuen) belegbaren Fragen hergibt – es wird nichts erfunden, um die Zahl zu erreichen
+function shortNote(R){
+  const s=R&&R.short; if(!s) return "";
+  return `<div class="note warn small">Dein Material gibt ${s.fresh?"gerade nur":"nur"} <b>${s.got} statt ${s.want}</b> sinnvoll belegbare ${s.fresh?"neue ":""}Fragen her. Merkwerk erfindet keine Inhalte, um die Zahl zu erreichen. Für mehr Fragen lade weiteres Material hoch oder wiederhole die vorhandenen Fragen in neuer Reihenfolge.</div>`;
+}
 function renderRound(m,set){
   const R=set.round; if(R.phase==="end") return renderEnd(m,set);
   const q=R.qs[R.idx]; const res=R.results[R.idx];
@@ -419,6 +475,7 @@ function renderRound(m,set){
    <section class="sheet stack" style="gap:16px">
      <div class="q-head"><span class="mono small">Frage ${R.idx+1} / ${R.qs.length}</span><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">${AFB_LABEL[q.afb]}</span></div>
      <div class="bar"><i style="width:${pct}%"></i></div>
+     ${R.idx===0&&!res?shortNote(R):""}
      <p class="q-prompt">${q.type==="cloze"?"Fülle die Lücken.":esc(q.prompt)}</p>
      <div id="qBody" class="stack"></div>
      <div id="qFb"></div>
@@ -485,12 +542,14 @@ function renderEnd(m,set){
       ${Object.keys(TYPE_LABEL).filter(k=>by[k]).map(k=>`<tr><td>${TYPE_LABEL[k]}</td><td class="n">${by[k].r} / ${by[k].n}</td><td class="n">${Math.round(by[k].r/by[k].n*100)} %</td></tr>`).join("")}
      </tbody></table></div>
      <div class="stack" style="gap:6px"><div class="row"><span class="label">Abdeckung des Materials</span><span class="spacer"></span><span class="mono small">${cov.pct} %</span></div><div class="bar mark"><i style="width:${cov.pct}%"></i></div></div>
-     <div class="row"><button class="btn primary" id="again">Dieselben Fragen in neuer Reihenfolge</button><button class="btn" id="fresh">15 neue Fragen</button></div>
+     ${shortNote(R)}
+     <div class="row"><button class="btn primary" id="again">Dieselben Fragen in neuer Reihenfolge</button><button class="btn" id="fresh">15 neue Fragen</button>${R.short&&!set.example?`<button class="btn" id="moreMat">Weiteres Material hochladen</button>`:""}</div>
      <div id="roundStatus" hidden></div>
    </section>
    ${wrong.length?`<section class="sheet stack"><h3>Falsch beantwortet (${wrong.length})</h3><div class="list">${wrong.map(({q})=>`<div class="li"><div class="grow stack" style="gap:4px"><div class="row"><span class="pill">${TYPE_LABEL[q.type]}</span><span class="pill warn">AFB ${q.afb}</span></div><b>${esc(q.type==="cloze"?q.prompt.replace(/___/g,"_____"):q.prompt)}</b><p class="small">${q.type==="mc"?"Lösung: "+esc(q.options[q.answer]):q.type==="text"?"Musterlösung: "+esc(q.model_answer):q.type==="match"?q.pairs.map(p=>esc(p.left)+" → "+esc(p.right)).join(" · "):"Lösung: "+q.blanks.map(b=>esc(b[0])).join(", ")}</p><p class="quote small">„${esc(q.quote)}“ <span class="muted">– ${esc(q.fileName)}</span></p></div></div>`).join("")}</div></section>`:`<div class="note">Alles richtig. Mit „15 neue Fragen“ gehst du an Abschnitte, die noch nicht abgefragt wurden.</div>`}
   </div>`;
   $("#backSets").onclick=()=>{ set.round.phase="done"; putSet(set); go("learn",{manage:true}); };
   $("#again").onclick=()=>startRound(set,{reuse:true,restrict:R.restrict,label:R.label});
+  const mm=$("#moreMat"); if(mm) mm.onclick=()=>{ set.round.phase="done"; putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const d=$("#dz"); if(d){ d.scrollIntoView({block:"center"}); d.focus(); } },60); };
   $("#fresh").onclick=()=>startRound(set,{n:R.qs.length>=15?15:Math.max(6,R.qs.length),restrict:R.restrict,label:R.label,planRef:R.planRef,fresh:true});
 }

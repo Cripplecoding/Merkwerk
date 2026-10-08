@@ -298,6 +298,15 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .aud-tx li[data-t]:hover{background:var(--accent-soft)}
 .aud-tx li.on{background:var(--mark);color:var(--mark-ink)}
 .aud-tx li:focus-visible{outline:2px solid var(--accent)}
+.aud-src{display:block;margin-top:2px}
+.aud-tx li.on .aud-src{color:inherit;opacity:.8}
+.aud-file{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.aud-file input{margin-top:4px;width:18px;height:18px;flex:none}
+.aud-file.off{opacity:.6;cursor:default}
+.aud-modes{gap:6px}
+.aud-player:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bad-t{color:var(--bad)}
+.warn-t{color:var(--warn)}
 </style>
 
 <header class="top">

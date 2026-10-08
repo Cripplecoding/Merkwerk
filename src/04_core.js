@@ -47,9 +47,17 @@ const idb={
   _mem:new Map(),
   async aGet(key){ try{const db=await this.open(); return await new Promise((res,rej)=>{const q=db.transaction("audio").objectStore("audio").get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}catch{ return this._mem.get(key)||null; } },
   async aPut(v){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("audio","readwrite");t.objectStore("audio").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ this._mem.set(v.key,v); } },
+  // Wie aPut, aber ohne Ausweichen in den Arbeitsspeicher: ein Fehler kommt beim Aufrufer an (Aufnahmen sollen nicht als gespeichert gelten, wenn sie es nicht sind)
+  async aPutStrict(v){ const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("audio","readwrite");t.objectStore("audio").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("abgebrochen"));}); },
   async aDelPrefix(prefix){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("audio","readwrite");t.objectStore("audio").delete(IDBKeyRange.bound(prefix,prefix+"\uffff"));t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ for(const k of [...this._mem.keys()]) if(k.startsWith(prefix)) this._mem.delete(k); } },
   async del(id){ try{const db=await this.open(); await new Promise((res,rej)=>{const t=db.transaction("sets","readwrite");t.objectStore("sets").delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch{ lsSet(LS_KEY+".sets",lsGet(LS_KEY+".sets",[]).filter(s=>s.id!==id)); } },
 };
+
+// IndexedDB eines anderen Kontos öffnen (zum Übernehmen von Gastinhalten)
+function idbOpenNamed(name){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open(name,2); r.onupgradeneeded=()=>{ const db=r.result;
+  if(!db.objectStoreNames.contains("sets")) db.createObjectStore("sets",{keyPath:"id"}); if(!db.objectStoreNames.contains("audio")) db.createObjectStore("audio",{keyPath:"key"}); };
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
+function idbTx(db,store,mode,fn){ return new Promise((res,rej)=>{ const t=db.transaction(store,mode); const q=fn(t.objectStore(store)); t.oncomplete=()=>res(q&&"result" in q?q.result:undefined); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); }); }
 
 const DEFAULT_STATE = () => ({
   v:2, updatedAt:0,
@@ -117,14 +125,14 @@ const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Fu
 /* ---------- Geräteübergreifend: privater Bereich in der Datenbank ---------- */
 let syncing=false;
 async function syncDown(){
-  if(!CAP.db||!CAP.uid||!currentAccount()) return;
+  if(!CAP.db||!CAP.uid||!currentAccount()||currentAccount().provider==="guest") return; // Gastinhalte bleiben auf dem Gerät
   try{
     const snap=await CAP.db.doc(`data/users/${CAP.uid}/app`).get();
     if(snap.exists){ const r=snap.data(); if(r && (r.updatedAt||0) > (S.updatedAt||0)){ S=Object.assign(DEFAULT_STATE(), r.state||{}); S.updatedAt=r.updatedAt; lsSet(LS_KEY,S); } }
   }catch{}
 }
 async function syncUp(){
-  if(!CAP.db||!CAP.uid||syncing||!currentAccount()) return; syncing=true;
+  if(!CAP.db||!CAP.uid||syncing||!currentAccount()||currentAccount().provider==="guest") return; syncing=true;
   try{ const st=JSON.parse(JSON.stringify(S)); await CAP.db.doc(`data/users/${CAP.uid}/app`).set({updatedAt:S.updatedAt,state:st}); }catch(e){}
   syncing=false;
 }

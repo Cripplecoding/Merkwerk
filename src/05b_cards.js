@@ -161,6 +161,8 @@ function renderCardsEnd(m,set){
        <button class="btn" id="fcRetry" ${r.practice?"":"disabled"}>Nicht gewusste erneut üben${r.practice?` (${r.practice})`:""}</button>
        <button class="btn" id="fcHome">Zurück zum Hauptmenü</button>
      </div>
+     ${r.practice?"":`<p class="small muted">„Nicht gewusste erneut üben“ ist ausgegraut, weil im letzten Durchlauf keine Karte unter „muss ich noch üben“ gelandet ist. Starte mit „Karten noch einmal durcharbeiten“ einen neuen Durchlauf mit allen Karten.</p>`}
+     <div class="row"><button class="btn ghost sm" id="fcAudio">Audiozusammenfassung / Podcast zu diesem Lernset</button><span class="small muted">aus deinen hochgeladenen Dateien; Anhören ändert deine Kartenbewertung nicht</span></div>
    </section>
    ${r.practice?`<section class="sheet stack"><h3>Muss ich noch üben (${r.practice})</h3><div class="list">${F.practice.map(id=>set.cards.find(c=>c.id===id)).filter(Boolean).map(c=>`<div class="li"><div class="grow stack" style="gap:2px"><b>${esc(c.term)}</b><p class="small">${esc(c.definition)}</p></div></div>`).join("")}</div></section>`:`<div class="note">Alles gewusst. Mit „Karten noch einmal durcharbeiten“ startest du einen neuen Durchlauf.</div>`}
   </div>`;
@@ -168,4 +170,5 @@ function renderCardsEnd(m,set){
   $("#fcAll").onclick=async()=>{ fcStart(set,set.cards.map(c=>c.id)); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcRetry").onclick=async()=>{ if(!F.practice.length) return; fcStart(set,[...F.practice],true); await putSet(set); renderCards(m,set); window.scrollTo({top:0}); };
   $("#fcHome").onclick=()=>go("home");
+  $("#fcAudio").onclick=()=>openAudio(set);
 }

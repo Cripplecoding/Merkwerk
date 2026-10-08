@@ -4,9 +4,11 @@
 //
 // Anfrage (POST, JSON):
 //   { probe: true }                                   → ist ein Sprachdienst eingerichtet? (verbraucht nichts)
-//   { lang: "de", segments: [{ text, role }] }        → role: "erzaehler" | "moderation" | "experte"
+//   { lang: "de", segments: [{ text, role }], voices?: { role: Stimme } }
+//                                                      → role: "erzaehler" | "moderation" | "experte"; voices = Auswahl aus der Stimmenliste
 //   Header wie bei merkwerk-ai: Authorization: Bearer <Zugangs-Token aus Supabase Auth>, apikey: <öffentlicher Schlüssel>
 // Antwort: { audio: [{ mime, data(base64) }], voices: { role: Stimme }, provider, rest }   (rest = Zeichen, die heute noch gehen)
+//          probe: { ok, provider, label, voices: [{ id, n, g }], defaults: { role: id } }  (Stimmen, die man in der Seite wählen kann)
 //          Fehler als JSON { code, message } mit passendem HTTP-Status.
 //
 // Einstellungen (supabase secrets set …):
@@ -47,35 +49,43 @@ const admin = createClient(env("SUPABASE_URL"), secretKey(), { auth: { persistSe
 class TtsError extends Error { constructor(public code: string, msg = code) { super(msg); } }
 interface Provider {
   id: string; label: string;
-  voices(lang: string): Record<Role, string>;
-  synth(text: string, role: Role, lang: string, signal: AbortSignal): Promise<Uint8Array>;
+  catalog: { id: string; n: string; g: "w" | "m" | "" }[]; // wählbare Stimmen
+  defaults(): Record<Role, string>;                         // Standardstimme je Rolle (id aus dem Katalog oder eigene)
+  voices(lang: string, pick?: Partial<Record<Role, string>>): Record<Role, string>;
+  synth(text: string, role: Role, lang: string, signal: AbortSignal, voice: string): Promise<Uint8Array>;
 }
 function customVoices(): Partial<Record<Role, string>> {
   const out: Partial<Record<Role, string>> = {};
   for (const p of env("MERKWERK_TTS_STIMMEN").split(",")) { const [r, v] = p.split("=").map((s) => s.trim()); if (ROLES.includes(r as Role) && v) out[r as Role] = v; }
   return out;
 }
-const statusError = (status: number) => new TtsError(status === 401 || status === 403 ? "tts_key_invalid" : status === 429 ? "rate_limited" : "tts_failed");
+const statusError = (status: number, body = "") => new TtsError(status === 401 || status === 403 ? "tts_key_invalid" : status === 429 ? "rate_limited"
+  : (status === 400 || status === 404) && /voice/i.test(body) ? "voice_unavailable" : "tts_failed");
 
 // Google Cloud Text-to-Speech, Stimmen „Chirp 3: HD“ (natürlich klingend, viele Sprachen). Zwei klar unterscheidbare Stimmen:
 // Moderatorin (Aoede, weiblich) und Experte (Charon, männlich); die Zusammenfassung spricht Kore.
 const google: Provider = {
   id: "google", label: "Google Cloud Text-to-Speech",
-  voices(lang) {
-    const v = { erzaehler: "Kore", moderation: "Aoede", experte: "Charon", ...customVoices() };
+  catalog: [
+    { id: "Kore", n: "Kore", g: "w" }, { id: "Aoede", n: "Aoede", g: "w" }, { id: "Leda", n: "Leda", g: "w" }, { id: "Zephyr", n: "Zephyr", g: "w" },
+    { id: "Charon", n: "Charon", g: "m" }, { id: "Puck", n: "Puck", g: "m" }, { id: "Fenrir", n: "Fenrir", g: "m" }, { id: "Orus", n: "Orus", g: "m" },
+  ],
+  defaults() { return { erzaehler: "Kore", moderation: "Aoede", experte: "Charon", ...customVoices() } as Record<Role, string>; },
+  voices(lang, pick = {}) {
+    const v = { ...this.defaults(), ...pick };
     const loc = LOCALES[lang];
     return Object.fromEntries(ROLES.map((r) => [r, v[r].includes("-") ? v[r] : `${loc}-Chirp3-HD-${v[r]}`])) as Record<Role, string>;
   },
-  async synth(text, role, lang, signal) {
+  async synth(text, role, lang, signal, voice) {
     const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(env("GOOGLE_TTS_API_KEY"))}`, {
       method: "POST", signal, headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: { text },
-        voice: { languageCode: LOCALES[lang], name: this.voices(lang)[role] },
+        voice: { languageCode: LOCALES[lang], name: voice },
         audioConfig: { audioEncoding: "MP3", sampleRateHertz: 24000 },
       }),
     });
-    if (!res.ok) { console.error("Google TTS", res.status, await res.text().catch(() => "")); throw statusError(res.status); }
+    if (!res.ok) { const t = await res.text().catch(() => ""); console.error("Google TTS", res.status, t); throw statusError(res.status, t); }
     const j = await res.json();
     if (typeof j.audioContent !== "string") throw new TtsError("tts_failed");
     return Uint8Array.from(atob(j.audioContent), (c) => c.charCodeAt(0));
@@ -85,16 +95,21 @@ const google: Provider = {
 // OpenAI gpt-4o-mini-tts: Sprechweise per Anweisung steuerbar
 const openai: Provider = {
   id: "openai", label: "OpenAI",
-  voices() { return { erzaehler: "sage", moderation: "coral", experte: "onyx", ...customVoices() } as Record<Role, string>; },
-  async synth(text, role, lang, signal) {
+  catalog: [
+    { id: "sage", n: "Sage", g: "w" }, { id: "coral", n: "Coral", g: "w" }, { id: "nova", n: "Nova", g: "w" }, { id: "shimmer", n: "Shimmer", g: "w" },
+    { id: "onyx", n: "Onyx", g: "m" }, { id: "ash", n: "Ash", g: "m" }, { id: "echo", n: "Echo", g: "m" }, { id: "verse", n: "Verse", g: "m" },
+  ],
+  defaults() { return { erzaehler: "sage", moderation: "coral", experte: "onyx", ...customVoices() } as Record<Role, string>; },
+  voices(_lang, pick = {}) { return { ...this.defaults(), ...pick } as Record<Role, string>; },
+  async synth(text, role, lang, signal, voice) {
     const res = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST", signal, headers: { "Content-Type": "application/json", Authorization: `Bearer ${env("OPENAI_API_KEY")}` },
       body: JSON.stringify({
-        model: "gpt-4o-mini-tts", voice: this.voices(lang)[role], input: text, response_format: "mp3",
+        model: "gpt-4o-mini-tts", voice, input: text, response_format: "mp3",
         instructions: `Sprich ${LANG_NAMES[lang]} als Muttersprache, natürlich betont, ruhig und klar wie in einem professionellen Bildungspodcast. Fachbegriffe deutlich und korrekt aussprechen. ${role === "moderation" ? "Interessiert und freundlich, nicht übertrieben begeistert." : "Sachlich und verständlich erklärend."}`,
       }),
     });
-    if (!res.ok) { console.error("OpenAI TTS", res.status, await res.text().catch(() => "")); throw statusError(res.status); }
+    if (!res.ok) { const t = await res.text().catch(() => ""); console.error("OpenAI TTS", res.status, t); throw statusError(res.status, t); }
     return new Uint8Array(await res.arrayBuffer());
   },
 };
@@ -143,11 +158,11 @@ Deno.serve(async (req) => {
   if (authErr || !auth?.user) return fail(h, 401, "session_expired", "Bitte neu anmelden");
   const uid = auth.user.id;
 
-  let body: { probe?: unknown; lang?: unknown; segments?: unknown };
+  let body: { probe?: unknown; lang?: unknown; segments?: unknown; voices?: unknown };
   try { body = await req.json(); } catch { return fail(h, 400, "bad_request", "Ungültige Anfrage"); }
   const p = provider();
   if (!p) return fail(h, 503, "tts_not_configured", "Kein Sprachdienst eingerichtet");
-  if (body.probe === true) return json(h, 200, { ok: true, provider: p.id, label: p.label });
+  if (body.probe === true) return json(h, 200, { ok: true, provider: p.id, label: p.label, voices: p.catalog, defaults: p.defaults() });
 
   const lang = typeof body.lang === "string" && LOCALES[body.lang] ? body.lang : "de";
   const segs = Array.isArray(body.segments) ? body.segments : [];
@@ -158,6 +173,17 @@ Deno.serve(async (req) => {
     if (!text || text.length > MAX_SEGMENT_CHARS || !ROLES.includes(s.role)) return fail(h, 400, "bad_request", "Ungültiger Abschnitt");
     items.push({ text, role: s.role });
   }
+  // Gewählte Stimmen: nur Stimmen aus dem Katalog; zwei Rollen eines Podcasts brauchen verschiedene Stimmen
+  const pick: Partial<Record<Role, string>> = {};
+  if (body.voices && typeof body.voices === "object") {
+    for (const [r, v] of Object.entries(body.voices as Record<string, unknown>)) {
+      if (!ROLES.includes(r as Role) || typeof v !== "string") continue;
+      if (!p.catalog.some((c) => c.id === v)) return fail(h, 400, "voice_unavailable", v);
+      pick[r as Role] = v;
+    }
+  }
+  const v = p.voices(lang, pick);
+  if (items.some((x) => x.role === "moderation") && items.some((x) => x.role === "experte") && v.moderation === v.experte) return fail(h, 400, "voice_unavailable", v.experte);
   const chars = items.reduce((a, x) => a + x.text.length, 0);
   if (chars > MAX_REQUEST_CHARS) return fail(h, 413, "prompt_too_large", "Zu viel Text auf einmal");
 
@@ -172,8 +198,7 @@ Deno.serve(async (req) => {
   if (!q?.ok) return fail(h, 429, "daily_limit", q?.grund === "gesamt" ? "zeichen_gesamt" : "zeichen");
 
   try {
-    const audio = await pool(items, 4, async (x) => ({ mime: "audio/mpeg", data: encodeBase64(await p.synth(x.text, x.role, lang, req.signal)) }));
-    const v = p.voices(lang);
+    const audio = await pool(items, 4, async (x) => ({ mime: "audio/mpeg", data: encodeBase64(await p.synth(x.text, x.role, lang, req.signal, v[x.role])) }));
     const voices = Object.fromEntries([...new Set(items.map((x) => x.role))].map((r) => [r, v[r]]));
     return json(h, 200, { audio, voices, provider: p.id, rest: q.rest });
   } catch (e) {
@@ -182,6 +207,6 @@ Deno.serve(async (req) => {
     if (req.signal.aborted) return fail(h, 499, "cancelled", "Abgebrochen");
     const code = e instanceof TtsError ? e.code : "tts_failed";
     console.error("Sprachausgabe", e);
-    return fail(h, code === "rate_limited" ? 429 : 502, code, "Sprachausgabe fehlgeschlagen");
+    return fail(h, code === "rate_limited" ? 429 : code === "voice_unavailable" ? 400 : 502, code, "Sprachausgabe fehlgeschlagen");
   }
 });

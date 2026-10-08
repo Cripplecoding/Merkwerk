@@ -11,7 +11,8 @@ const PROVIDERS = [
   {k:"apple",n:"Apple"},
   {k:"microsoft",n:"Microsoft"},
 ];
-const providerName = k => (PROVIDERS.find(p=>p.k===k)||{n:k==="claude"?"Claude":k==="local"?"diesem Gerät":k}).n;
+const providerName = k => (PROVIDERS.find(p=>p.k===k)||{n:k==="claude"?"Claude":k==="local"?"diesem Gerät":k==="guest"?"Gastzugang":k}).n;
+const guestAccount = () => ACC.list.find(a=>a.provider==="guest")||null;
 
 /* Kontenliste auf diesem Gerät. Jedes Konto hat eigenen App-Zustand (localStorage) und eigene Lernsets (IndexedDB).
    Daten von vor der Kontenfunktion übernimmt das erste Konto. */
@@ -25,6 +26,11 @@ function storageFor(acc){ return acc ? {ls:acc.ls, db:acc.db} : {ls:"merkwerk.v2
 function upsertAccount(ident){
   let acc=ACC.list.find(a=>a.provider===ident.provider&&a.sub===ident.sub);
   if(acc){ Object.assign(acc,{name:ident.name||acc.name,email:ident.email||acc.email,picture:ident.picture||acc.picture}); ACC.current=acc.id; accStore(ACC); return {acc,created:false}; }
+  // Gast („Ohne Konto fortfahren“): eigener Speicherbereich, übernimmt nie die Daten anderer Konten
+  if(ident.provider==="guest"){
+    acc={id:"gast",provider:"guest",sub:"gast",name:"Gast",email:"",picture:"",createdAt:Date.now(),ls:"merkwerk.v2.gast",db:"merkwerk-gast"};
+    ACC.list.push(acc); ACC.current=acc.id; accStore(ACC); return {acc,created:true};
+  }
   const id=Math.random().toString(36).slice(2,10);
   const legacyFree=!ACC.list.some(a=>a.db==="merkwerk");
   acc={id,provider:ident.provider,sub:String(ident.sub),name:ident.name||"",email:ident.email||"",picture:ident.picture||"",createdAt:Date.now(),
