@@ -4998,6 +4998,8 @@ async function enterAccount(ident){
   const fromGuest=WEL.fromGuest; WEL.fromGuest=false;
   const {acc,created}=upsertAccount(ident);
   await useAccountStorage();
+  // Auch ohne Konto zuerst Schule oder Studium und die Fächer abfragen (überspringbar), damit Fächerauswahl und Themenvorschläge passen
+  if(acc.provider==="guest"&&!S.profile){ WEL.step="onboard"; WEL.note="Du nutzt Merkwerk ohne Konto. Gib kurz an, wo du lernst, dann zeigt dir Merkwerk die Fächer aus deinem Bildungsplan."; render(); return; }
   if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Merkwerk jetzt ohne Konto"); return; }
   if(fromGuest) setTimeout(()=>offerGuestTransfer(),60);
   if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
@@ -5044,13 +5046,15 @@ function renderWelcome(m){
       <div class="row"><button class="btn primary" id="wLocal">Konto auf diesem Gerät anlegen</button><button class="btn ghost" id="wBackAuth">← Zurück</button></div></section>`;
   } else if(w.step==="onboard"){
     html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Merkwerk auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
-      <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>`;
+      <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>
+      ${(currentAccount()||{}).provider==="guest"?`<div class="row"><button class="btn ghost" id="wSkip">Überspringen</button><span class="small muted">Du kannst das später in der Bibliothek nachholen.</span></div>`:""}`;
   }
   m.innerHTML=`<div class="view welcome">${html}</div>`;
   const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
   on("wHave",()=>{ Object.assign(WEL,{step:"auth",mode:"login",err:""}); render(); });
   on("wNew",()=>{ Object.assign(WEL,{step:"auth",mode:"register",err:""}); render(); });
   on("wGuest",async()=>{ const g=guestAccount(); await enterAccount(g?{provider:"guest",sub:g.sub,name:"Gast"}:{provider:"guest",sub:"gast",name:"Gast"}); });
+  on("wSkip",()=>{ WEL.step="start"; WEL.note=""; go("home"); });
   on("wBackStart",()=>{ Object.assign(WEL,{step:"start",err:""}); render(); });
   on("wBackAuth",()=>{ Object.assign(WEL,{step:"auth",err:""}); render(); });
   on("wClaude",async()=>{ if(!CAP.uid){ WEL.err="Dein Claude-Konto ist hier nicht verfügbar. Lade die Seite neu."; render(); return; } await enterAccount({provider:"claude",sub:CAP.uid,name:""}); });
