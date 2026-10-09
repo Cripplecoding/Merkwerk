@@ -1,7 +1,7 @@
 // Baut Merkwerk aus src/ zu zwei Dateien:
 //   dist/index.html             – eigenständige Seite (Doppelklick im Browser oder GitHub Pages)
 //   dist/merkwerk-artifact.html – Inhalt für ein claude.ai-Artifact (ohne doctype/head/body; der Viewer ergänzt das Gerüst)
-//   dist/bildungsplaene.js      – Bildungsplan-Daten, lädt die Seite erst bei Bedarf (beim Artifact als zusätzliche Datei veröffentlichen)
+//   dist/bildungsplaene.js      – Bildungsplan-Daten, lädt index.html erst bei Bedarf (im Artifact sind sie schon eingebaut; die Datei dort trotzdem mit veröffentlichen)
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, copyFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,9 +17,12 @@ const aiEnv = s => s
   .replace(/(\banonKey: )""/, (m, a) => process.env.MERKWERK_AI_ANON_KEY ? a + JSON.stringify(process.env.MERKWERK_AI_ANON_KEY) : m);
 const js = scripts.map(f => `/* ---- ${f} ---- */\n` + (f === "04c_ai.js" ? aiEnv : String)(readFileSync(join(src, f), "utf8"))).join("\n");
 const body = `${head}\n<script>\n${js}\n</script>\n`;
+// Im Artifact stehen die Bildungsplan-Daten direkt in der Seite, damit die Fächerauswahl nicht vom Nachladen der Zusatzdatei abhängt.
+const plans = readFileSync(join(root, "data", "bildungsplaene.js"), "utf8");
+if (/<\/script/i.test(plans)) throw new Error("bildungsplaene.js enthält </script>");
 
 mkdirSync(join(root, "dist"), { recursive: true });
-writeFileSync(join(root, "dist", "merkwerk-artifact.html"), body);
+writeFileSync(join(root, "dist", "merkwerk-artifact.html"), `${head}\n<script>\n${plans}\n</script>\n<script>\n${js}\n</script>\n`);
 writeFileSync(join(root, "dist", "index.html"),
   `<!doctype html>
 <html lang="de">
