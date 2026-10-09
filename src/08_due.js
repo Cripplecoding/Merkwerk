@@ -129,11 +129,13 @@ VIEWS.due = async function(m,arg){
   const t=today0();
   const items=[...S.items].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||"").localeCompare(b.time||""));
   const upcoming=items.filter(i=>!i.done&&daysBetween(t,parseISO(i.date))>=0), past=items.filter(i=>i.done||daysBetween(t,parseISO(i.date))<0);
-  const rem=dueReminders();
+  const rem=dueReminders(), planned=upcoming.filter(i=>i.plan);
   m.innerHTML=`<div class="view">
-   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Abgaben & Klausuren</h1><p class="muted">Termine eintragen, erinnern lassen und mit deinem Material einen Lernplan bis zur Klausur erstellen.</p></div><span class="spacer"></span><button class="btn primary" id="addIt">+ Termin eintragen</button></div>
+   <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Termine &amp; Lernplan</h1><p class="muted">Abgaben und Klausuren eintragen, erinnern lassen und mit deinem Material einen Lernplan bis zum Termin erstellen.</p></div><span class="spacer"></span><button class="btn primary" id="addIt">+ Termin eintragen</button></div>
    ${rem.length?`<section class="sheet stack"><h3>Erinnerungen</h3>${remHTML(rem)}</section>`:""}
-   <section class="sheet stack"><h3>Anstehend</h3>${upcoming.length?`<div class="list">${upcoming.map(itemRow).join("")}</div>`:`<div class="empty">Keine anstehenden Termine. Trag deine nächste Klausur oder Abgabe ein.</div>`}</section>
+   <section class="sheet stack" id="plansSec" tabindex="-1"><h3>Lernpläne</h3>${planned.length?`<div class="list">${planned.map(itemRow).join("")}</div>`
+     :`<p class="small muted">Noch kein Lernplan. Trag eine Klausur oder Abgabe ein und öffne sie: Dort erstellst du mit einem Lernset einen Lernplan bis zum Termin.</p>${upcoming.length?"":`<div><button class="btn" id="addIt2">Klausur eintragen</button></div>`}`}</section>
+   <section class="sheet stack"><h3>Abgaben &amp; Klausuren</h3>${upcoming.length?`<div class="list">${upcoming.map(itemRow).join("")}</div>`:`<div class="empty">Keine anstehenden Termine. Trag deine nächste Klausur oder Abgabe ein.</div>`}</section>
    <section class="sheet stack"><div class="row"><h3>Erinnerungen einstellen</h3></div>
      <div class="grid2">
        ${["klausur","abgabe"].map(k=>`<div class="stack" style="gap:8px"><label class="row" style="gap:8px;font-weight:700"><input type="checkbox" data-ron="${k}" ${S.remind[k]?"checked":""}> An ${k==="klausur"?"Klausuren":"Abgaben"} erinnern</label>
@@ -144,8 +146,9 @@ VIEWS.due = async function(m,arg){
    ${past.length?`<details class="sheet"><summary>Erledigt und vergangen (${past.length})</summary><div class="list" style="margin-top:8px">${past.reverse().map(itemRow).join("")}</div></details>`:""}
    <div class="row"><span class="spacer"></span><button class="btn ghost sm" id="backup">Termine & Stundenplan sichern (.json)</button></div>
   </div>`;
-  $("#addIt").onclick=()=>editItem();
+  $("#addIt").onclick=()=>editItem(); const a2=$("#addIt2"); if(a2) a2.onclick=()=>editItem();
   bindRem(m); bindRows(m);
+  if(arg&&arg.plans) setTimeout(()=>{ const p=$("#plansSec"); if(p){ p.scrollIntoView({block:"start"}); p.focus({preventScroll:true}); } },30);
   $$("[data-ron]").forEach(c=>c.onchange=()=>{S.remind[c.dataset.ron]=c.checked;save();});
   $$("[data-rd]").forEach(c=>c.onclick=()=>{ const k=c.dataset.rd+"Days", d=Number(c.dataset.d); const s=new Set(S.remind[k]||[]); s.has(d)?s.delete(d):s.add(d); S.remind[k]=[...s].sort((a,b)=>b-a); c.setAttribute("aria-pressed",s.has(d)); save(); });
   $("#backup").onclick=async()=>{ if(!CAP.downloads){ copyText(JSON.stringify(S,null,1)); return; } try{ await CAP.downloads.save({filename:`merkwerk-sicherung-${isoDate(new Date())}.json`,data:JSON.stringify(S,null,1)}); }catch(e){ if(e&&e.code!=="declined") toast("Speichern nicht möglich"); } };

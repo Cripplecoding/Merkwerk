@@ -94,7 +94,7 @@ Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewer
 
 ```
 src/
-  01_head.html     Titel, Schriften, Styles (Hell/Dunkel), Kopfzeile mit Reitern
+  01_head.html     Titel, Schriften, Styles (Hell/Dunkel), Kopfzeile mit Logo, Hauptnavigation und Konto
   02_data.js       Bundesländer, Schularten, Fächer, Themen, Studiengänge, Links zu Bildungsplänen
   02b_plans.js     passende Bildungspläne zu Land, Schulart, Klasse und Fach
   03b_account.js   Konten auf dem Gerät, Client-IDs der Anmeldedienste (AUTH_CONFIG)
@@ -105,12 +105,13 @@ src/
   05_learn.js      Lernsets, Dateien lesen, Abschnitte, Fragen erzeugen und prüfen, Durchgang
   05b_cards.js     Karteikarten: erstellen, umdrehen, ziehen, zählen, Auswertung
   05e_audio.js     Audio & Podcast: Dateiauswahl, Inhaltsgrundlage, Skripte, Prüfung, Sprachausgabe, Aufnahmen, Player
+  05f_modes.js     Lernoptionen: Kacheln, Lernset auswählen und wechseln, Lernset-Leiste, Weiterlernen
   06_library.js    Profil-Abfrage, Bibliothek, Einträge
   07_timetable.js  Stundenplan-Raster, Screenshot- und ICS-Import
   08_due.js        Abgaben, Klausuren, Erinnerungen, Lernplan
   09_calendar.js   Kalender mit FullCalendar
   05c_generate.js  neues Lernset mit Vorschlägen, „Lerninhalte generieren“
-  10_home.js       Ansicht „Heute“
+  10_home.js       Startseite: Begrüßung, zuletzt verwendete Lernsets, Lernoptionen-Kacheln, Lernorganisation
   11_account.js    Begrüßung, Anmeldung, Abstimmung, Kontomenü
   99_start.js      Start
 data/              Master-Index der Bildungspläne und daraus erzeugtes bildungsplaene.js
@@ -119,6 +120,7 @@ build.mjs          setzt src/ in Dateireihenfolge zu dist/ zusammen
 dist/              fertige Seiten (index.html lokal, merkwerk-artifact.html für claude.ai, bildungsplaene.js)
 tests/run.mjs      Logik-Prüfungen ohne Browser
 tests/e2e-audio.mjs  Browser-Test für Audio & Podcast (von Hand, siehe docs/audio-podcast.md)
+tests/e2e-home.mjs   Browser-Test für Startseite, Lernoptionen und Lernset-Wechsel (von Hand: npm i --no-save playwright && node build.mjs && node tests/e2e-home.mjs)
 supabase/          eigener KI-Server: Edge Functions merkwerk-ai (Claude) und merkwerk-tts (Sprachausgabe), Tabellen für die Tageslimits
 ```
 

@@ -6,3 +6,4 @@ tools/bildungsplaene/scraper/rows/
 tools/bildungsplaene/scraper/*.log
 tools/bildungsplaene/scraper/plan.tsv
 tools/bildungsplaene/scraper/jobs.tsv
+tests/screens/

@@ -79,7 +79,9 @@ function openNewSetDialog(preset={}){
     const create=async mode=>{
       subject=sIn.value.trim(); topic=tIn.value.trim();
       const s=newSet(topic||subject||"Lernset "+(SETS.length+1),subject); s.topic=topic;
-      await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true});
+      await putSet(s); S.activeSet=s.id; touchSet(s.id); save(); close();
+      if(preset.then&&!mode) PENDING={setId:s.id,mode:preset.then};
+      go("learn",{setId:s.id,manage:true});
       if(mode) generateIntoSet(s,{mode});
     };
     $("#nsOwn",m).onclick=()=>create(null);

@@ -729,11 +729,6 @@ function audStorageNote(){
   if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Merkwerk ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
   return `<p class="small muted">Gespeichert wird auf diesem Gerät im Browser, im Bereich deines Kontos „${esc(a?accountLabel(a):"")}“, nicht auf einem Server und nicht auf anderen Geräten. Andere Konten auf diesem Gerät sehen deine Aufnahmen nicht.</p>`;
 }
-const audSwitchRow=set=>`<nav class="row aud-modes" aria-label="Lernangebote in diesem Lernset"><button class="chip" id="toQuiz">Interaktive Abfrage</button><button class="chip" id="toCards">Karteikarten</button><button class="chip" aria-pressed="true" aria-current="page">Audiozusammenfassung / Podcast</button></nav>`;
-function bindSwitchRow(set){
-  const q=$("#toQuiz"); if(q) q.onclick=()=>{ if(set.round&&set.round.phase==="q") go("learn",{setId:set.id}); else go("learn",{manage:true}); };
-  const c=$("#toCards"); if(c) c.onclick=()=>openCards(set);
-}
 
 async function renderAudio(m,set){
   const P=audPrefs(set);
@@ -742,17 +737,16 @@ async function renderAudio(m,set){
   audStop(); if(!cleanup.includes(audStop)) cleanup.push(audStop);
   if(!TTS.checked) ttsStatus().then(()=>{ if(ROUTE.arg&&ROUTE.arg.audio&&!audPlaying()) renderAudio(m,set); });
   const eligible=audEligible(set), generated=set.files.filter(f=>f.kind==="generiert");
-  const head=`<div class="row"><button class="btn ghost sm" id="backSets">← ${esc(set.name)}</button><span class="spacer"></span>${set.example?'<span class="pill mark">Beispiel</span>':""}</div>
-   ${audSwitchRow(set)}
-   <div class="stack" style="gap:4px"><h1>Audiozusammenfassung / Podcast</h1><p class="muted">Dein Lernstoff zum Anhören, ausschließlich aus den Dateien, die du hier auswählst: keine Internetrecherche, kein YouTube, kein Bildungsplan, kein Zusatzwissen. Einzelstimme und Podcastdialog beruhen auf derselben geprüften Inhaltsgrundlage.</p></div>`;
+  const head=`${modeBarHTML(set,P.fmt)}
+   <div class="stack" style="gap:4px"><h1>${P.fmt==="podcast"?"Podcast":"Audiozusammenfassung"}</h1><p class="muted">${P.fmt==="podcast"?"Dein Lernstoff als Gespräch zwischen zwei Stimmen":"Dein Lernstoff zum Anhören mit einer Stimme"}, ausschließlich aus den Dateien, die du hier auswählst: keine Internetrecherche, kein YouTube, kein Bildungsplan, kein Zusatzwissen. Einzelstimme und Podcastdialog beruhen auf derselben geprüften Inhaltsgrundlage.</p></div>`;
   // Keine eigenen Dateien: zum Hochladen auffordern, Erstellung deaktiviert
   if(!eligible.length){
     m.innerHTML=`<div class="view">${head}<section class="sheet stack">
       <div class="note warn">${generated.length?"Dieses Lernset enthält nur recherchierte Inhalte aus „Lerninhalte generieren“. Audio entsteht ausschließlich aus Dateien, die du selbst hochlädst; recherchierte Texte, Karteikarten und Fragen sind keine Quelle dafür.":"In diesem Lernset liegen noch keine Dateien."} Lade zuerst deine PDF-, DOCX- oder Bilddateien hoch.</div>
-      <div class="row"><button class="btn primary" id="audUpload">Dateien hochladen</button><button class="btn" disabled title="Erst Dateien hochladen">Audio erzeugen</button></div>
+      <div class="row"><button class="btn primary" id="audUpload">${ic("upload")} Lernmaterial hochladen</button><button class="btn" disabled title="Erst Lernmaterial hochladen">Audio erzeugen</button></div>
       <p class="small muted">Die Erstellung ist deaktiviert, weil keine hochgeladene Datei vorhanden ist.</p></section></div>`;
-    $("#backSets").onclick=()=>go("learn",{manage:true}); bindSwitchRow(set);
-    $("#audUpload").onclick=()=>go("learn",{manage:true}); return;
+    bindModeBar(set,P.fmt);
+    $("#audUpload").onclick=()=>needMaterial(set,P.fmt); return;
   }
   const {view,blockers,warnings}=audCheckFiles(set,P.files);
   const src=materialHash(view), base=meta&&meta.bases[src];
@@ -811,11 +805,11 @@ async function renderAudio(m,set){
    ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Merkwerk hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
    <p class="small muted">Anhören zählt nicht als gelernt: Eine gehörte Aufnahme ist kein richtig beantworteter Durchgang und keine gewusste Karte. Prüfe dein Wissen mit der interaktiven Abfrage oder den Karteikarten.</p>
   </div>`;
-  $("#backSets").onclick=()=>go("learn",{manage:true}); bindSwitchRow(set);
+  bindModeBar(set,P.fmt);
   const rer=()=>{ S.audio={fmt:P.fmt,len:P.len,lang:P.lang,voices:P.voices}; (S.audioSel ||= {})[set.id]=[...P.files]; save(false); renderAudio(m,set); };
   $$("[data-file]",m).forEach(c=>c.onchange=()=>{ const id=c.dataset.file; P.files=c.checked?[...new Set([...P.files,id])]:P.files.filter(x=>x!==id); P.themen=null; rer(); });
-  $$("[data-fmt]",m).forEach(b=>b.onclick=()=>{ if(P.fmt===b.dataset.fmt) return; P.fmt=b.dataset.fmt; rer(); });
-  $(".aud-seg",m).onkeydown=e=>{ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){ e.preventDefault(); P.fmt=P.fmt==="monolog"?"podcast":"monolog"; rer(); setTimeout(()=>{ const b=$(`[data-fmt="${P.fmt}"]`); b&&b.focus(); },0); } };
+  $$("[data-fmt]",m).forEach(b=>b.onclick=()=>{ if(P.fmt===b.dataset.fmt) return; P.fmt=b.dataset.fmt; touchSet(set.id,P.fmt); rer(); });
+  $(".aud-seg",m).onkeydown=e=>{ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){ e.preventDefault(); P.fmt=P.fmt==="monolog"?"podcast":"monolog"; touchSet(set.id,P.fmt); rer(); setTimeout(()=>{ const b=$(`[data-fmt="${P.fmt}"]`); b&&b.focus(); },0); } };
   $$("[data-len]",m).forEach(b=>b.onclick=()=>{ P.len=b.dataset.len; rer(); });
   $$("[data-lang]",m).forEach(b=>b.onclick=()=>{ P.lang=b.dataset.lang; rer(); });
   $$("[data-topic]",m).forEach(b=>b.onclick=()=>{ const t=b.dataset.topic; if(!t){ P.themen=null; } else { const cur=P.themen?[...P.themen]:[]; const i=cur.findIndex(x=>relax(x)===relax(t)); if(i>=0) cur.splice(i,1); else cur.push(t); P.themen=cur.length&&cur.length<base.themen.length?cur:null; } rer(); });
@@ -901,7 +895,7 @@ async function renderRecs(box,set,meta,P){
       ${r.storage==="mem"?`<span class="small bad-t">Nicht gespeichert: nur bis zum Schließen der Seite verfügbar. <button class="btn sm" data-resave="${r.id}">Erneut speichern</button></span>`:""}
       ${st.length?`<span class="small warn-t">Basiert auf einem früheren Stand: ${esc(st.map(x=>`„${x.name}“ ${x.why}`).join(", "))}. Die Aufnahme bleibt diesem Quellenstand zugeordnet.</span>`:""}
       ${r.lastPos>5&&r.lastPos<(r.duration||0)-5?`<span class="small muted">Weiter bei ${fmtTime(r.lastPos)}</span>`:""}</div></div>
-      <div class="row" style="gap:6px"><button class="btn sm ${r.id===P.open?"primary":""}" data-open="${r.id}" aria-expanded="${r.id===P.open}">${r.id===P.open?"Geöffnet":"Öffnen"}</button><button class="btn ghost sm" data-ren="${r.id}">Umbenennen</button><button class="btn ghost sm" data-txdl="${r.id}">Transkript herunterladen</button>${S.items.some(it=>!it.done&&it.date>=isoDate(today0()))?`<button class="btn ghost sm" data-plan="${r.id}">Als Hörphase einplanen</button>`:""}${st.length?`<button class="btn ghost sm" data-renew="${r.id}">Aus aktueller Auswahl neu erstellen</button>`:""}<button class="btn ghost sm danger" data-del="${r.id}">Löschen</button></div>
+      <div class="row" style="gap:6px"><button class="btn sm ${r.id===P.open?"primary":""}" data-open="${r.id}" aria-expanded="${r.id===P.open}">${r.id===P.open?"Ausgewählt":`${ic("play")} Anhören`}</button><button class="btn ghost sm" data-ren="${r.id}">Umbenennen</button><button class="btn ghost sm" data-txdl="${r.id}">Transkript herunterladen</button>${S.items.some(it=>!it.done&&it.date>=isoDate(today0()))?`<button class="btn ghost sm" data-plan="${r.id}">Als Hörphase einplanen</button>`:""}${st.length?`<button class="btn ghost sm" data-renew="${r.id}">Aus aktueller Auswahl neu erstellen</button>`:""}<button class="btn ghost sm danger" data-del="${r.id}">Löschen</button></div>
       ${r.id===P.open?`<div id="recPlayer"></div><details><summary class="small">Transkript mit Quellen</summary><div style="margin-top:8px">${transcriptHTML(r.script.segments,r.fmt,r.sources,r)}</div></details>`:""}</div>`; }).join("")}</div>`;
   const rec=recs.find(r=>r.id===P.open);
   $$("[data-open]",box).forEach(b=>b.onclick=()=>{ P.open=b.dataset.open; renderRecs(box,set,meta,P); });
