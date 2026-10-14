@@ -38,7 +38,7 @@ const current = p => p.getAttribute(".modebar-modes [aria-current='page']", "dat
 
 // 1. Gast ohne Lernsets
 const p = await newPage({ width: 1280, height: 900 });
-await p.click("#wGuest"); await p.waitForSelector(".tiles");
+await p.click("#wGuest"); await p.click("#wSkip"); await p.waitForSelector(".tiles");
 assert.equal(await p.locator(".tile").count(), 6);
 assert.ok(await p.isVisible("#hFirst"), "Einführung mit „Erstes Lernset erstellen“");
 assert.match(await p.textContent(".hero"), /ohne Konto/);
@@ -145,7 +145,7 @@ step("Nach dem Neuladen sind Lernsets, Auswahl und Fortschritt erhalten");
 
 // 12. Smartphone: Kacheln untereinander, alles erreichbar, keine waagerechte Scrollleiste
 const m = await newPage({ width: 390, height: 844 });
-await m.click("#wGuest"); await m.waitForSelector(".tiles");
+await m.click("#wGuest"); await m.click("#wSkip"); await m.waitForSelector(".tiles");
 const boxes = await m.$$eval(".tile", els => els.map(e => e.getBoundingClientRect()).map(r => ({ x: Math.round(r.x), w: Math.round(r.width) })));
 assert.ok(boxes.every(b => b.x === boxes[0].x), "Kacheln untereinander");
 assert.equal(await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "keine waagerechte Scrollleiste");
@@ -172,7 +172,7 @@ step("Angemeldet: Begrüßung mit Namen, Konto oben rechts, Bedienung per Tastat
 
 // 14. Dunkles Farbschema
 const d = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "dark" }); const dp = await d.newPage();
-await dp.goto(url); await dp.click("#wGuest"); await dp.waitForSelector(".tiles");
+await dp.goto(url); await dp.click("#wGuest"); await dp.click("#wSkip"); await dp.waitForSelector(".tiles");
 await dp.screenshot({ path: join(shots, "start-dunkel.png"), fullPage: true });
 step("Dunkles Farbschema");
 
