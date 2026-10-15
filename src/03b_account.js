@@ -1,6 +1,6 @@
 /* ===================== Konten: Anmeldung mit Google, Apple, Microsoft ===================== */
 /* Client-IDs der eigenen App-Registrierungen. Leer = Anbieter noch nicht eingerichtet;
-   dann legt Merkwerk das Konto nur auf diesem Gerät an (siehe README, Abschnitt Anmeldung). */
+   dann legt Kapiert das Konto nur auf diesem Gerät an (siehe README, Abschnitt Anmeldung). */
 const AUTH_CONFIG = {
   google:   { clientId: "" },                  // Google Cloud Console → OAuth-Client „Webanwendung“
   microsoft:{ clientId: "" },                  // Microsoft Entra → App-Registrierung, Plattform „Single-Page-Anwendung“

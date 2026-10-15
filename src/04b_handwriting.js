@@ -2,13 +2,13 @@
 // Handschrift lesen: In claude.ai liest Claude Seitenbilder (auch Handschrift). Ohne Claude (lokal, GitHub Pages)
 // übernimmt Tesseract.js im Browser – gut bei gedrucktem Text, bei Handschrift nur eingeschränkt.
 // GoodNotes: .goodnotes-Dateien sind ZIP-Archive. GoodNotes legt die eigene Handschrifterkennung
-// pro Seite unter search/<Seiten-ID> ab; diesen Text übernimmt Merkwerk. Eingebettete PDFs und Bilder
+// pro Seite unter search/<Seiten-ID> ab; diesen Text übernimmt Kapiert. Eingebettete PDFs und Bilder
 // (importierte Folien, Fotos) werden wie normale Dateien gelesen.
 
 const FILE_ACCEPT=".pdf,.docx,.txt,.md,.goodnotes,image/*";
 const TESSERACT="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js";
 const OCR_BY={claude:"von Claude abgeschrieben",browser:"im Browser erkannt",goodnotes:"Handschrift von GoodNotes erkannt"};
-const BROWSER_OCR_NOTE="Ohne Claude liest Merkwerk Bilder mit einer Texterkennung im Browser. Gedruckter Text klappt meist gut, Handschrift oft nur teilweise. Prüfe und korrigiere den Text unter „Gelesenen Text ansehen“; in claude.ai liest Claude auch Handschrift.";
+const BROWSER_OCR_NOTE="Ohne Claude liest Kapiert Bilder mit einer Texterkennung im Browser. Gedruckter Text klappt meist gut, Handschrift oft nur teilweise. Prüfe und korrigiere den Text unter „Gelesenen Text ansehen“; in claude.ai liest Claude auch Handschrift.";
 const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
 
 /* ---------- Texterkennung im Browser (ohne Claude) ---------- */

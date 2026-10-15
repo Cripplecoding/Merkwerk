@@ -1,4 +1,4 @@
-/* ===================== Lernen (Merkwerk-Kern) ===================== */
+/* ===================== Lernen (Kapiert-Kern) ===================== */
 const TYPE_LABEL={mc:"Multiple Choice",text:"Schriftliche Antwort",match:"Zuordnung",cloze:"Lückentext"};
 const AFB_LABEL={I:"AFB I · Wiedergeben",II:"AFB II · Zusammenhänge herstellen",III:"AFB III · Anwenden und Beurteilen"};
 const BASE_MIX={mc:5,text:4,match:3,cloze:3};
@@ -292,7 +292,7 @@ async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef
   if(reuse && set.round){ qs=shuffle(set.round.qs.filter(q=>!q.disputed).map(q=>prepQuestion(q))); if(!qs.length){ toast("Keine Fragen übrig – starte einen neuen Durchgang"); return; } }
   else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
   else{
-    if(!CAP.sample){ toast("Dafür braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
+    if(!CAP.sample){ toast("Dafür braucht Kapiert Claude (in claude.ai öffnen)"); return; }
     const box=$("#roundStatus"); const ctl=new AbortController();
     if(box){ box.hidden=false; box.innerHTML=`<div class="row"><span class="spin"></span><span id="rsTxt">Starte …</span><span class="spacer"></span><button class="btn sm" id="rsStop">Abbrechen</button></div>`; $("#rsStop").onclick=()=>ctl.abort(); }
     try{
@@ -384,7 +384,7 @@ function fcInfo(set){
   return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
 }
 function renderSetPanel(el,set){
-  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Merkwerk passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
+  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Kapiert passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
     $("#e2").onclick=()=>openNewSetDialog(); return; }
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
@@ -395,7 +395,7 @@ function renderSetPanel(el,set){
       :`<span class="grow" style="flex:1;min-width:200px"><b>Nächster Schritt:</b> Lade dein Lernmaterial hoch. Danach geht es direkt mit „${esc(pend.t)}“ weiter.</span>`}<button class="btn ghost sm" id="pendX">Ausblenden</button></div>`:""}
   <div class="grid2">
    <section class="sheet stack">
-     ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
+     ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Kapiert selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
      <label class="f">Fach<input type="text" id="setSubj" list="subjList" value="${esc(set.subject||"")}" placeholder="z. B. Biologie"><datalist id="subjList">${subjOpts.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
      ${set.example?"":`<label class="f">Thema<input type="text" id="setTopic" list="topicList" value="${esc(set.topic||"")}" placeholder="z. B. Lineare Funktionen"><datalist id="topicList">${curatedTopics(set.subject).map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>`}
@@ -472,7 +472,7 @@ async function addFiles(set,files){
 // Erklärung, wenn das Material keine 15 (neuen) belegbaren Fragen hergibt – es wird nichts erfunden, um die Zahl zu erreichen
 function shortNote(R){
   const s=R&&R.short; if(!s) return "";
-  return `<div class="note warn small">Dein Material gibt ${s.fresh?"gerade nur":"nur"} <b>${s.got} statt ${s.want}</b> sinnvoll belegbare ${s.fresh?"neue ":""}Fragen her. Merkwerk erfindet keine Inhalte, um die Zahl zu erreichen. Für mehr Fragen lade weiteres Material hoch oder wiederhole die vorhandenen Fragen in neuer Reihenfolge.</div>`;
+  return `<div class="note warn small">Dein Material gibt ${s.fresh?"gerade nur":"nur"} <b>${s.got} statt ${s.want}</b> sinnvoll belegbare ${s.fresh?"neue ":""}Fragen her. Kapiert erfindet keine Inhalte, um die Zahl zu erreichen. Für mehr Fragen lade weiteres Material hoch oder wiederhole die vorhandenen Fragen in neuer Reihenfolge.</div>`;
 }
 function renderRound(m,set){
   const R=set.round; if(R.phase==="end") return renderEnd(m,set);
@@ -501,7 +501,7 @@ function renderRound(m,set){
     body.innerHTML=`<textarea id="ans" placeholder="Deine Antwort …" ${done?"disabled":""}>${esc(done?res.given:"")}</textarea>${done?"":`<div class="row"><button class="btn primary" id="chk">Antwort prüfen</button><span id="gs" class="small muted"></span></div>`}`;
     if(!done) $("#chk").onclick=async()=>{ const a=$("#ans").value.trim(); if(!a){toast("Schreib zuerst eine Antwort");return;}
       if(!CAP.sample){ // Selbsteinschätzung
-        $("#gs").innerHTML=""; fb.innerHTML=`<div class="feedback" style="border:1px solid var(--line)"><b>Musterlösung</b><p>${esc(q.model_answer)}</p><p class="small muted">Ohne Claude kann Merkwerk schriftliche Antworten nicht bewerten. Vergleiche selbst:</p><div class="row"><button class="btn" id="selfOk">Hatte ich richtig</button><button class="btn" id="selfBad">Hatte ich nicht richtig</button></div></div>`;
+        $("#gs").innerHTML=""; fb.innerHTML=`<div class="feedback" style="border:1px solid var(--line)"><b>Musterlösung</b><p>${esc(q.model_answer)}</p><p class="small muted">Ohne Claude kann Kapiert schriftliche Antworten nicht bewerten. Vergleiche selbst:</p><div class="row"><button class="btn" id="selfOk">Hatte ich richtig</button><button class="btn" id="selfBad">Hatte ich nicht richtig</button></div></div>`;
         $("#selfOk").onclick=()=>finish({correct:true,given:a,feedback:"Selbst eingeschätzt."}); $("#selfBad").onclick=()=>finish({correct:false,given:a,feedback:"Selbst eingeschätzt."}); return; }
       $("#chk").disabled=true; $("#gs").innerHTML=`<span class="spin"></span> Claude prüft deine Antwort …`;
       try{ const g=await gradeText(q,a); finish({correct:g.correct,given:a,feedback:g.feedback,verdict:g.verdict}); }

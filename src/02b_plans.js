@@ -1,5 +1,5 @@
 /* ===================== Bildungspläne: passende Pläne zu Profil, Fach und Thema ===================== */
-/* Die Daten (data/bildungsplaene.js, ca. 1 MB) lädt Merkwerk erst, wenn sie gebraucht werden. */
+/* Die Daten (data/bildungsplaene.js, ca. 1 MB) lädt Kapiert erst, wenn sie gebraucht werden. */
 const PLAN_SRC="bildungsplaene.js";
 const PLAN_STATUS={g:"gültig",a:"gültig, wird aufsteigend eingeführt",x:"auslaufend, gilt noch für höhere Jahrgänge",s:"gilt subsidiär weiter",k:"tritt erst künftig in Kraft",e:"Erprobungsfassung",n:"nicht verifiziert",p:"Portalübersicht"};
 const PLAN_RANK={g:0,a:0,e:1,s:2,n:3,x:4,k:5,p:6};

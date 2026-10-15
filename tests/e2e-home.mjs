@@ -163,7 +163,7 @@ const state = { v: 2, updatedAt: 1, profile: { track: "uni", uni: "Uni Freiburg"
   timetable: { days: 5, slots: null, entries: [] }, items: [], events: [], ttMode: "cal", remind: { klausur: true, abgabe: true, klausurDays: [14, 7, 1], abgabeDays: [3, 1, 0] }, dismissed: {}, lastView: "home" };
 const k = await newPage({ width: 1280, height: 900 }, `if(!sessionStorage.getItem("init")){ localStorage.setItem("merkwerk.accounts", ${JSON.stringify(JSON.stringify(acc))}); localStorage.setItem("merkwerk.v2", ${JSON.stringify(JSON.stringify(state))}); sessionStorage.setItem("init","1"); }`);
 await k.reload(); await k.waitForSelector(".tiles");
-assert.match(await k.textContent(".hero h1"), /Hallo, Joshi!/);
+assert.match(await k.textContent(".hero h1"), /Hallo, Joshi\./);
 assert.match(await k.textContent("#accountChip"), /Joshi Beispiel/);
 await k.focus(".tile[data-mode='quiz']"); await k.keyboard.press("Enter"); await k.waitForSelector("#pkNew");
 await k.keyboard.press("Escape").catch(() => {}); await k.click(".modal [data-close]");

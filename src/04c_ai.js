@@ -1,5 +1,5 @@
 /* ===================== KI außerhalb von claude.ai (eigener Server mit Supabase) ===================== */
-/* Wenn die Seite nicht in claude.ai läuft (GitHub Pages, lokal), fragt Merkwerk Claude über die eigene
+/* Wenn die Seite nicht in claude.ai läuft (GitHub Pages, lokal), fragt Kapiert Claude über die eigene
    Supabase Edge Function „merkwerk-ai“. Sie hat dieselbe Schnittstelle wie claude.ais sample, damit der
    Rest der App nichts davon merkt. Leer = nicht eingerichtet; dann bleibt es bei der Variante ohne KI.
    Einrichtung: docs/ki-fuer-alle.md */
@@ -34,8 +34,8 @@ async function aiToken(force){
 // Einmal pro Gerät: Hinweis, dass Material an Claude (Anthropic) geschickt wird
 async function aiConsent(){
   if(lsGet(AI_CONSENT_KEY,false)) return;
-  const ok=await new Promise(res=>modal(`<h3>Merkwerk mit KI nutzen</h3>
-    <p>Für diese Funktion schickt Merkwerk dein Material (Text oder Bilder) an Claude von Anthropic, damit Claude Fragen erstellt, Bilder liest oder Antworten bewertet. Anthropic verwendet Daten aus solchen Anfragen nicht zum Training seiner Modelle. Pro Tag gibt es eine begrenzte Zahl kostenloser Anfragen.</p>
+  const ok=await new Promise(res=>modal(`<h3>Kapiert mit KI nutzen</h3>
+    <p>Für diese Funktion schickt Kapiert dein Material (Text oder Bilder) an Claude von Anthropic, damit Claude Fragen erstellt, Bilder liest oder Antworten bewertet. Anthropic verwendet Daten aus solchen Anfragen nicht zum Training seiner Modelle. Pro Tag gibt es eine begrenzte Zahl kostenloser Anfragen.</p>
     <div class="row"><button class="btn primary" id="kiOk">Einverstanden</button><button class="btn" data-close>Abbrechen</button></div>`,
     (m,close)=>{ $("#kiOk",m).onclick=()=>{close();res(true);}; m.querySelector("[data-close]").addEventListener("click",()=>res(false)); }));
   if(!ok) throw aiErr("cancelled");

@@ -162,7 +162,7 @@ async function gradeExam(ex,signal){
 }
 
 function openExamDialog(set,prefill={}){
-  if(!CAP.sample){ toast("Für die Probeklausur braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
+  if(!CAP.sample){ toast("Für die Probeklausur braucht Kapiert Claude (in claude.ai öffnen)"); return; }
   const subjects=[...new Set(SETS.filter(s=>s.files&&s.files.length).map(examSubjectOf).filter(Boolean))];
   let subject=(prefill.subject||(set&&examSubjectOf(set))||"").trim();
   let minutes=45; let picked=null;

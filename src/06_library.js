@@ -4,7 +4,7 @@ function wizardHTML(p,opt={}){
   const track=p.track||"";
   const on=t=>track===t?"border-color:var(--accent);background:var(--accent-soft)":"";
   return `<div class="stack" style="gap:16px" id="wiz">
-   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Merkwerk die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
+   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Kapiert die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Kapiert die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
    <div class="grid2${opt.onboard?" track-pick":""}">
      <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${on("schule")}"><b>${opt.onboard?"Schüler":"Ich gehe zur Schule"}</b><span class="small muted">${opt.onboard?"Ich gehe zur Schule":"Grundschule bis Abitur, Berufsschule"}</span></button>
      <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${on("uni")}"><b>${opt.onboard?"Student":"Ich studiere"}</b><span class="small muted">${opt.onboard?"Ich studiere":"Universität, Hochschule, Duale Hochschule"}</span></button>
@@ -104,13 +104,13 @@ VIEWS.lib = function(m,arg){
   const p=S.profile; const link=p.track==="schule"?planLink(p):null;
   m.innerHTML=`<div class="view">
    <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Bibliothek</h1><p class="muted">${esc(profileLabel(p))}</p></div><span class="spacer"></span><button class="btn" id="editProf">Angaben ändern</button></div>
-   ${CAP.db?"":`<div class="note warn">Die Bibliothek ist eine gemeinsame Datenbank. Einträge siehst du, wenn Merkwerk in claude.ai geöffnet ist und du angemeldet bist.</div>`}
+   ${CAP.db?"":`<div class="note warn">Die Bibliothek ist eine gemeinsame Datenbank. Einträge siehst du, wenn Kapiert in claude.ai geöffnet ist und du angemeldet bist.</div>`}
    <section class="sheet stack">
      <div class="row"><h3>${p.track==="schule"?"Meine Fächer":"Meine Module"}</h3><span class="spacer"></span>${link?`<a class="small" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)} ↗</a>`:""}</div>
      ${S.mySubjects.length?`<div class="grid3">${S.mySubjects.map(n=>`<button class="subj" data-s="${esc(n)}"><b>${esc(n)}</b><span class="small muted" data-cnt="${esc(subjKey(n))}">Themen und Einträge</span></button>`).join("")}</div>`:`<div class="empty">Noch keine Fächer gewählt. <button class="btn ghost" id="pickS">Fächer wählen</button></div>`}
    </section>
    <section class="sheet stack"><h3>So funktioniert die Bibliothek</h3>
-     <div class="grid2 small"><p><b>1. Fach wählen</b><br>Du siehst die Themen aus dem Bildungsplan bzw. Modulhandbuch und alles, was andere schon geteilt haben.</p><p><b>2. Thema eingeben</b><br>Wähle ein Thema aus der Liste oder tippe dein eigenes ein. Dann Einträge ansehen oder selbst einen hochladen.</p><p><b>3. Mit Merkwerk lernen</b><br>Jeden Eintrag kannst du mit einem Klick als Lernset übernehmen und dir belegte Prüfungsfragen dazu stellen lassen.</p></div></section>
+     <div class="grid2 small"><p><b>1. Fach wählen</b><br>Du siehst die Themen aus dem Bildungsplan bzw. Modulhandbuch und alles, was andere schon geteilt haben.</p><p><b>2. Thema eingeben</b><br>Wähle ein Thema aus der Liste oder tippe dein eigenes ein. Dann Einträge ansehen oder selbst einen hochladen.</p><p><b>3. Mit Kapiert lernen</b><br>Jeden Eintrag kannst du mit einem Klick als Lernset übernehmen und dir belegte Prüfungsfragen dazu stellen lassen.</p></div></section>
   </div>`;
   $("#editProf").onclick=openWizard; const ps=$("#pickS"); if(ps) ps.onclick=openWizard;
   $$("[data-s]").forEach(b=>b.onclick=()=>go("lib",{subject:b.dataset.s}));
@@ -202,7 +202,7 @@ function openEntry(e,names={}){
   modal(`<div class="stack" style="gap:6px"><div class="row" style="gap:6px"><span class="pill">${esc(e.kind)}</span><span class="small muted">${esc(e.subject)} · ${esc(e.topic||"")}</span></div><h2>${esc(e.title)}</h2><span class="small muted">${esc(levelLabel(e))} · ${esc(names[e.authorId]||"Jemand")} · ${new Date(e.createdAt).toLocaleDateString("de-DE")}</span></div>
     <div class="note warn small">Inhalte sind von Nutzerinnen und Nutzern erstellt und nicht geprüft.</div>
     <div class="entry-body">${esc(e.content)}</div>
-    <div class="row"><button class="btn primary" id="eLearn">Mit Merkwerk lernen</button><button class="btn" id="eVote">${VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"}</button><button class="btn" id="eCopy">Text kopieren</button><span class="spacer"></span>${mineOrOwner?`<button class="btn ghost danger" id="eDel">Löschen</button>`:""}<button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    <div class="row"><button class="btn primary" id="eLearn">Mit Kapiert lernen</button><button class="btn" id="eVote">${VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"}</button><button class="btn" id="eCopy">Text kopieren</button><span class="spacer"></span>${mineOrOwner?`<button class="btn ghost danger" id="eDel">Löschen</button>`:""}<button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#eLearn",m).onclick=async()=>{ const s=newSet(e.title,e.subject); s.files=[{id:rid("f_"),name:`Bibliothek: ${e.title}`,kind:"bibliothek",text:e.content,ocr:false}]; s.sections=makeSections(s.files); await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true}); toast("Als Lernset übernommen"); };
     $("#eVote",m).onclick=async()=>{ await toggleVote(e._id); $("#eVote",m).textContent=VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"; };
     $("#eCopy",m).onclick=()=>copyText(e.content);
@@ -213,7 +213,7 @@ function openEntry(e,names={}){
 function openEntryForm(subject,topic){
   const p=S.profile;
   if(!CAP.db){ toast("Hochladen geht nur in claude.ai mit Anmeldung"); return; }
-  if(CAP.canWrite===false){ modal(`<h3>Hochladen nicht freigeschaltet</h3><p>Du kannst die Bibliothek lesen, aber noch keine Einträge beisteuern. Bitte die Person, die Merkwerk geteilt hat, dich als Mitwirkende/n einzuladen.</p><div class="row"><button class="btn" data-close>OK</button></div>`); return; }
+  if(CAP.canWrite===false){ modal(`<h3>Hochladen nicht freigeschaltet</h3><p>Du kannst die Bibliothek lesen, aber noch keine Einträge beisteuern. Bitte die Person, die Kapiert geteilt hat, dich als Mitwirkende/n einzuladen.</p><div class="row"><button class="btn" data-close>OK</button></div>`); return; }
   modal(`<h2>Eintrag hochladen</h2><p class="small muted">${esc(subject)} · ${esc(profileLabel(p))}</p>
     <label class="f">Thema<input type="text" id="eTopic" value="${esc(topic||"")}" placeholder="z. B. Quadratische Funktionen"></label>
     <label class="f">Titel<input type="text" id="eTitle" placeholder="z. B. Spickzettel Scheitelpunktform"></label>

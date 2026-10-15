@@ -2,7 +2,7 @@
 // Aus dem Material eines Lernsets entstehen eine gesprochene Zusammenfassung (eine Stimme) und ein Podcast (zwei Stimmen).
 // Ablauf, jeder Schritt wird gespeichert und wiederverwendet:
 //   1. Informationseinheiten: Claude zerlegt die bereits gelesenen Abschnitte in fachliche Aussagen, jede mit wörtlichem Beleg.
-//      Merkwerk prüft jeden Beleg und jede Zahl selbst gegen das Material; Einheiten ohne Beleg fallen weg.
+//      Kapiert prüft jeden Beleg und jede Zahl selbst gegen das Material; Einheiten ohne Beleg fallen weg.
 //   2. Inhaltsgrundlage: je Ausführlichkeit eine feste Auswahl dieser Einheiten (Kurz = Rang 1, Standard = Rang 1–2, Ausführlich = alle).
 //   3. Skript: Zusammenfassung und Podcast entstehen aus derselben Grundlage; jedes Segment nennt die Einheiten, die es vermittelt.
 //   4. Prüfung: lokal (jede Einheit enthalten, keine fremden Zahlen) und durch Claude (nichts erfunden, nichts verfälscht);
@@ -113,12 +113,12 @@ const recBlobKey=(setId,rec)=>rec.blobKey||`a|${setId}|${rec.id}`;
 const audWords=s=>String(s||"").split(/\s+/).filter(Boolean).length;
 function audErr(e){
   const c=e&&e.code;
-  if(c==="tts_not_configured") return "Auf dem Merkwerk-Server ist noch keine Sprachausgabe eingerichtet. Das Skript ist fertig; für die Audiodatei muss der Schlüssel des Sprachdienstes hinterlegt werden (docs/audio-podcast.md).";
-  if(c==="tts_key_invalid") return "Der Sprachdienst lehnt den hinterlegten Schlüssel ab. Bitte den Schlüssel auf dem Merkwerk-Server prüfen.";
+  if(c==="tts_not_configured") return "Auf dem Kapiert-Server ist noch keine Sprachausgabe eingerichtet. Das Skript ist fertig; für die Audiodatei muss der Schlüssel des Sprachdienstes hinterlegt werden (docs/audio-podcast.md).";
+  if(c==="tts_key_invalid") return "Der Sprachdienst lehnt den hinterlegten Schlüssel ab. Bitte den Schlüssel auf dem Kapiert-Server prüfen.";
   if(c==="tts_failed") return "Die Spracherzeugung ist fehlgeschlagen. Das geprüfte Skript ist gespeichert; versuch es noch einmal.";
   if(c==="voice_unavailable") return `Die gewählte Stimme${e.message&&e.message!==c?" („"+e.message+"“)":""} ist beim Sprachdienst gerade nicht verfügbar. Wähl eine andere Stimme.`;
   if(c==="timeout") return "Der Sprachdienst hat zu lange nicht geantwortet (Zeitüberschreitung). Versuch es noch einmal.";
-  if(c==="network") return "Keine Verbindung zum Merkwerk-Server. Prüfe die Internetverbindung und versuch es noch einmal.";
+  if(c==="network") return "Keine Verbindung zum Kapiert-Server. Prüfe die Internetverbindung und versuch es noch einmal.";
   if(c==="daily_limit"&&e.message==="zeichen") return "Dein Tageslimit für die Sprachausgabe ist erreicht. Morgen geht es weiter; das geprüfte Skript bleibt gespeichert.";
   if(c==="daily_limit"&&e.message==="zeichen_gesamt") return "Die Sprachausgabe für heute ist für alle aufgebraucht. Morgen geht es weiter; das geprüfte Skript bleibt gespeichert.";
   if(c==="no_files") return "Es ist keine Datei ausgewählt. Wähle mindestens eine hochgeladene Datei aus.";
@@ -154,7 +154,7 @@ function fileIssue(f){
   const unsure=(t.match(/\[\?\]/g)||[]).length, words=audWords(t);
   if(unsure>=5&&unsure/words>0.06) return {level:"block",text:`ist schwer lesbar (${unsure} unsichere Stellen „[?]“)`,next:"Lade eine besser lesbare Datei hoch oder korrigiere den gelesenen Text."};
   if(f.ocr&&f.ocrBy==="browser") return {level:"warn",text:"wurde im Browser per Texterkennung gelesen, bei Handschrift unzuverlässig",next:"Prüfe den gelesenen Text."};
-  if(unsure) return {level:"warn",text:`enthält ${unsure} unsichere Stelle${unsure>1?"n":""} „[?]“; dort ergänzt Merkwerk nichts`,next:"Prüfe den gelesenen Text."};
+  if(unsure) return {level:"warn",text:`enthält ${unsure} unsichere Stelle${unsure>1?"n":""} „[?]“; dort ergänzt Kapiert nichts`,next:"Prüfe den gelesenen Text."};
   return null;
 }
 // Teilansicht eines Lernsets mit nur den ausgewählten Dateien; die Abschnitts-IDs bleiben gleich
@@ -475,7 +475,7 @@ function ttsStatus(force){
 async function ttsConsent(){
   if(lsGet(TTS_CONSENT_KEY,false)) return;
   const ok=await new Promise(res=>modal(`<h3>Sprachausgabe nutzen</h3>
-    <p>Für die Audiodatei schickt Merkwerk das geprüfte Sprechskript (nicht deine Dateien) an ${esc(TTS.label||"den Sprachdienst")}. Der Dienst wandelt den Text in Sprache um; die fertige Audiodatei wird nur auf diesem Gerät gespeichert. Pro Tag gibt es ein begrenztes Kontingent.</p>
+    <p>Für die Audiodatei schickt Kapiert das geprüfte Sprechskript (nicht deine Dateien) an ${esc(TTS.label||"den Sprachdienst")}. Der Dienst wandelt den Text in Sprache um; die fertige Audiodatei wird nur auf diesem Gerät gespeichert. Pro Tag gibt es ein begrenztes Kontingent.</p>
     <div class="row"><button class="btn primary" id="ttsOk">Einverstanden</button><button class="btn" data-close>Abbrechen</button></div>`,
     (m,close)=>{ $("#ttsOk",m).onclick=()=>{close();res(true);}; m.querySelector("[data-close]").addEventListener("click",()=>res(false)); }));
   if(!ok) throw aiErr("cancelled");
@@ -726,7 +726,7 @@ let audTeardown=[];
 function audStop(){ audTeardown.forEach(f=>{ try{f();}catch{} }); audTeardown=[]; }
 function audStorageNote(){
   const a=currentAccount();
-  if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Merkwerk ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
+  if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Kapiert ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
   return `<p class="small muted">Gespeichert wird auf diesem Gerät im Browser, im Bereich deines Kontos „${esc(a?accountLabel(a):"")}“, nicht auf einem Server und nicht auf anderen Geräten. Andere Konten auf diesem Gerät sehen deine Aufnahmen nicht.</p>`;
 }
 
@@ -761,7 +761,7 @@ async function renderAudio(m,set){
   const scope=base?scopeNote(base.units,P.len,P.themen):(view.files.reduce((a,f)=>a+audWords(f.text),0)<120&&view.files.length?"Die ausgewählten Dateien enthalten nur sehr wenig Text. Für eine sinnvolle Zusammenfassung reicht das kaum; lade weiteres Material hoch.":"");
   const voiceRoles=ttsRoles(P.fmt), sameVoice=P.fmt==="podcast"&&TTS.ok&&TTS.catalog.length&&P.voices.moderation&&P.voices.moderation===P.voices.experte;
   const reasons=[]; // warum die Erstellung gerade nicht geht
-  if(!canAI) reasons.push("Für Skript und Prüfung braucht Merkwerk Claude (in claude.ai oder über den Merkwerk-Server).");
+  if(!canAI) reasons.push("Für Skript und Prüfung braucht Kapiert Claude (in claude.ai oder über den Kapiert-Server).");
   if(!view.files.length) reasons.push("Wähle mindestens eine Datei aus.");
   if(base&&!ids.length) reasons.push("Zu den gewählten Teilthemen gibt es in diesem Umfang keine Inhalte.");
   if(sameVoice) reasons.push("Für den Podcastdialog brauchen Moderatorin und Experte zwei verschiedene Stimmen.");
@@ -802,7 +802,7 @@ async function renderAudio(m,set){
      <div id="audScript"></div>
    </section>
    <section class="sheet stack" id="audRecs"></section>
-   ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Merkwerk hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
+   ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Kapiert hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
    <p class="small muted">Anhören zählt nicht als gelernt: Eine gehörte Aufnahme ist kein richtig beantworteter Durchgang und keine gewusste Karte. Prüfe dein Wissen mit der interaktiven Abfrage oder den Karteikarten.</p>
   </div>`;
   bindModeBar(set,P.fmt);
@@ -837,9 +837,9 @@ function audPreflight(set,P,blockers,run){
 function audSetupNote(scriptReady){
   if(!TTS.checked||TTS.ok) return "";
   const r=TTS.reason;
-  const why=r==="no_server"?"Für echte Audiodateien braucht Merkwerk die Sprachausgabe auf dem Merkwerk-Server, und die ist hier noch nicht eingerichtet."
-    :r==="tts_not_configured"?"Auf dem Merkwerk-Server ist noch kein Sprachdienst hinterlegt."
-    :"Der Merkwerk-Server ist gerade nicht erreichbar.";
+  const why=r==="no_server"?"Für echte Audiodateien braucht Kapiert die Sprachausgabe auf dem Kapiert-Server, und die ist hier noch nicht eingerichtet."
+    :r==="tts_not_configured"?"Auf dem Kapiert-Server ist noch kein Sprachdienst hinterlegt."
+    :"Der Kapiert-Server ist gerade nicht erreichbar.";
   return `<div class="note warn small">${why} ${scriptReady?"Das geprüfte Skript kannst du lesen oder dir als Ersatz mit der Stimme deines Geräts vorlesen lassen.":"Skript und Prüfung funktionieren trotzdem; als Ersatz liest die Stimme deines Geräts vor."} <span class="muted">(Einrichtung: docs/audio-podcast.md)</span></div>`;
 }
 function checkBadge(c){
@@ -878,7 +878,7 @@ function renderScript(box,set,{P,base,v,sc,job,start}){
     <div id="devBox"></div></div>`;
   const txt=()=>transcriptText(sc,P.fmt,title,{sources,files:base.files||[],date:sc.createdAt,hinweise:base.hinweise});
   $("#scCopy",box).onclick=()=>copyText(txt());
-  $("#scDl",box).onclick=()=>downloadText(`Merkwerk – ${set.name} – ${AUD_FORMATS[P.fmt].short} – Transkript.txt`,txt());
+  $("#scDl",box).onclick=()=>downloadText(`Kapiert – ${set.name} – ${AUD_FORMATS[P.fmt].short} – Transkript.txt`,txt());
   const sk=$("#scSkip",box); if(sk) sk.onclick=async()=>{ if(await confirmBox("Audio ohne die fehlenden Inhalte erzeugen? Die Aufnahme deckt dann nicht alles aus der Grundlage ab.","Trotzdem erzeugen")) start({allowMissing:true}); };
   const rd=$("#scRedo",box); if(rd) rd.onclick=()=>start({force:"script"});
   if(!TTS.ok&&TTS.checked&&!(sc.check&&sc.check.blocked)) mountDeviceReader($("#devBox",box),sc,P.fmt,P.lang);
@@ -919,7 +919,7 @@ function watchJob(m,set,job){
     if(job.running){
       const shown=job.analyzeOnly?[0,1]:[0,1,2,3,4,5,6];
       el.innerHTML=`<div class="aud-steps"><ol>${shown.map(i=>`<li class="${job.done.includes(i)&&i!==job.step?"ok":i===job.step?"on":""}">${i===job.step?'<span class="spin" aria-hidden="true"></span>':job.done.includes(i)?"✓":"○"} ${esc(i===job.step&&job.detail?job.detail:steps[i])}</li>`).join("")}</ol>
-        <div class="row"><span class="small muted">Du kannst Merkwerk währenddessen weiter benutzen. Ein weiterer Klick startet keinen zweiten Auftrag.</span><span class="spacer"></span><button class="btn sm" id="audStop">Abbrechen</button></div></div>`;
+        <div class="row"><span class="small muted">Du kannst Kapiert währenddessen weiter benutzen. Ein weiterer Klick startet keinen zweiten Auftrag.</span><span class="spacer"></span><button class="btn sm" id="audStop">Abbrechen</button></div></div>`;
       $("#audStop").onclick=()=>job.ctl.abort();
       const g=$("#audGo"); if(g) g.disabled=true;
     } else if(job.error){
@@ -1006,7 +1006,7 @@ function mountPlayer(box,{blob,set,rec}){
   audTeardown.push(savePos);
   // Steuerung auf dem Sperrbildschirm und mit Medientasten
   if(navigator.mediaSession){ try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:rec.title,artist:"Merkwerk · "+AUD_FORMATS[rec.fmt].short,album:set.name});
+    navigator.mediaSession.metadata=new MediaMetadata({title:rec.title,artist:"Kapiert · "+AUD_FORMATS[rec.fmt].short,album:set.name});
     navigator.mediaSession.setActionHandler("play",()=>a.play()); navigator.mediaSession.setActionHandler("pause",()=>a.pause());
     navigator.mediaSession.setActionHandler("seekbackward",()=>jump(-10)); navigator.mediaSession.setActionHandler("seekforward",()=>jump(10));
   }catch{} }
