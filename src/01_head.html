@@ -1,7 +1,7 @@
-<title>Merkwerk</title>
+<title>Lernleicht</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: Heft-Raster. Eine Spalte Arbeitsfläche (max 1040px) unter einer festen Reiterleiste; Karopapier nur als Grund der Kopfzeile. */
 :root{
@@ -382,16 +382,127 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .aud-player:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bad-t{color:var(--bad)}
 .warn-t{color:var(--warn)}
+/* ===== Lernleicht-Design =====
+   Idee: ruhig und leicht. Warmes Papierweiß, eine Akzentfarbe (Indigo) und Textmarker-Gelb nur für „Merk dir das“.
+   Flache Flächen mit Haarlinien statt Schatten, runde Formen, Überschriften in einer leichten Serifenschrift.
+   Auf der Startseite steht oben genau ein nächster Schritt; auf dem Handy liegt die Navigation unten in Daumennähe. */
+:root{
+  --paper:#f6f5f1; --sheet:#ffffff; --ink:#1c1d1a; --muted:#61645d; --line:#e3e1d9; --grid:#efede6;
+  --accent:#4338ca; --accent-ink:#ffffff; --accent-soft:#ebeafb;
+  --mark:#ffd84d; --mark-ink:#2a2100;
+  --ok:#1f7a4c; --ok-soft:#e3f2e8; --bad:#b4372f; --bad-soft:#f9e5e2; --warn:#9a5a00; --warn-soft:#fbf0d9;
+  --orange:#c56200; --orange-soft:#fdecd8;
+  --f-serif:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --f-display:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --r:16px; --shadow:0 1px 0 rgba(28,29,26,.03);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121316; --sheet:#1a1b20; --ink:#ecebe6; --muted:#a3a49f; --line:#2c2d33; --grid:#1f2026;
+  --accent:#a9b1ff; --accent-ink:#15133d; --accent-soft:#25264a;
+  --mark:#f2cc45; --mark-ink:#241c00;
+  --ok:#5cc38e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610; --shadow:none; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#121316; --sheet:#1a1b20; --ink:#ecebe6; --muted:#a3a49f; --line:#2c2d33; --grid:#1f2026;
+  --accent:#a9b1ff; --accent-ink:#15133d; --accent-soft:#25264a;
+  --mark:#f2cc45; --mark-ink:#241c00;
+  --ok:#5cc38e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610; --shadow:none; color-scheme:dark;}
+body{font-size:16.5px}
+h1{font-family:var(--f-serif);font-weight:400;letter-spacing:-.01em;font-size:clamp(2.1rem,5vw,3.1rem);line-height:1.05}
+h2{font-size:1.3rem;letter-spacing:-.005em}
+.label{letter-spacing:.06em;font-size:.72rem}
+.label,.modebar-k{color:var(--muted)}
+
+/* Kopfzeile: hell, ohne Kasten */
+.top{background:color-mix(in srgb,var(--paper) 88%,transparent);border-bottom:1px solid var(--line)}
+@media (min-width:861px){.top{backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px)}}
+.top-in{padding-block:12px}
+.logo-mark{width:32px;height:32px}
+.brand b{font-family:var(--f-serif);font-weight:400;font-size:1.7rem;letter-spacing:-.01em}
+.brand b span{background:none;color:var(--accent);padding:0;font-style:italic}
+.tabs{gap:4px;padding:3px;border-radius:999px;background:var(--sheet);border:1px solid var(--line)}
+.tab{border-radius:999px;padding:7px 14px;min-height:36px;font-weight:700}
+.tab:hover{background:var(--grid)}
+.tab[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.tab-mob{display:none}
+.chip{border-radius:999px}
+.avatar{background:var(--ink);color:var(--paper)}
+
+/* Handy: Navigation unten, gut mit dem Daumen erreichbar */
+@media (max-width:860px){
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;order:4;width:auto;margin:0;border-radius:0;border:0;border-top:1px solid var(--line);
+    background:var(--sheet);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;gap:2px}
+  .tab{flex:1 1 0;min-width:0;padding:9px 4px;font-size:.8rem;min-height:44px;text-align:center;overflow:hidden;text-overflow:ellipsis}
+  .top-in{padding-bottom:10px}
+  .tab-full{display:none}.tab-mob{display:inline}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Flächen und Bedienelemente */
+.sheet{border-radius:var(--r);box-shadow:none}
+.btn{border-radius:999px;padding-inline:16px}
+.btn.btn-lg{padding:12px 22px;min-height:48px}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.btn:hover{border-color:var(--ink)}
+.btn.primary:hover{border-color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=url],select,textarea{border-radius:12px;background:var(--sheet)}
+.note{border-left:0;border-radius:12px;padding:12px 14px}
+.empty{border-radius:var(--r)}
+.bar{height:8px;border:0;background:var(--grid)}
+.modal{border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.overlay{background:rgba(18,19,22,.35);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.toast{border-radius:999px;padding:11px 18px}
+.score{font-family:var(--f-serif);font-weight:400;font-size:4rem}
+.opt,.pick,.subj,.wizard-opt,.org-tile,.set-card{border-radius:14px;box-shadow:none}
+.wizard-opt:hover,.pick:hover,.subj:hover,.opt:hover,.org-tile:hover{border-color:var(--ink)}
+.fc-face{border-radius:22px;box-shadow:none}
+.fc-term{font-family:var(--f-serif);font-weight:400;font-size:clamp(1.8rem,5vw,2.8rem)}
+.fc-zone{border-radius:18px}
+.modebar{border-radius:var(--r)}
+.welcome-hero h1,.welcome-card h1{font-size:clamp(2rem,5.4vw,3rem)}
+
+/* Startseite: ein nächster Schritt, darunter alles Weitere in Ruhe */
+.home{gap:36px}
+#installSlot:empty{display:none}
+.hero{align-items:flex-start;flex-direction:column;gap:6px}
+.focus{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px 28px;padding:clamp(20px,4vw,34px);border-radius:24px;
+  background:var(--ink);color:var(--paper)}
+.focus .label{color:color-mix(in srgb,var(--paper) 70%,transparent)}
+.focus-t{font-family:var(--f-serif);font-weight:400;font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.1;overflow-wrap:anywhere}
+.focus-d{color:color-mix(in srgb,var(--paper) 78%,transparent)}
+.focus-go{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.focus .btn.primary{background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-size:1.05rem}
+.focus .btn.ghost{color:var(--paper)}
+.focus .btn.ghost:hover{background:color-mix(in srgb,var(--paper) 12%,transparent)}
+.focus .btn:focus-visible{outline-color:var(--mark)}
+@media (max-width:640px){.focus{grid-template-columns:1fr}.focus-go .btn{width:100%}}
+.steps li{border-radius:16px;background:var(--sheet)}
+.steps li::before{background:var(--ink);color:var(--paper)}
+.set-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.tiles{gap:12px}
+.tile{border-radius:20px;box-shadow:none;min-height:190px;padding:20px;gap:6px}
+.tile:hover{border-color:var(--ink);box-shadow:none;transform:translateY(-2px)}
+.tile{transition:border-color .15s,transform .15s}
+@media (prefers-reduced-motion: reduce){.tile{transition:none}.tile:hover{transform:none}}
+.tile-ic{border-radius:50%;background:var(--grid);color:var(--ink)}
+.tile:hover .tile-ic{background:var(--accent);color:var(--accent-ink)}
+.tile-t{font-family:var(--f-body);font-size:1.12rem}
+.tile-cta{background:none;color:var(--accent);padding:0;min-height:28px}
+.tile:hover .tile-cta{filter:none;text-decoration:underline}
+.org-tile>.ic{color:var(--ink)}
 </style>
 
 <header class="top">
   <div class="top-in">
-    <button class="brand" id="brandHome" type="button" aria-label="Merkwerk – zur Startseite"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="9" y="14" width="46" height="34" rx="5" fill="#e9f26b" transform="rotate(-5 32 32)"/><path d="M17 45V19h7.5l7.5 13.5L39.5 19H47v26h-7V31l-6 10.5h-4L24 31v14z" fill="#1b2130"/><rect x="17" y="50" width="30" height="3.5" rx="1.75" fill="#2a46c4"/></svg><b>Merk<span>werk</span></b></button>
+    <button class="brand" id="brandHome" type="button" aria-label="Lernleicht – zur Startseite"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="4" y="4" width="56" height="56" rx="18" fill="var(--accent)"/><path d="M17 43c8 0 13-4 17-11s8-11 13-11" fill="none" stroke="var(--accent-ink)" stroke-width="5" stroke-linecap="round"/><circle cx="47" cy="21" r="5.5" fill="var(--mark)"/></svg><b>lern<span>leicht</span></b></button>
     <nav class="tabs" id="tabs" aria-label="Hauptnavigation">
       <button class="tab" type="button" data-v="home" id="tab-home">Start</button>
       <button class="tab" type="button" data-v="learn" id="tab-learn">Lernsets</button>
       <button class="tab" type="button" data-v="lib" id="tab-lib">Bibliothek</button>
-      <button class="tab" type="button" data-v="tt" id="tab-tt">Stundenplan</button>
+      <button class="tab" type="button" data-v="tt" id="tab-tt"><span class="tab-full">Stundenplan</span><span class="tab-mob">Kalender</span></button>
       <button class="tab" type="button" data-v="due" id="tab-due">Termine<span class="tab-long"> &amp; Lernplan</span></button>
     </nav>
     <div class="top-acc">

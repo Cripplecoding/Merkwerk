@@ -28,6 +28,16 @@ function sessionHTML({it,d}){
   return `<div class="li"><span class="pill ${left===0?"mark":""}">${esc(when)}</span><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${esc(what)} · ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(t0,parseISO(it.date)))}</div></div>
     <button class="btn sm ${left===0?"primary":""}" data-pl="${it.id}|${d.date}|${d.kind}">${d.kind==="hoeren"?"Anhören":"Starten"}</button></div>`;
 }
+// Der eine nächste Schritt oben auf der Startseite: heutige Lerneinheit → zuletzt genutztes Lernset → neues Lernset
+function nextStepHTML(sessions,recent){
+  const t0=today0(), todays=sessions.find(x=>daysBetween(t0,parseISO(x.d.date))===0);
+  if(todays){ const {it,d}=todays;
+    const what=d.kind==="wiederholung"?"Wiederholung":d.kind==="hoeren"?`Hörphase, ca. ${Math.round(d.minutes||0)} Min.`:`${d.sectionIds.length} neue Abschnitte`;
+    return {t:it.title,d:`Heute im Lernplan: ${what}`,btn:`<button class="btn primary btn-lg" data-pl="${it.id}|${d.date}|${d.kind}">${ic("play")} ${d.kind==="hoeren"?"Anhören":"Jetzt lernen"}</button>`}; }
+  const s=recent.find(x=>x.files&&x.files.length);
+  if(s) return {t:s.name,d:resumeInfo(s).info,btn:`<button class="btn primary btn-lg" data-resume="${s.id}">${ic("play")} Weiterlernen</button>`};
+  return {t:"Neues Lernset",d:"Lade dein Material hoch oder lass Inhalte zu deinem Thema erstellen.",btn:`<button class="btn primary btn-lg" id="hNew2">${ic("plus")} Lernset erstellen</button>`};
+}
 VIEWS.home = async function(m){
   if(!SETS.length) await loadSets();
   const acc=currentAccount(), guest=!!acc&&acc.provider==="guest";
@@ -41,18 +51,19 @@ VIEWS.home = async function(m){
   const evToday=(S.events||[]).filter(e=>e.kind!=="frei"&&e.start.slice(0,10)===tISO).sort((a,b)=>a.start.localeCompare(b.start));
   m.innerHTML=`<div class="view home">
    <section class="hero">
-     <div class="stack" style="gap:6px;min-width:0">
-       <span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span>
-       <h1>Hallo<span id="hiName">${name?", "+esc(name):""}</span>!</h1>
-       <p class="muted">${guest?`Du lernst ohne Konto, deine Inhalte bleiben nur in diesem Browser. <button class="linkbtn" id="hGuest">Konto anlegen</button>`
-         :intro?"Schön, dass du da bist. Leg los mit deinem ersten Lernset.":"Schön, dass du wieder da bist. Mach weiter, wo du aufgehört hast."}</p>
-     </div>
-     ${intro?"":`<button class="btn primary btn-lg" id="hNew">${ic("plus")} Neues Lernset erstellen</button>`}
+     <span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span>
+     <h1>Hallo<span id="hiName">${name?", "+esc(name):""}</span>.</h1>
+     <p class="muted">${guest?`Du lernst ohne Konto, deine Inhalte bleiben nur in diesem Browser. <button class="linkbtn" id="hGuest">Konto anlegen</button>`
+       :intro?"Schön, dass du da bist. Leg los mit deinem ersten Lernset.":"Ein Schritt nach dem anderen. Hier geht es weiter."}</p>
    </section>
+   ${intro?"":(f=>`<section class="focus" aria-labelledby="hFocus">
+     <div class="stack" style="gap:6px;min-width:0"><span class="label">Dein nächster Schritt</span><h2 class="focus-t" id="hFocus">${esc(f.t)}</h2><p class="focus-d">${esc(f.d)}</p></div>
+     <div class="focus-go">${f.btn}${f.btn.includes("hNew2")?"":`<button class="btn ghost" id="hNew">${ic("plus")} Neues Lernset</button>`}</div>
+   </section>`)(nextStepHTML(sessions,recent))}
    ${intro?`<section class="sheet intro stack">
-     <h2>So startest du mit Merkwerk</h2>
+     <h2>So leicht geht es los</h2>
      <ol class="steps">
-       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Merkwerk schlägt Themen aus deinem Bildungsplan vor.</span></li>
+       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Lernleicht schlägt Themen aus deinem Bildungsplan vor.</span></li>
        <li><b>Material hinzufügen</b><span class="small muted">PDF, Word, Fotos oder GoodNotes hochladen oder Lerninhalte generieren lassen.</span></li>
        <li><b>Lernoption wählen</b><span class="small muted">Abfrage, Karteikarten, Audiozusammenfassung, Podcast oder Probeklausur.</span></li>
      </ol>
@@ -93,7 +104,7 @@ VIEWS.home = async function(m){
    </section>
   </div>`;
   const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
-  on("hNew",()=>openNewSetDialog()); on("hFirst",()=>openNewSetDialog());
+  on("hNew",()=>openNewSetDialog()); on("hNew2",()=>openNewSetDialog()); on("hFirst",()=>openNewSetDialog());
   on("hEx",async()=>{ const s=await makeExampleSet(); S.activeSet=s.id; touchSet(s.id); save(); go("learn",{setId:s.id,manage:true}); });
   on("hProf",()=>openWizard()); on("hGuest",()=>openGuestMenu());
   on("hAll",()=>go("learn",{manage:true})); on("hSwitch",()=>pickSetFor(null));

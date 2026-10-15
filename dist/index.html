@@ -6,10 +6,10 @@
 <style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Merkwerk</title>
+<title>Lernleicht</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: Heft-Raster. Eine Spalte Arbeitsfläche (max 1040px) unter einer festen Reiterleiste; Karopapier nur als Grund der Kopfzeile. */
 :root{
@@ -390,16 +390,127 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .aud-player:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bad-t{color:var(--bad)}
 .warn-t{color:var(--warn)}
+/* ===== Lernleicht-Design =====
+   Idee: ruhig und leicht. Warmes Papierweiß, eine Akzentfarbe (Indigo) und Textmarker-Gelb nur für „Merk dir das“.
+   Flache Flächen mit Haarlinien statt Schatten, runde Formen, Überschriften in einer leichten Serifenschrift.
+   Auf der Startseite steht oben genau ein nächster Schritt; auf dem Handy liegt die Navigation unten in Daumennähe. */
+:root{
+  --paper:#f6f5f1; --sheet:#ffffff; --ink:#1c1d1a; --muted:#61645d; --line:#e3e1d9; --grid:#efede6;
+  --accent:#4338ca; --accent-ink:#ffffff; --accent-soft:#ebeafb;
+  --mark:#ffd84d; --mark-ink:#2a2100;
+  --ok:#1f7a4c; --ok-soft:#e3f2e8; --bad:#b4372f; --bad-soft:#f9e5e2; --warn:#9a5a00; --warn-soft:#fbf0d9;
+  --orange:#c56200; --orange-soft:#fdecd8;
+  --f-serif:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --f-display:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --r:16px; --shadow:0 1px 0 rgba(28,29,26,.03);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121316; --sheet:#1a1b20; --ink:#ecebe6; --muted:#a3a49f; --line:#2c2d33; --grid:#1f2026;
+  --accent:#a9b1ff; --accent-ink:#15133d; --accent-soft:#25264a;
+  --mark:#f2cc45; --mark-ink:#241c00;
+  --ok:#5cc38e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610; --shadow:none; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#121316; --sheet:#1a1b20; --ink:#ecebe6; --muted:#a3a49f; --line:#2c2d33; --grid:#1f2026;
+  --accent:#a9b1ff; --accent-ink:#15133d; --accent-soft:#25264a;
+  --mark:#f2cc45; --mark-ink:#241c00;
+  --ok:#5cc38e; --ok-soft:#14301f; --bad:#f08a80; --bad-soft:#3a1a18; --warn:#f0b35a; --warn-soft:#3a2a10;
+  --orange:#ff9a3d; --orange-soft:#3d2610; --shadow:none; color-scheme:dark;}
+body{font-size:16.5px}
+h1{font-family:var(--f-serif);font-weight:400;letter-spacing:-.01em;font-size:clamp(2.1rem,5vw,3.1rem);line-height:1.05}
+h2{font-size:1.3rem;letter-spacing:-.005em}
+.label{letter-spacing:.06em;font-size:.72rem}
+.label,.modebar-k{color:var(--muted)}
+
+/* Kopfzeile: hell, ohne Kasten */
+.top{background:color-mix(in srgb,var(--paper) 88%,transparent);border-bottom:1px solid var(--line)}
+@media (min-width:861px){.top{backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px)}}
+.top-in{padding-block:12px}
+.logo-mark{width:32px;height:32px}
+.brand b{font-family:var(--f-serif);font-weight:400;font-size:1.7rem;letter-spacing:-.01em}
+.brand b span{background:none;color:var(--accent);padding:0;font-style:italic}
+.tabs{gap:4px;padding:3px;border-radius:999px;background:var(--sheet);border:1px solid var(--line)}
+.tab{border-radius:999px;padding:7px 14px;min-height:36px;font-weight:700}
+.tab:hover{background:var(--grid)}
+.tab[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.tab-mob{display:none}
+.chip{border-radius:999px}
+.avatar{background:var(--ink);color:var(--paper)}
+
+/* Handy: Navigation unten, gut mit dem Daumen erreichbar */
+@media (max-width:860px){
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;order:4;width:auto;margin:0;border-radius:0;border:0;border-top:1px solid var(--line);
+    background:var(--sheet);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;gap:2px}
+  .tab{flex:1 1 0;min-width:0;padding:9px 4px;font-size:.8rem;min-height:44px;text-align:center;overflow:hidden;text-overflow:ellipsis}
+  .top-in{padding-bottom:10px}
+  .tab-full{display:none}.tab-mob{display:inline}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Flächen und Bedienelemente */
+.sheet{border-radius:var(--r);box-shadow:none}
+.btn{border-radius:999px;padding-inline:16px}
+.btn.btn-lg{padding:12px 22px;min-height:48px}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.btn:hover{border-color:var(--ink)}
+.btn.primary:hover{border-color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+input[type=text],input[type=date],input[type=time],input[type=number],input[type=url],select,textarea{border-radius:12px;background:var(--sheet)}
+.note{border-left:0;border-radius:12px;padding:12px 14px}
+.empty{border-radius:var(--r)}
+.bar{height:8px;border:0;background:var(--grid)}
+.modal{border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.overlay{background:rgba(18,19,22,.35);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.toast{border-radius:999px;padding:11px 18px}
+.score{font-family:var(--f-serif);font-weight:400;font-size:4rem}
+.opt,.pick,.subj,.wizard-opt,.org-tile,.set-card{border-radius:14px;box-shadow:none}
+.wizard-opt:hover,.pick:hover,.subj:hover,.opt:hover,.org-tile:hover{border-color:var(--ink)}
+.fc-face{border-radius:22px;box-shadow:none}
+.fc-term{font-family:var(--f-serif);font-weight:400;font-size:clamp(1.8rem,5vw,2.8rem)}
+.fc-zone{border-radius:18px}
+.modebar{border-radius:var(--r)}
+.welcome-hero h1,.welcome-card h1{font-size:clamp(2rem,5.4vw,3rem)}
+
+/* Startseite: ein nächster Schritt, darunter alles Weitere in Ruhe */
+.home{gap:36px}
+#installSlot:empty{display:none}
+.hero{align-items:flex-start;flex-direction:column;gap:6px}
+.focus{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px 28px;padding:clamp(20px,4vw,34px);border-radius:24px;
+  background:var(--ink);color:var(--paper)}
+.focus .label{color:color-mix(in srgb,var(--paper) 70%,transparent)}
+.focus-t{font-family:var(--f-serif);font-weight:400;font-size:clamp(1.7rem,4vw,2.4rem);line-height:1.1;overflow-wrap:anywhere}
+.focus-d{color:color-mix(in srgb,var(--paper) 78%,transparent)}
+.focus-go{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.focus .btn.primary{background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-size:1.05rem}
+.focus .btn.ghost{color:var(--paper)}
+.focus .btn.ghost:hover{background:color-mix(in srgb,var(--paper) 12%,transparent)}
+.focus .btn:focus-visible{outline-color:var(--mark)}
+@media (max-width:640px){.focus{grid-template-columns:1fr}.focus-go .btn{width:100%}}
+.steps li{border-radius:16px;background:var(--sheet)}
+.steps li::before{background:var(--ink);color:var(--paper)}
+.set-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.tiles{gap:12px}
+.tile{border-radius:20px;box-shadow:none;min-height:190px;padding:20px;gap:6px}
+.tile:hover{border-color:var(--ink);box-shadow:none;transform:translateY(-2px)}
+.tile{transition:border-color .15s,transform .15s}
+@media (prefers-reduced-motion: reduce){.tile{transition:none}.tile:hover{transform:none}}
+.tile-ic{border-radius:50%;background:var(--grid);color:var(--ink)}
+.tile:hover .tile-ic{background:var(--accent);color:var(--accent-ink)}
+.tile-t{font-family:var(--f-body);font-size:1.12rem}
+.tile-cta{background:none;color:var(--accent);padding:0;min-height:28px}
+.tile:hover .tile-cta{filter:none;text-decoration:underline}
+.org-tile>.ic{color:var(--ink)}
 </style>
 
 <header class="top">
   <div class="top-in">
-    <button class="brand" id="brandHome" type="button" aria-label="Merkwerk – zur Startseite"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="9" y="14" width="46" height="34" rx="5" fill="#e9f26b" transform="rotate(-5 32 32)"/><path d="M17 45V19h7.5l7.5 13.5L39.5 19H47v26h-7V31l-6 10.5h-4L24 31v14z" fill="#1b2130"/><rect x="17" y="50" width="30" height="3.5" rx="1.75" fill="#2a46c4"/></svg><b>Merk<span>werk</span></b></button>
+    <button class="brand" id="brandHome" type="button" aria-label="Lernleicht – zur Startseite"><svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="4" y="4" width="56" height="56" rx="18" fill="var(--accent)"/><path d="M17 43c8 0 13-4 17-11s8-11 13-11" fill="none" stroke="var(--accent-ink)" stroke-width="5" stroke-linecap="round"/><circle cx="47" cy="21" r="5.5" fill="var(--mark)"/></svg><b>lern<span>leicht</span></b></button>
     <nav class="tabs" id="tabs" aria-label="Hauptnavigation">
       <button class="tab" type="button" data-v="home" id="tab-home">Start</button>
       <button class="tab" type="button" data-v="learn" id="tab-learn">Lernsets</button>
       <button class="tab" type="button" data-v="lib" id="tab-lib">Bibliothek</button>
-      <button class="tab" type="button" data-v="tt" id="tab-tt">Stundenplan</button>
+      <button class="tab" type="button" data-v="tt" id="tab-tt"><span class="tab-full">Stundenplan</span><span class="tab-mob">Kalender</span></button>
       <button class="tab" type="button" data-v="due" id="tab-due">Termine<span class="tab-long"> &amp; Lernplan</span></button>
     </nav>
     <div class="top-acc">
@@ -650,7 +761,7 @@ const PROGRAMS = {
 
 /* ---- 02b_plans.js ---- */
 /* ===================== Bildungspläne: passende Pläne zu Profil, Fach und Thema ===================== */
-/* Die Daten (data/bildungsplaene.js, ca. 1 MB) lädt Merkwerk erst, wenn sie gebraucht werden. */
+/* Die Daten (data/bildungsplaene.js, ca. 1 MB) lädt Lernleicht erst, wenn sie gebraucht werden. */
 const PLAN_SRC="bildungsplaene.js";
 const PLAN_STATUS={g:"gültig",a:"gültig, wird aufsteigend eingeführt",x:"auslaufend, gilt noch für höhere Jahrgänge",s:"gilt subsidiär weiter",k:"tritt erst künftig in Kraft",e:"Erprobungsfassung",n:"nicht verifiziert",p:"Portalübersicht"};
 const PLAN_RANK={g:0,a:0,e:1,s:2,n:3,x:4,k:5,p:6};
@@ -766,7 +877,7 @@ const EXAMPLE_CARDS = [
 /* ---- 03b_account.js ---- */
 /* ===================== Konten: Anmeldung mit Google, Apple, Microsoft ===================== */
 /* Client-IDs der eigenen App-Registrierungen. Leer = Anbieter noch nicht eingerichtet;
-   dann legt Merkwerk das Konto nur auf diesem Gerät an (siehe README, Abschnitt Anmeldung). */
+   dann legt Lernleicht das Konto nur auf diesem Gerät an (siehe README, Abschnitt Anmeldung). */
 const AUTH_CONFIG = {
   google:   { clientId: "" },                  // Google Cloud Console → OAuth-Client „Webanwendung“
   microsoft:{ clientId: "" },                  // Microsoft Entra → App-Registrierung, Plattform „Single-Page-Anwendung“
@@ -920,19 +1031,19 @@ async function initCaps(){
 }
 function sampleErr(e){
   const c=e&&e.code;
-  if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Merkwerk in claude.ai und erlaube die Nutzung.";
+  if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Lernleicht in claude.ai und erlaube die Nutzung.";
   if(c==="rate_limited") return "Zu viele Anfragen oder Nutzungslimit erreicht. Versuch es in ein paar Minuten noch einmal.";
   if(c==="daily_limit") return e.message==="gesamt"?"Die kostenlosen KI-Anfragen für heute sind aufgebraucht. Morgen geht es weiter.":"Du hast dein Tageslimit für KI-Anfragen erreicht. Morgen geht es weiter.";
   if(c==="overloaded") return "Claude ist gerade überlastet. Versuch es in einer Minute noch einmal.";
-  if(c==="network") return "Keine Verbindung zum Merkwerk-Server. Prüfe die Internetverbindung.";
+  if(c==="network") return "Keine Verbindung zum Lernleicht-Server. Prüfe die Internetverbindung.";
   if(c==="prompt_too_large") return "Das Material ist für eine Anfrage zu groß. Teile es in kleinere Lernsets auf.";
   if(c==="invalid_json") return "Claudes Antwort war nicht lesbar. Versuch es noch einmal.";
   if(c==="images_unavailable"||c==="image_rejected") return "Bilder können hier nicht gelesen werden. Versuch ein anderes Format (JPG oder PNG).";
   if(c==="refused") return "Claude hat diese Anfrage abgelehnt. Prüfe das Material.";
-  if(c==="session_expired") return CAP.remote?"Die Anmeldung beim Merkwerk-Server ist abgelaufen. Lade die Seite neu.":"Bitte melde dich bei claude.ai erneut an.";
+  if(c==="session_expired") return CAP.remote?"Die Anmeldung beim Lernleicht-Server ist abgelaufen. Lade die Seite neu.":"Bitte melde dich bei claude.ai erneut an.";
   return "Verbindung zu Claude unterbrochen. Versuch es noch einmal.";
 }
-const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Funktion braucht Merkwerk Claude. Das funktioniert nur, wenn du die Seite in claude.ai öffnest. Beim ersten Mal fragt sie nach einer Freigabe; die Nutzung zählt zu deinem Claude-Kontingent.</div>`;
+const needClaude = () => CAP.sample ? "" : `<div class="note warn">Für diese Funktion braucht Lernleicht Claude. Das funktioniert nur, wenn du die Seite in claude.ai öffnest. Beim ersten Mal fragt sie nach einer Freigabe; die Nutzung zählt zu deinem Claude-Kontingent.</div>`;
 
 /* ---------- Geräteübergreifend: privater Bereich in der Datenbank ---------- */
 let syncing=false;
@@ -986,13 +1097,13 @@ function profileLabel(p){
 // Handschrift lesen: In claude.ai liest Claude Seitenbilder (auch Handschrift). Ohne Claude (lokal, GitHub Pages)
 // übernimmt Tesseract.js im Browser – gut bei gedrucktem Text, bei Handschrift nur eingeschränkt.
 // GoodNotes: .goodnotes-Dateien sind ZIP-Archive. GoodNotes legt die eigene Handschrifterkennung
-// pro Seite unter search/<Seiten-ID> ab; diesen Text übernimmt Merkwerk. Eingebettete PDFs und Bilder
+// pro Seite unter search/<Seiten-ID> ab; diesen Text übernimmt Lernleicht. Eingebettete PDFs und Bilder
 // (importierte Folien, Fotos) werden wie normale Dateien gelesen.
 
 const FILE_ACCEPT=".pdf,.docx,.txt,.md,.goodnotes,image/*";
 const TESSERACT="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js";
 const OCR_BY={claude:"von Claude abgeschrieben",browser:"im Browser erkannt",goodnotes:"Handschrift von GoodNotes erkannt"};
-const BROWSER_OCR_NOTE="Ohne Claude liest Merkwerk Bilder mit einer Texterkennung im Browser. Gedruckter Text klappt meist gut, Handschrift oft nur teilweise. Prüfe und korrigiere den Text unter „Gelesenen Text ansehen“; in claude.ai liest Claude auch Handschrift.";
+const BROWSER_OCR_NOTE="Ohne Claude liest Lernleicht Bilder mit einer Texterkennung im Browser. Gedruckter Text klappt meist gut, Handschrift oft nur teilweise. Prüfe und korrigiere den Text unter „Gelesenen Text ansehen“; in claude.ai liest Claude auch Handschrift.";
 const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
 
 /* ---------- Texterkennung im Browser (ohne Claude) ---------- */
@@ -1139,7 +1250,7 @@ async function readGoodnotes(file,progress,readPdf,ocrImagesFn){
 
 /* ---- 04c_ai.js ---- */
 /* ===================== KI außerhalb von claude.ai (eigener Server mit Supabase) ===================== */
-/* Wenn die Seite nicht in claude.ai läuft (GitHub Pages, lokal), fragt Merkwerk Claude über die eigene
+/* Wenn die Seite nicht in claude.ai läuft (GitHub Pages, lokal), fragt Lernleicht Claude über die eigene
    Supabase Edge Function „merkwerk-ai“. Sie hat dieselbe Schnittstelle wie claude.ais sample, damit der
    Rest der App nichts davon merkt. Leer = nicht eingerichtet; dann bleibt es bei der Variante ohne KI.
    Einrichtung: docs/ki-fuer-alle.md */
@@ -1174,8 +1285,8 @@ async function aiToken(force){
 // Einmal pro Gerät: Hinweis, dass Material an Claude (Anthropic) geschickt wird
 async function aiConsent(){
   if(lsGet(AI_CONSENT_KEY,false)) return;
-  const ok=await new Promise(res=>modal(`<h3>Merkwerk mit KI nutzen</h3>
-    <p>Für diese Funktion schickt Merkwerk dein Material (Text oder Bilder) an Claude von Anthropic, damit Claude Fragen erstellt, Bilder liest oder Antworten bewertet. Anthropic verwendet Daten aus solchen Anfragen nicht zum Training seiner Modelle. Pro Tag gibt es eine begrenzte Zahl kostenloser Anfragen.</p>
+  const ok=await new Promise(res=>modal(`<h3>Lernleicht mit KI nutzen</h3>
+    <p>Für diese Funktion schickt Lernleicht dein Material (Text oder Bilder) an Claude von Anthropic, damit Claude Fragen erstellt, Bilder liest oder Antworten bewertet. Anthropic verwendet Daten aus solchen Anfragen nicht zum Training seiner Modelle. Pro Tag gibt es eine begrenzte Zahl kostenloser Anfragen.</p>
     <div class="row"><button class="btn primary" id="kiOk">Einverstanden</button><button class="btn" data-close>Abbrechen</button></div>`,
     (m,close)=>{ $("#kiOk",m).onclick=()=>{close();res(true);}; m.querySelector("[data-close]").addEventListener("click",()=>res(false)); }));
   if(!ok) throw aiErr("cancelled");
@@ -1258,7 +1369,7 @@ function askWithMaterial(prompt,material,opt){
 }
 
 /* ---- 05_learn.js ---- */
-/* ===================== Lernen (Merkwerk-Kern) ===================== */
+/* ===================== Lernen (Lernleicht-Kern) ===================== */
 const TYPE_LABEL={mc:"Multiple Choice",text:"Schriftliche Antwort",match:"Zuordnung",cloze:"Lückentext"};
 const AFB_LABEL={I:"AFB I · Wiedergeben",II:"AFB II · Zusammenhänge herstellen",III:"AFB III · Anwenden und Beurteilen"};
 const BASE_MIX={mc:5,text:4,match:3,cloze:3};
@@ -1552,7 +1663,7 @@ async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef
   if(reuse && set.round){ qs=shuffle(set.round.qs.filter(q=>!q.disputed).map(q=>prepQuestion(q))); if(!qs.length){ toast("Keine Fragen übrig – starte einen neuen Durchgang"); return; } }
   else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
   else{
-    if(!CAP.sample){ toast("Dafür braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
+    if(!CAP.sample){ toast("Dafür braucht Lernleicht Claude (in claude.ai öffnen)"); return; }
     const box=$("#roundStatus"); const ctl=new AbortController();
     if(box){ box.hidden=false; box.innerHTML=`<div class="row"><span class="spin"></span><span id="rsTxt">Starte …</span><span class="spacer"></span><button class="btn sm" id="rsStop">Abbrechen</button></div>`; $("#rsStop").onclick=()=>ctl.abort(); }
     try{
@@ -1644,7 +1755,7 @@ function fcInfo(set){
   return "Begriff vorne, Definition hinten · Karten werden aus deinem Material erstellt";
 }
 function renderSetPanel(el,set){
-  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Merkwerk passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
+  if(!set){ el.innerHTML=`<div class="empty stack" style="align-items:center"><h3>Noch kein Lernset</h3><p>Lege ein Lernset an: Lade dein Material hoch oder lass Lernleicht passende Lerninhalte zu deinem Thema erstellen – oder probiere zuerst das Beispiel zur Photosynthese aus.</p><div class="row" style="justify-content:center"><button class="btn primary" id="e1">Beispiel ausprobieren</button><button class="btn" id="e2">Eigenes Lernset anlegen</button></div></div>`;
     $("#e1").onclick=async()=>{const s=await makeExampleSet();S.activeSet=s.id;save();go("learn",{manage:true});};
     $("#e2").onclick=()=>openNewSetDialog(); return; }
   const cov=coverageOf(set); const subjOpts=[...new Set([...(S.mySubjects||[]),set.subject].filter(Boolean))];
@@ -1655,7 +1766,7 @@ function renderSetPanel(el,set){
       :`<span class="grow" style="flex:1;min-width:200px"><b>Nächster Schritt:</b> Lade dein Lernmaterial hoch. Danach geht es direkt mit „${esc(pend.t)}“ weiter.</span>`}<button class="btn ghost sm" id="pendX">Ausblenden</button></div>`:""}
   <div class="grid2">
    <section class="sheet stack">
-     ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Merkwerk selbst geschrieben, nicht aus deinem Material.</div>`:""}
+     ${set.example?`<div class="note">Beispiel: Text und Fragen zur Photosynthese sind von Lernleicht selbst geschrieben, nicht aus deinem Material.</div>`:""}
      <label class="f">Name<input type="text" id="setName" value="${esc(set.name)}"></label>
      <label class="f">Fach<input type="text" id="setSubj" list="subjList" value="${esc(set.subject||"")}" placeholder="z. B. Biologie"><datalist id="subjList">${subjOpts.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
      ${set.example?"":`<label class="f">Thema<input type="text" id="setTopic" list="topicList" value="${esc(set.topic||"")}" placeholder="z. B. Lineare Funktionen"><datalist id="topicList">${curatedTopics(set.subject).map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>`}
@@ -1732,7 +1843,7 @@ async function addFiles(set,files){
 // Erklärung, wenn das Material keine 15 (neuen) belegbaren Fragen hergibt – es wird nichts erfunden, um die Zahl zu erreichen
 function shortNote(R){
   const s=R&&R.short; if(!s) return "";
-  return `<div class="note warn small">Dein Material gibt ${s.fresh?"gerade nur":"nur"} <b>${s.got} statt ${s.want}</b> sinnvoll belegbare ${s.fresh?"neue ":""}Fragen her. Merkwerk erfindet keine Inhalte, um die Zahl zu erreichen. Für mehr Fragen lade weiteres Material hoch oder wiederhole die vorhandenen Fragen in neuer Reihenfolge.</div>`;
+  return `<div class="note warn small">Dein Material gibt ${s.fresh?"gerade nur":"nur"} <b>${s.got} statt ${s.want}</b> sinnvoll belegbare ${s.fresh?"neue ":""}Fragen her. Lernleicht erfindet keine Inhalte, um die Zahl zu erreichen. Für mehr Fragen lade weiteres Material hoch oder wiederhole die vorhandenen Fragen in neuer Reihenfolge.</div>`;
 }
 function renderRound(m,set){
   const R=set.round; if(R.phase==="end") return renderEnd(m,set);
@@ -1761,7 +1872,7 @@ function renderRound(m,set){
     body.innerHTML=`<textarea id="ans" placeholder="Deine Antwort …" ${done?"disabled":""}>${esc(done?res.given:"")}</textarea>${done?"":`<div class="row"><button class="btn primary" id="chk">Antwort prüfen</button><span id="gs" class="small muted"></span></div>`}`;
     if(!done) $("#chk").onclick=async()=>{ const a=$("#ans").value.trim(); if(!a){toast("Schreib zuerst eine Antwort");return;}
       if(!CAP.sample){ // Selbsteinschätzung
-        $("#gs").innerHTML=""; fb.innerHTML=`<div class="feedback" style="border:1px solid var(--line)"><b>Musterlösung</b><p>${esc(q.model_answer)}</p><p class="small muted">Ohne Claude kann Merkwerk schriftliche Antworten nicht bewerten. Vergleiche selbst:</p><div class="row"><button class="btn" id="selfOk">Hatte ich richtig</button><button class="btn" id="selfBad">Hatte ich nicht richtig</button></div></div>`;
+        $("#gs").innerHTML=""; fb.innerHTML=`<div class="feedback" style="border:1px solid var(--line)"><b>Musterlösung</b><p>${esc(q.model_answer)}</p><p class="small muted">Ohne Claude kann Lernleicht schriftliche Antworten nicht bewerten. Vergleiche selbst:</p><div class="row"><button class="btn" id="selfOk">Hatte ich richtig</button><button class="btn" id="selfBad">Hatte ich nicht richtig</button></div></div>`;
         $("#selfOk").onclick=()=>finish({correct:true,given:a,feedback:"Selbst eingeschätzt."}); $("#selfBad").onclick=()=>finish({correct:false,given:a,feedback:"Selbst eingeschätzt."}); return; }
       $("#chk").disabled=true; $("#gs").innerHTML=`<span class="spin"></span> Claude prüft deine Antwort …`;
       try{ const g=await gradeText(q,a); finish({correct:g.correct,given:a,feedback:g.feedback,verdict:g.verdict}); }
@@ -1911,7 +2022,7 @@ async function openCards(set,{rebuild=false}={}){
       try{ const r=await generateCards(set,{signal:ctl.signal}); cards=r.cards; if(r.dropped) toast(`${r.dropped} Karten ohne gültigen Beleg verworfen`,3500); }
       catch(e){ if(box){ if(e&&e.code==="cancelled") box.hidden=true; else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
     } else cards=extractCardsLocal(set);
-    if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Merkwerk in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
+    if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Lernleicht in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
     set.cards=cards; set.fc=null;
   }
   if(!set.fc||rebuild) fcStart(set,set.cards.map(c=>c.id));
@@ -2042,7 +2153,7 @@ function openNewSetDialog(preset={}){
     <div class="stack" style="gap:8px"><span class="label">Material</span>
       <div class="grid2" style="gap:10px">
         <button class="wizard-opt" id="nsOwn"><b>Eigene Dateien anfügen</b><span class="small muted">PDF, DOCX, GoodNotes, Fotos – wie gewohnt</span></button>
-        <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Merkwerk gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
+        <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Lernleicht gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
       </div>
       <div id="nsModes" hidden></div>
     </div>
@@ -2089,7 +2200,7 @@ function openNewSetDialog(preset={}){
     };
     $("#nsOwn",m).onclick=()=>create(null);
     $("#nsGen",m).onclick=()=>{
-      if(!tIn.value.trim()){ toast("Gib zuerst ein Thema ein – dazu sucht Merkwerk die Inhalte"); tIn.focus(); return; }
+      if(!tIn.value.trim()){ toast("Gib zuerst ein Thema ein – dazu sucht Lernleicht die Inhalte"); tIn.focus(); return; }
       const box=$("#nsModes",m); box.innerHTML=genModesHTML(); box.hidden=false; bindGenModes(box,create); box.scrollIntoView({block:"nearest",behavior:"smooth"});
     };
     (subject?tIn:sIn).focus();
@@ -2123,7 +2234,7 @@ function learnLinks(subject,topic,p=S.profile){
 async function checkAgainstPlan(set,docs,signal){
   const p=S.profile; const cur=curatedTopics(set.subject,p);
   const inList=cur.some(t=>subjKey(t)===subjKey(set.topic)||subjKey(t).includes(subjKey(set.topic))||subjKey(set.topic).includes(subjKey(t)));
-  if(!CAP.sample) return {fit:inList?"ja":"offen",note:inList?"Das Thema steht in den typischen Themen für deine Klassenstufe.":"Ohne Claude kann Merkwerk nur mit der Themenliste abgleichen; das Thema steht dort nicht. Prüfe es im verlinkten Plan.",focus:[],terms:[set.topic]};
+  if(!CAP.sample) return {fit:inList?"ja":"offen",note:inList?"Das Thema steht in den typischen Themen für deine Klassenstufe.":"Ohne Claude kann Lernleicht nur mit der Themenliste abgleichen; das Thema steht dort nicht. Prüfe es im verlinkten Plan.",focus:[],terms:[set.topic]};
   const r=await CAP.sample.json(`Du prüfst für eine Lernseite, ob ein Thema zum Bildungsplan eines Lernenden passt.
 
 Lernende/r: ${levelText(p)||"keine Angaben"}
@@ -2197,7 +2308,7 @@ async function generateIntoSet(set,{mode="read"}={}){
   try{
     const r=await generateContent(set,{onStatus:status,signal:ctl.signal});
     set.gen=r.gen;
-    if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Merkwerk ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
+    if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Lernleicht ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
     set.files.push(...r.files); set.sections=makeSections(set.files); set.cards=null; set.fc=null;
     await putSet(set); go("learn",{manage:true});
     if(mode==="cards"){ toast("Lerninhalte erstellt – jetzt kommen die Karteikarten"); setTimeout(()=>openCards(set),30); }
@@ -2220,7 +2331,7 @@ function genInfoHTML(set){
     ${g.docs&&g.docs.length?`<div class="small stack" style="gap:2px">${g.docs.map(d=>`<span>${planDocHTML(d)}</span>`).join("")}</div>`:""}
     <span class="label" style="margin-top:6px">Quellen, Erklärungen und Videos</span>
     <div class="small stack" style="gap:2px">${(g.links||[]).map(l=>`<span><span class="muted">${esc(l.kind)}:</span> <a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)} ↗</a></span>`).join("")}</div>
-    <p class="small muted">${g.by==="claude"?"Der Lerntext ist von Claude geschrieben. Gleiche ihn mit deinem Heft oder Schulbuch ab.":"Ohne Claude übernimmt Merkwerk den Wikipedia-Text als Material. Er kann über deine Klassenstufe hinausgehen."}</p>
+    <p class="small muted">${g.by==="claude"?"Der Lerntext ist von Claude geschrieben. Gleiche ihn mit deinem Heft oder Schulbuch ab.":"Ohne Claude übernimmt Lernleicht den Wikipedia-Text als Material. Er kann über deine Klassenstufe hinausgehen."}</p>
   </div>`;
 }
 
@@ -2389,7 +2500,7 @@ async function gradeExam(ex,signal){
 }
 
 function openExamDialog(set,prefill={}){
-  if(!CAP.sample){ toast("Für die Probeklausur braucht Merkwerk Claude (in claude.ai öffnen)"); return; }
+  if(!CAP.sample){ toast("Für die Probeklausur braucht Lernleicht Claude (in claude.ai öffnen)"); return; }
   const subjects=[...new Set(SETS.filter(s=>s.files&&s.files.length).map(examSubjectOf).filter(Boolean))];
   let subject=(prefill.subject||(set&&examSubjectOf(set))||"").trim();
   let minutes=45; let picked=null;
@@ -2522,7 +2633,7 @@ function renderExamResult(m,ex){
 // Aus dem Material eines Lernsets entstehen eine gesprochene Zusammenfassung (eine Stimme) und ein Podcast (zwei Stimmen).
 // Ablauf, jeder Schritt wird gespeichert und wiederverwendet:
 //   1. Informationseinheiten: Claude zerlegt die bereits gelesenen Abschnitte in fachliche Aussagen, jede mit wörtlichem Beleg.
-//      Merkwerk prüft jeden Beleg und jede Zahl selbst gegen das Material; Einheiten ohne Beleg fallen weg.
+//      Lernleicht prüft jeden Beleg und jede Zahl selbst gegen das Material; Einheiten ohne Beleg fallen weg.
 //   2. Inhaltsgrundlage: je Ausführlichkeit eine feste Auswahl dieser Einheiten (Kurz = Rang 1, Standard = Rang 1–2, Ausführlich = alle).
 //   3. Skript: Zusammenfassung und Podcast entstehen aus derselben Grundlage; jedes Segment nennt die Einheiten, die es vermittelt.
 //   4. Prüfung: lokal (jede Einheit enthalten, keine fremden Zahlen) und durch Claude (nichts erfunden, nichts verfälscht);
@@ -2633,12 +2744,12 @@ const recBlobKey=(setId,rec)=>rec.blobKey||`a|${setId}|${rec.id}`;
 const audWords=s=>String(s||"").split(/\s+/).filter(Boolean).length;
 function audErr(e){
   const c=e&&e.code;
-  if(c==="tts_not_configured") return "Auf dem Merkwerk-Server ist noch keine Sprachausgabe eingerichtet. Das Skript ist fertig; für die Audiodatei muss der Schlüssel des Sprachdienstes hinterlegt werden (docs/audio-podcast.md).";
-  if(c==="tts_key_invalid") return "Der Sprachdienst lehnt den hinterlegten Schlüssel ab. Bitte den Schlüssel auf dem Merkwerk-Server prüfen.";
+  if(c==="tts_not_configured") return "Auf dem Lernleicht-Server ist noch keine Sprachausgabe eingerichtet. Das Skript ist fertig; für die Audiodatei muss der Schlüssel des Sprachdienstes hinterlegt werden (docs/audio-podcast.md).";
+  if(c==="tts_key_invalid") return "Der Sprachdienst lehnt den hinterlegten Schlüssel ab. Bitte den Schlüssel auf dem Lernleicht-Server prüfen.";
   if(c==="tts_failed") return "Die Spracherzeugung ist fehlgeschlagen. Das geprüfte Skript ist gespeichert; versuch es noch einmal.";
   if(c==="voice_unavailable") return `Die gewählte Stimme${e.message&&e.message!==c?" („"+e.message+"“)":""} ist beim Sprachdienst gerade nicht verfügbar. Wähl eine andere Stimme.`;
   if(c==="timeout") return "Der Sprachdienst hat zu lange nicht geantwortet (Zeitüberschreitung). Versuch es noch einmal.";
-  if(c==="network") return "Keine Verbindung zum Merkwerk-Server. Prüfe die Internetverbindung und versuch es noch einmal.";
+  if(c==="network") return "Keine Verbindung zum Lernleicht-Server. Prüfe die Internetverbindung und versuch es noch einmal.";
   if(c==="daily_limit"&&e.message==="zeichen") return "Dein Tageslimit für die Sprachausgabe ist erreicht. Morgen geht es weiter; das geprüfte Skript bleibt gespeichert.";
   if(c==="daily_limit"&&e.message==="zeichen_gesamt") return "Die Sprachausgabe für heute ist für alle aufgebraucht. Morgen geht es weiter; das geprüfte Skript bleibt gespeichert.";
   if(c==="no_files") return "Es ist keine Datei ausgewählt. Wähle mindestens eine hochgeladene Datei aus.";
@@ -2674,7 +2785,7 @@ function fileIssue(f){
   const unsure=(t.match(/\[\?\]/g)||[]).length, words=audWords(t);
   if(unsure>=5&&unsure/words>0.06) return {level:"block",text:`ist schwer lesbar (${unsure} unsichere Stellen „[?]“)`,next:"Lade eine besser lesbare Datei hoch oder korrigiere den gelesenen Text."};
   if(f.ocr&&f.ocrBy==="browser") return {level:"warn",text:"wurde im Browser per Texterkennung gelesen, bei Handschrift unzuverlässig",next:"Prüfe den gelesenen Text."};
-  if(unsure) return {level:"warn",text:`enthält ${unsure} unsichere Stelle${unsure>1?"n":""} „[?]“; dort ergänzt Merkwerk nichts`,next:"Prüfe den gelesenen Text."};
+  if(unsure) return {level:"warn",text:`enthält ${unsure} unsichere Stelle${unsure>1?"n":""} „[?]“; dort ergänzt Lernleicht nichts`,next:"Prüfe den gelesenen Text."};
   return null;
 }
 // Teilansicht eines Lernsets mit nur den ausgewählten Dateien; die Abschnitts-IDs bleiben gleich
@@ -2995,7 +3106,7 @@ function ttsStatus(force){
 async function ttsConsent(){
   if(lsGet(TTS_CONSENT_KEY,false)) return;
   const ok=await new Promise(res=>modal(`<h3>Sprachausgabe nutzen</h3>
-    <p>Für die Audiodatei schickt Merkwerk das geprüfte Sprechskript (nicht deine Dateien) an ${esc(TTS.label||"den Sprachdienst")}. Der Dienst wandelt den Text in Sprache um; die fertige Audiodatei wird nur auf diesem Gerät gespeichert. Pro Tag gibt es ein begrenztes Kontingent.</p>
+    <p>Für die Audiodatei schickt Lernleicht das geprüfte Sprechskript (nicht deine Dateien) an ${esc(TTS.label||"den Sprachdienst")}. Der Dienst wandelt den Text in Sprache um; die fertige Audiodatei wird nur auf diesem Gerät gespeichert. Pro Tag gibt es ein begrenztes Kontingent.</p>
     <div class="row"><button class="btn primary" id="ttsOk">Einverstanden</button><button class="btn" data-close>Abbrechen</button></div>`,
     (m,close)=>{ $("#ttsOk",m).onclick=()=>{close();res(true);}; m.querySelector("[data-close]").addEventListener("click",()=>res(false)); }));
   if(!ok) throw aiErr("cancelled");
@@ -3246,7 +3357,7 @@ let audTeardown=[];
 function audStop(){ audTeardown.forEach(f=>{ try{f();}catch{} }); audTeardown=[]; }
 function audStorageNote(){
   const a=currentAccount();
-  if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Merkwerk ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
+  if(a&&a.provider==="guest") return `<div class="note warn small"><b>Du nutzt Lernleicht ohne Konto.</b> Aufnahmen und Skripte bleiben nur in diesem Browser auf diesem Gerät, bis du die Browserdaten löschst; in einem privaten Fenster nur bis zum Schließen. Es gibt keine Sicherung und keinen Zugriff von anderen Geräten. Lade wichtige Aufnahmen herunter. Meldest du dich später an, kannst du auswählen, was du mitnimmst.</div>`;
   return `<p class="small muted">Gespeichert wird auf diesem Gerät im Browser, im Bereich deines Kontos „${esc(a?accountLabel(a):"")}“, nicht auf einem Server und nicht auf anderen Geräten. Andere Konten auf diesem Gerät sehen deine Aufnahmen nicht.</p>`;
 }
 
@@ -3281,7 +3392,7 @@ async function renderAudio(m,set){
   const scope=base?scopeNote(base.units,P.len,P.themen):(view.files.reduce((a,f)=>a+audWords(f.text),0)<120&&view.files.length?"Die ausgewählten Dateien enthalten nur sehr wenig Text. Für eine sinnvolle Zusammenfassung reicht das kaum; lade weiteres Material hoch.":"");
   const voiceRoles=ttsRoles(P.fmt), sameVoice=P.fmt==="podcast"&&TTS.ok&&TTS.catalog.length&&P.voices.moderation&&P.voices.moderation===P.voices.experte;
   const reasons=[]; // warum die Erstellung gerade nicht geht
-  if(!canAI) reasons.push("Für Skript und Prüfung braucht Merkwerk Claude (in claude.ai oder über den Merkwerk-Server).");
+  if(!canAI) reasons.push("Für Skript und Prüfung braucht Lernleicht Claude (in claude.ai oder über den Lernleicht-Server).");
   if(!view.files.length) reasons.push("Wähle mindestens eine Datei aus.");
   if(base&&!ids.length) reasons.push("Zu den gewählten Teilthemen gibt es in diesem Umfang keine Inhalte.");
   if(sameVoice) reasons.push("Für den Podcastdialog brauchen Moderatorin und Experte zwei verschiedene Stimmen.");
@@ -3322,7 +3433,7 @@ async function renderAudio(m,set){
      <div id="audScript"></div>
    </section>
    <section class="sheet stack" id="audRecs"></section>
-   ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Merkwerk hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
+   ${base&&base.hinweise&&base.hinweise.length?`<section class="sheet stack"><h3>Hinweise zu den Dateien</h3><p class="small muted">Diese Stellen waren unleserlich, widersprüchlich oder unvollständig. Lernleicht hat dort nichts ergänzt; lade bei Bedarf eine bessere Datei hoch oder wähle weniger, eindeutig lesbare Dateien.</p><ul class="small">${base.hinweise.map(h=>`<li><b>${esc({unleserlich:"Unleserlich",widerspruch:"Widerspruch zwischen den Quellen",unvollstaendig:"Unvollständig"}[h.art]||h.art)}</b>${h.datei?` (${esc(h.datei)})`:""}: ${esc(h.text)}</li>`).join("")}</ul></section>`:""}
    <p class="small muted">Anhören zählt nicht als gelernt: Eine gehörte Aufnahme ist kein richtig beantworteter Durchgang und keine gewusste Karte. Prüfe dein Wissen mit der interaktiven Abfrage oder den Karteikarten.</p>
   </div>`;
   bindModeBar(set,P.fmt);
@@ -3357,9 +3468,9 @@ function audPreflight(set,P,blockers,run){
 function audSetupNote(scriptReady){
   if(!TTS.checked||TTS.ok) return "";
   const r=TTS.reason;
-  const why=r==="no_server"?"Für echte Audiodateien braucht Merkwerk die Sprachausgabe auf dem Merkwerk-Server, und die ist hier noch nicht eingerichtet."
-    :r==="tts_not_configured"?"Auf dem Merkwerk-Server ist noch kein Sprachdienst hinterlegt."
-    :"Der Merkwerk-Server ist gerade nicht erreichbar.";
+  const why=r==="no_server"?"Für echte Audiodateien braucht Lernleicht die Sprachausgabe auf dem Lernleicht-Server, und die ist hier noch nicht eingerichtet."
+    :r==="tts_not_configured"?"Auf dem Lernleicht-Server ist noch kein Sprachdienst hinterlegt."
+    :"Der Lernleicht-Server ist gerade nicht erreichbar.";
   return `<div class="note warn small">${why} ${scriptReady?"Das geprüfte Skript kannst du lesen oder dir als Ersatz mit der Stimme deines Geräts vorlesen lassen.":"Skript und Prüfung funktionieren trotzdem; als Ersatz liest die Stimme deines Geräts vor."} <span class="muted">(Einrichtung: docs/audio-podcast.md)</span></div>`;
 }
 function checkBadge(c){
@@ -3398,7 +3509,7 @@ function renderScript(box,set,{P,base,v,sc,job,start}){
     <div id="devBox"></div></div>`;
   const txt=()=>transcriptText(sc,P.fmt,title,{sources,files:base.files||[],date:sc.createdAt,hinweise:base.hinweise});
   $("#scCopy",box).onclick=()=>copyText(txt());
-  $("#scDl",box).onclick=()=>downloadText(`Merkwerk – ${set.name} – ${AUD_FORMATS[P.fmt].short} – Transkript.txt`,txt());
+  $("#scDl",box).onclick=()=>downloadText(`Lernleicht – ${set.name} – ${AUD_FORMATS[P.fmt].short} – Transkript.txt`,txt());
   const sk=$("#scSkip",box); if(sk) sk.onclick=async()=>{ if(await confirmBox("Audio ohne die fehlenden Inhalte erzeugen? Die Aufnahme deckt dann nicht alles aus der Grundlage ab.","Trotzdem erzeugen")) start({allowMissing:true}); };
   const rd=$("#scRedo",box); if(rd) rd.onclick=()=>start({force:"script"});
   if(!TTS.ok&&TTS.checked&&!(sc.check&&sc.check.blocked)) mountDeviceReader($("#devBox",box),sc,P.fmt,P.lang);
@@ -3439,7 +3550,7 @@ function watchJob(m,set,job){
     if(job.running){
       const shown=job.analyzeOnly?[0,1]:[0,1,2,3,4,5,6];
       el.innerHTML=`<div class="aud-steps"><ol>${shown.map(i=>`<li class="${job.done.includes(i)&&i!==job.step?"ok":i===job.step?"on":""}">${i===job.step?'<span class="spin" aria-hidden="true"></span>':job.done.includes(i)?"✓":"○"} ${esc(i===job.step&&job.detail?job.detail:steps[i])}</li>`).join("")}</ol>
-        <div class="row"><span class="small muted">Du kannst Merkwerk währenddessen weiter benutzen. Ein weiterer Klick startet keinen zweiten Auftrag.</span><span class="spacer"></span><button class="btn sm" id="audStop">Abbrechen</button></div></div>`;
+        <div class="row"><span class="small muted">Du kannst Lernleicht währenddessen weiter benutzen. Ein weiterer Klick startet keinen zweiten Auftrag.</span><span class="spacer"></span><button class="btn sm" id="audStop">Abbrechen</button></div></div>`;
       $("#audStop").onclick=()=>job.ctl.abort();
       const g=$("#audGo"); if(g) g.disabled=true;
     } else if(job.error){
@@ -3526,7 +3637,7 @@ function mountPlayer(box,{blob,set,rec}){
   audTeardown.push(savePos);
   // Steuerung auf dem Sperrbildschirm und mit Medientasten
   if(navigator.mediaSession){ try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:rec.title,artist:"Merkwerk · "+AUD_FORMATS[rec.fmt].short,album:set.name});
+    navigator.mediaSession.metadata=new MediaMetadata({title:rec.title,artist:"Lernleicht · "+AUD_FORMATS[rec.fmt].short,album:set.name});
     navigator.mediaSession.setActionHandler("play",()=>a.play()); navigator.mediaSession.setActionHandler("pause",()=>a.pause());
     navigator.mediaSession.setActionHandler("seekbackward",()=>jump(-10)); navigator.mediaSession.setActionHandler("seekforward",()=>jump(10));
   }catch{} }
@@ -3667,7 +3778,7 @@ function needMaterial(set,mode){
 function needAI(set,mode){
   const M=modeByK(mode);
   modal(`<h2>${esc(M.t)} braucht KI</h2>
-    <p>${mode==="exam"?"Bei der Probeklausur stellt Claude die Aufgaben zusammen und korrigiert sie.":"Bei der interaktiven Abfrage erstellt Claude die Fragen aus deinem Material und bewertet deine Antworten."} Auf dieser Seite ist die KI noch nicht eingerichtet. In Merkwerk in claude.ai funktioniert es.</p>
+    <p>${mode==="exam"?"Bei der Probeklausur stellt Claude die Aufgaben zusammen und korrigiert sie.":"Bei der interaktiven Abfrage erstellt Claude die Fragen aus deinem Material und bewertet deine Antworten."} Auf dieser Seite ist die KI noch nicht eingerichtet. In Lernleicht in claude.ai funktioniert es.</p>
     <p class="small muted">Ohne KI kannst du mit Karteikarten lernen oder die Abfrage am Beispiel zur Photosynthese ausprobieren.</p>
     <div class="row"><button class="btn primary" id="naCards">${ic("cards")} Karteikarten öffnen</button><button class="btn" id="naEx">Beispiel ausprobieren</button><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#naCards",m).onclick=()=>{ close(); launchMode(set,"cards"); };
@@ -3801,7 +3912,7 @@ function wizardHTML(p,opt={}){
   const track=p.track||"";
   const on=t=>track===t?"border-color:var(--accent);background:var(--accent-soft)":"";
   return `<div class="stack" style="gap:16px" id="wiz">
-   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Merkwerk die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Merkwerk die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
+   <div class="stack" style="gap:4px">${opt.onboard?`<h2>Bist du Schüler oder Student?</h2><p class="muted">Danach zeigt dir Lernleicht die Fächer aus deinem Bildungsplan bzw. die Module deines Studiengangs und schlägt beim Lernset passende Themen vor.</p>`:`<h2>Wo lernst du?</h2><p class="muted">Danach zeigt dir Lernleicht die passenden Fächer oder Module und die offiziellen Bildungspläne.</p>`}</div>
    <div class="grid2${opt.onboard?" track-pick":""}">
      <button class="wizard-opt" data-track="schule" aria-pressed="${track==="schule"}" style="${on("schule")}"><b>${opt.onboard?"Schüler":"Ich gehe zur Schule"}</b><span class="small muted">${opt.onboard?"Ich gehe zur Schule":"Grundschule bis Abitur, Berufsschule"}</span></button>
      <button class="wizard-opt" data-track="uni" aria-pressed="${track==="uni"}" style="${on("uni")}"><b>${opt.onboard?"Student":"Ich studiere"}</b><span class="small muted">${opt.onboard?"Ich studiere":"Universität, Hochschule, Duale Hochschule"}</span></button>
@@ -3901,13 +4012,13 @@ VIEWS.lib = function(m,arg){
   const p=S.profile; const link=p.track==="schule"?planLink(p):null;
   m.innerHTML=`<div class="view">
    <div class="row" style="align-items:flex-end"><div class="stack" style="gap:4px"><h1>Bibliothek</h1><p class="muted">${esc(profileLabel(p))}</p></div><span class="spacer"></span><button class="btn" id="editProf">Angaben ändern</button></div>
-   ${CAP.db?"":`<div class="note warn">Die Bibliothek ist eine gemeinsame Datenbank. Einträge siehst du, wenn Merkwerk in claude.ai geöffnet ist und du angemeldet bist.</div>`}
+   ${CAP.db?"":`<div class="note warn">Die Bibliothek ist eine gemeinsame Datenbank. Einträge siehst du, wenn Lernleicht in claude.ai geöffnet ist und du angemeldet bist.</div>`}
    <section class="sheet stack">
      <div class="row"><h3>${p.track==="schule"?"Meine Fächer":"Meine Module"}</h3><span class="spacer"></span>${link?`<a class="small" href="${esc(link.url)}" target="_blank" rel="noopener">${esc(link.src)} ↗</a>`:""}</div>
      ${S.mySubjects.length?`<div class="grid3">${S.mySubjects.map(n=>`<button class="subj" data-s="${esc(n)}"><b>${esc(n)}</b><span class="small muted" data-cnt="${esc(subjKey(n))}">Themen und Einträge</span></button>`).join("")}</div>`:`<div class="empty">Noch keine Fächer gewählt. <button class="btn ghost" id="pickS">Fächer wählen</button></div>`}
    </section>
    <section class="sheet stack"><h3>So funktioniert die Bibliothek</h3>
-     <div class="grid2 small"><p><b>1. Fach wählen</b><br>Du siehst die Themen aus dem Bildungsplan bzw. Modulhandbuch und alles, was andere schon geteilt haben.</p><p><b>2. Thema eingeben</b><br>Wähle ein Thema aus der Liste oder tippe dein eigenes ein. Dann Einträge ansehen oder selbst einen hochladen.</p><p><b>3. Mit Merkwerk lernen</b><br>Jeden Eintrag kannst du mit einem Klick als Lernset übernehmen und dir belegte Prüfungsfragen dazu stellen lassen.</p></div></section>
+     <div class="grid2 small"><p><b>1. Fach wählen</b><br>Du siehst die Themen aus dem Bildungsplan bzw. Modulhandbuch und alles, was andere schon geteilt haben.</p><p><b>2. Thema eingeben</b><br>Wähle ein Thema aus der Liste oder tippe dein eigenes ein. Dann Einträge ansehen oder selbst einen hochladen.</p><p><b>3. Mit Lernleicht lernen</b><br>Jeden Eintrag kannst du mit einem Klick als Lernset übernehmen und dir belegte Prüfungsfragen dazu stellen lassen.</p></div></section>
   </div>`;
   $("#editProf").onclick=openWizard; const ps=$("#pickS"); if(ps) ps.onclick=openWizard;
   $$("[data-s]").forEach(b=>b.onclick=()=>go("lib",{subject:b.dataset.s}));
@@ -3999,7 +4110,7 @@ function openEntry(e,names={}){
   modal(`<div class="stack" style="gap:6px"><div class="row" style="gap:6px"><span class="pill">${esc(e.kind)}</span><span class="small muted">${esc(e.subject)} · ${esc(e.topic||"")}</span></div><h2>${esc(e.title)}</h2><span class="small muted">${esc(levelLabel(e))} · ${esc(names[e.authorId]||"Jemand")} · ${new Date(e.createdAt).toLocaleDateString("de-DE")}</span></div>
     <div class="note warn small">Inhalte sind von Nutzerinnen und Nutzern erstellt und nicht geprüft.</div>
     <div class="entry-body">${esc(e.content)}</div>
-    <div class="row"><button class="btn primary" id="eLearn">Mit Merkwerk lernen</button><button class="btn" id="eVote">${VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"}</button><button class="btn" id="eCopy">Text kopieren</button><span class="spacer"></span>${mineOrOwner?`<button class="btn ghost danger" id="eDel">Löschen</button>`:""}<button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
+    <div class="row"><button class="btn primary" id="eLearn">Mit Lernleicht lernen</button><button class="btn" id="eVote">${VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"}</button><button class="btn" id="eCopy">Text kopieren</button><span class="spacer"></span>${mineOrOwner?`<button class="btn ghost danger" id="eDel">Löschen</button>`:""}<button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#eLearn",m).onclick=async()=>{ const s=newSet(e.title,e.subject); s.files=[{id:rid("f_"),name:`Bibliothek: ${e.title}`,kind:"bibliothek",text:e.content,ocr:false}]; s.sections=makeSections(s.files); await putSet(s); S.activeSet=s.id; save(); close(); go("learn",{manage:true}); toast("Als Lernset übernommen"); };
     $("#eVote",m).onclick=async()=>{ await toggleVote(e._id); $("#eVote",m).textContent=VOTES.mine.includes(e._id)?"✓ Hilfreich":"Hilfreich"; };
     $("#eCopy",m).onclick=()=>copyText(e.content);
@@ -4010,7 +4121,7 @@ function openEntry(e,names={}){
 function openEntryForm(subject,topic){
   const p=S.profile;
   if(!CAP.db){ toast("Hochladen geht nur in claude.ai mit Anmeldung"); return; }
-  if(CAP.canWrite===false){ modal(`<h3>Hochladen nicht freigeschaltet</h3><p>Du kannst die Bibliothek lesen, aber noch keine Einträge beisteuern. Bitte die Person, die Merkwerk geteilt hat, dich als Mitwirkende/n einzuladen.</p><div class="row"><button class="btn" data-close>OK</button></div>`); return; }
+  if(CAP.canWrite===false){ modal(`<h3>Hochladen nicht freigeschaltet</h3><p>Du kannst die Bibliothek lesen, aber noch keine Einträge beisteuern. Bitte die Person, die Lernleicht geteilt hat, dich als Mitwirkende/n einzuladen.</p><div class="row"><button class="btn" data-close>OK</button></div>`); return; }
   modal(`<h2>Eintrag hochladen</h2><p class="small muted">${esc(subject)} · ${esc(profileLabel(p))}</p>
     <label class="f">Thema<input type="text" id="eTopic" value="${esc(topic||"")}" placeholder="z. B. Quadratische Funktionen"></label>
     <label class="f">Titel<input type="text" id="eTitle" placeholder="z. B. Spickzettel Scheitelpunktform"></label>
@@ -4155,7 +4266,7 @@ Antworte nur mit JSON: {"lessons":[{"day":"Mo|Di|Mi|Do|Fr|Sa","start":"HH:MM","e
 }
 function showIcsHelp(){
   modal(`<h2>WebUntis & Kalenderdateien</h2>
-   <p>Eine direkte Anmeldung bei WebUntis ist aus Merkwerk heraus nicht möglich: WebUntis lässt fremde Webseiten nicht zu, und dein Passwort soll nicht in einer anderen App landen. So kommt dein Plan trotzdem rein:</p>
+   <p>Eine direkte Anmeldung bei WebUntis ist aus Lernleicht heraus nicht möglich: WebUntis lässt fremde Webseiten nicht zu, und dein Passwort soll nicht in einer anderen App landen. So kommt dein Plan trotzdem rein:</p>
    <div class="stack small">
      <p><b>Variante 1 – Screenshot (am schnellsten):</b> In der WebUntis-App die Wochenansicht öffnen, Screenshot machen, hier „Aus Screenshot übernehmen“ wählen. Claude ordnet die Fächer den Zeiten zu, du prüfst die Vorschau.</p>
      <p><b>Variante 2 – Kalenderdatei:</b> In WebUntis im Browser „Mein Stundenplan“ öffnen und über das Teilen-/Export-Symbol eine iCal-Datei (.ics) herunterladen (Abo-Links und Export sind je nach Schule freigeschaltet). Uni-Portale wie HISinOne, CAMPUSonline oder Stud.IP bieten ebenfalls einen iCal-Export. Die Datei hier auswählen.</p>
@@ -4214,7 +4325,7 @@ function dueReminders(){
 const leftLabel=n=>n===0?"heute":n===1?"morgen":n<0?`vor ${-n} Tagen`:`in ${n} Tagen`;
 function calLinks(it){
   const title=`${TYPE_NAME[it.type]}: ${it.title}${it.subject?` (${it.subject})`:""}`;
-  const details=[it.notes||"","Eingetragen mit Merkwerk."].filter(Boolean).join("\n");
+  const details=[it.notes||"","Eingetragen mit Lernleicht."].filter(Boolean).join("\n");
   const ymd=it.date.replace(/-/g,"");
   let g, o;
   if(it.time){ const [h,mi]=it.time.split(":"); const st=`${ymd}T${h}${mi}00`; const endM=toMin(it.time)+(it.type==="klausur"?90:15); const en=`${ymd}T${pad(Math.floor(endM/60)%24)}${pad(endM%60)}00`;
@@ -4343,7 +4454,7 @@ VIEWS.due = async function(m,arg){
        ${["klausur","abgabe"].map(k=>`<div class="stack" style="gap:8px"><label class="row" style="gap:8px;font-weight:700"><input type="checkbox" data-ron="${k}" ${S.remind[k]?"checked":""}> An ${k==="klausur"?"Klausuren":"Abgaben"} erinnern</label>
          <div class="row" style="gap:6px">${[14,7,3,2,1,0].map(d=>`<button class="chip" data-rd="${k}" data-d="${d}" aria-pressed="${(S.remind[k+"Days"]||[]).includes(d)}">${d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher"}</button>`).join("")}</div></div>`).join("")}
      </div>
-     <p class="small muted">Merkwerk zeigt fällige Erinnerungen, sobald du die Seite öffnest. Damit dein Handy dich auch erinnert, wenn Merkwerk zu ist, übernimm Termine mit einem Klick in Google Kalender oder Outlook und lass dir dort eine Benachrichtigung schicken.</p>
+     <p class="small muted">Lernleicht zeigt fällige Erinnerungen, sobald du die Seite öffnest. Damit dein Handy dich auch erinnert, wenn Lernleicht zu ist, übernimm Termine mit einem Klick in Google Kalender oder Outlook und lass dir dort eine Benachrichtigung schicken.</p>
    </section>
    ${past.length?`<details class="sheet"><summary>Erledigt und vergangen (${past.length})</summary><div class="list" style="margin-top:8px">${past.reverse().map(itemRow).join("")}</div></details>`:""}
    <div class="row"><span class="spacer"></span><button class="btn ghost sm" id="backup">Termine & Stundenplan sichern (.json)</button></div>
@@ -4409,7 +4520,7 @@ function renderItem(m,it){
        <div class="row"><button class="btn sm" id="calIt">Im Kalender zeigen</button>${it.type==="klausur"&&!it.done?`<button class="btn sm" id="examIt">Probeklausur schreiben</button>`:""}<button class="btn sm" id="edIt">Bearbeiten</button><button class="btn sm" id="doneIt">${it.done?"Wieder öffnen":"Als erledigt markieren"}</button></div></div>
      ${it.notes?`<p class="small">${esc(it.notes)}</p>`:""}
      <div class="row small"><span class="muted">Erinnerung: ${remindOn(it)?remindDaysOf(it).map(d=>d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher").join(", "):"aus"}</span></div>
-     <p class="small muted">Steht automatisch in deinem Merkwerk-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
+     <p class="small muted">Steht automatisch in deinem Lernleicht-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
      <div class="row"><span class="label">Auch in externen Kalender</span><a class="btn sm" href="${esc(L.google)}" target="_blank" rel="noopener">Google Kalender ↗</a><a class="btn sm" href="${esc(L.outlook)}" target="_blank" rel="noopener">Outlook.com ↗</a><a class="btn sm" href="${esc(L.outlook365)}" target="_blank" rel="noopener">Outlook (Schule/Arbeit) ↗</a></div>
    </section>
    <section class="sheet stack" id="planSec"></section>
@@ -4429,7 +4540,7 @@ function renderItem(m,it){
      <p class="small muted">Lernzeit pro Lerntag: ${ov.budget} Minuten · noch ca. ${Math.round(left/6)/10} Stunden Lernen bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"}${it.plan.days.some(d=>d.kind==="hoeren")?" (Hörphasen zusätzlich)":""}</p>
      ${ov.over.length?`<div class="note warn small">Der Zeitraum reicht für den Umfang nicht ganz: An ${ov.over.length} Tag${ov.over.length>1?"en":""} sind bis zu ${ov.max} Minuten geplant, mehr als deine ${ov.budget} Minuten (${esc(ov.over.slice(0,4).map(([d,mn])=>fmtDate(d)+": "+mn+" Min.").join(", "))}${ov.over.length>4?" …":""}). Passe den Plan unten an: mehr Lerntage, weniger Wiederholungstage oder mehr Zeit pro Tag.</div>`:""}
      <div class="row"><button class="btn sm" id="addHear">Hörphase einplanen</button><span class="small muted">Audiozusammenfassung oder Podcastdialog aus den hochgeladenen Dateien dieses Lernsets</span></div>
-     ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Merkwerk kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
+     ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Lernleicht kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
      <div>${it.plan.days.map(d=>{ k++; const secs=d.sectionIds.map(id=>set.sections.find(s=>s.id===id)).filter(Boolean); const chars=secs.reduce((a,s)=>a+s.text.length,0);
         const key=`${d.date}|${d.kind}|${k}`;
         const what=d.kind==="hoeren"?`<b>Hörphase:</b> ${esc((AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n)} · ${esc((AUD_LENGTHS[d.len]||AUD_LENGTHS.standard).n)} · ca. ${dayMinutes(d,set)} Min. <span class="muted">(ergänzt die Lerneinheiten, zählt nicht als gelernt)</span>`
@@ -4446,7 +4557,7 @@ function renderItem(m,it){
     const rp=$("#replan",ps); if(rp) rp.onclick=()=>{ const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,minutesPerDay:it.plan.minutesPerDay}); if(r.error){toast(r.error);return;} it.plan=r.plan; save(); render(); toast("Plan neu verteilt"); };
     planForm($("#planForm",ps),it,set);
   } else {
-    ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Merkwerk teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
+    ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Lernleicht teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
     planForm($("#planForm",ps),it,set);
   }
 }
@@ -4714,6 +4825,16 @@ function sessionHTML({it,d}){
   return `<div class="li"><span class="pill ${left===0?"mark":""}">${esc(when)}</span><div class="grow"><b>${esc(it.title)}</b><div class="small muted">${esc(what)} · ${TYPE_NAME[it.type]} ${leftLabel(daysBetween(t0,parseISO(it.date)))}</div></div>
     <button class="btn sm ${left===0?"primary":""}" data-pl="${it.id}|${d.date}|${d.kind}">${d.kind==="hoeren"?"Anhören":"Starten"}</button></div>`;
 }
+// Der eine nächste Schritt oben auf der Startseite: heutige Lerneinheit → zuletzt genutztes Lernset → neues Lernset
+function nextStepHTML(sessions,recent){
+  const t0=today0(), todays=sessions.find(x=>daysBetween(t0,parseISO(x.d.date))===0);
+  if(todays){ const {it,d}=todays;
+    const what=d.kind==="wiederholung"?"Wiederholung":d.kind==="hoeren"?`Hörphase, ca. ${Math.round(d.minutes||0)} Min.`:`${d.sectionIds.length} neue Abschnitte`;
+    return {t:it.title,d:`Heute im Lernplan: ${what}`,btn:`<button class="btn primary btn-lg" data-pl="${it.id}|${d.date}|${d.kind}">${ic("play")} ${d.kind==="hoeren"?"Anhören":"Jetzt lernen"}</button>`}; }
+  const s=recent.find(x=>x.files&&x.files.length);
+  if(s) return {t:s.name,d:resumeInfo(s).info,btn:`<button class="btn primary btn-lg" data-resume="${s.id}">${ic("play")} Weiterlernen</button>`};
+  return {t:"Neues Lernset",d:"Lade dein Material hoch oder lass Inhalte zu deinem Thema erstellen.",btn:`<button class="btn primary btn-lg" id="hNew2">${ic("plus")} Lernset erstellen</button>`};
+}
 VIEWS.home = async function(m){
   if(!SETS.length) await loadSets();
   const acc=currentAccount(), guest=!!acc&&acc.provider==="guest";
@@ -4727,18 +4848,19 @@ VIEWS.home = async function(m){
   const evToday=(S.events||[]).filter(e=>e.kind!=="frei"&&e.start.slice(0,10)===tISO).sort((a,b)=>a.start.localeCompare(b.start));
   m.innerHTML=`<div class="view home">
    <section class="hero">
-     <div class="stack" style="gap:6px;min-width:0">
-       <span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span>
-       <h1>Hallo<span id="hiName">${name?", "+esc(name):""}</span>!</h1>
-       <p class="muted">${guest?`Du lernst ohne Konto, deine Inhalte bleiben nur in diesem Browser. <button class="linkbtn" id="hGuest">Konto anlegen</button>`
-         :intro?"Schön, dass du da bist. Leg los mit deinem ersten Lernset.":"Schön, dass du wieder da bist. Mach weiter, wo du aufgehört hast."}</p>
-     </div>
-     ${intro?"":`<button class="btn primary btn-lg" id="hNew">${ic("plus")} Neues Lernset erstellen</button>`}
+     <span class="label">${now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}</span>
+     <h1>Hallo<span id="hiName">${name?", "+esc(name):""}</span>.</h1>
+     <p class="muted">${guest?`Du lernst ohne Konto, deine Inhalte bleiben nur in diesem Browser. <button class="linkbtn" id="hGuest">Konto anlegen</button>`
+       :intro?"Schön, dass du da bist. Leg los mit deinem ersten Lernset.":"Ein Schritt nach dem anderen. Hier geht es weiter."}</p>
    </section>
+   ${intro?"":(f=>`<section class="focus" aria-labelledby="hFocus">
+     <div class="stack" style="gap:6px;min-width:0"><span class="label">Dein nächster Schritt</span><h2 class="focus-t" id="hFocus">${esc(f.t)}</h2><p class="focus-d">${esc(f.d)}</p></div>
+     <div class="focus-go">${f.btn}${f.btn.includes("hNew2")?"":`<button class="btn ghost" id="hNew">${ic("plus")} Neues Lernset</button>`}</div>
+   </section>`)(nextStepHTML(sessions,recent))}
    ${intro?`<section class="sheet intro stack">
-     <h2>So startest du mit Merkwerk</h2>
+     <h2>So leicht geht es los</h2>
      <ol class="steps">
-       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Merkwerk schlägt Themen aus deinem Bildungsplan vor.</span></li>
+       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Lernleicht schlägt Themen aus deinem Bildungsplan vor.</span></li>
        <li><b>Material hinzufügen</b><span class="small muted">PDF, Word, Fotos oder GoodNotes hochladen oder Lerninhalte generieren lassen.</span></li>
        <li><b>Lernoption wählen</b><span class="small muted">Abfrage, Karteikarten, Audiozusammenfassung, Podcast oder Probeklausur.</span></li>
      </ol>
@@ -4779,7 +4901,7 @@ VIEWS.home = async function(m){
    </section>
   </div>`;
   const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
-  on("hNew",()=>openNewSetDialog()); on("hFirst",()=>openNewSetDialog());
+  on("hNew",()=>openNewSetDialog()); on("hNew2",()=>openNewSetDialog()); on("hFirst",()=>openNewSetDialog());
   on("hEx",async()=>{ const s=await makeExampleSet(); S.activeSet=s.id; touchSet(s.id); save(); go("learn",{setId:s.id,manage:true}); });
   on("hProf",()=>openWizard()); on("hGuest",()=>openGuestMenu());
   on("hAll",()=>go("learn",{manage:true})); on("hSwitch",()=>pickSetFor(null));
@@ -4841,7 +4963,7 @@ async function enterAccount(ident){
   const fromGuest=WEL.fromGuest; WEL.fromGuest=false;
   const {acc,created}=upsertAccount(ident);
   await useAccountStorage();
-  if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Merkwerk jetzt ohne Konto"); return; }
+  if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Lernleicht jetzt ohne Konto"); return; }
   if(fromGuest) setTimeout(()=>offerGuestTransfer(),60);
   if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
   WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home");
@@ -4858,7 +4980,7 @@ function renderWelcome(m){
   const back=`<button class="btn ghost" id="wBackStart">← Zurück</button>`;
   let html="";
   if(w.step==="start"){
-    html=`<div class="welcome-hero stack"><span class="label">Merkwerk</span><h1>Herzlich Willkommen bei Merkwerk,<br>bereit, dein Lernen für immer zu verändern?</h1></div>
+    html=`<div class="welcome-hero stack"><span class="label">Lernleicht</span><h1>Willkommen bei Lernleicht.<br>Lernen, ganz einfach.</h1></div>
       <div class="grid2 welcome-choice">
         <button class="wizard-opt" id="wHave"><b>Ich habe schon ein Konto</b><span class="small muted">Anmelden und weiterlernen</span></button>
         <button class="wizard-opt primary-opt" id="wNew"><b>Verändere mein Lernen</b><span class="small muted">Neues Konto anlegen</span></button>
@@ -4871,8 +4993,8 @@ function renderWelcome(m){
     const local=ACC.list.filter(a=>a.provider!=="guest"&&(a.provider==="local"||a.provider==="claude"||!authReady(a.provider)));
     html=`<section class="sheet stack welcome-card">
       <h1>${w.mode==="login"?"Schön, dass du wieder am Start bist":"Leg dein Konto an"}</h1>
-      <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Merkwerk auf dich ab."}</p>
-      ${CAP.user?`<button class="btn primary auth-btn" id="wClaude" ${w.busy?"disabled":""}>${AUTH_ICON.claude}<span>Mit deinem Claude-Konto weiter</span></button><p class="small muted">In claude.ai meldet Merkwerk dich über dein Claude-Konto an; deine Daten sind dann auf allen Geräten da.</p>`:""}
+      <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Lernleicht auf dich ab."}</p>
+      ${CAP.user?`<button class="btn primary auth-btn" id="wClaude" ${w.busy?"disabled":""}>${AUTH_ICON.claude}<span>Mit deinem Claude-Konto weiter</span></button><p class="small muted">In claude.ai meldet Lernleicht dich über dein Claude-Konto an; deine Daten sind dann auf allen Geräten da.</p>`:""}
       ${provBtns()}
       ${w.err?`<div class="note bad small">${esc(w.err)}</div>`:""}
       ${w.mode==="login"&&local.length?`<div class="stack" style="gap:6px"><span class="label">Konten auf diesem Gerät</span><div class="list">${local.map(a=>`<div class="li"><div class="grow"><b>${esc(accountLabel(a))}</b><div class="small muted">${a.provider==="local"?"nur auf diesem Gerät":"über "+esc(providerName(a.provider))}</div></div><button class="btn sm" data-acc="${a.id}">Weiter</button></div>`).join("")}</div></div>`:""}
@@ -4881,12 +5003,12 @@ function renderWelcome(m){
     const pn=providerName(w.provider);
     html=`<section class="sheet stack welcome-card">
       <h2>${esc(pn)}-Anmeldung ist hier noch nicht eingerichtet</h2>
-      <p>Damit Merkwerk dich über ${esc(pn)} anmelden kann, muss die Seite bei ${esc(pn)} registriert sein. Bis dahin kannst du trotzdem starten: Merkwerk legt dein Konto auf diesem Gerät an. Deine Lernsets und Termine bleiben dann in diesem Browser.</p>
+      <p>Damit Lernleicht dich über ${esc(pn)} anmelden kann, muss die Seite bei ${esc(pn)} registriert sein. Bis dahin kannst du trotzdem starten: Lernleicht legt dein Konto auf diesem Gerät an. Deine Lernsets und Termine bleiben dann in diesem Browser.</p>
       ${w.mode==="login"?`<p class="small muted">Du hattest schon ein Konto auf diesem Gerät? Geh zurück und wähle es unter „Konten auf diesem Gerät“.</p>`:""}
       <label class="f">Wie heißt du?<input type="text" id="wName" placeholder="Vorname" autocomplete="given-name"></label>
       <div class="row"><button class="btn primary" id="wLocal">Konto auf diesem Gerät anlegen</button><button class="btn ghost" id="wBackAuth">← Zurück</button></div></section>`;
   } else if(w.step==="onboard"){
-    html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Merkwerk auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
+    html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Lernleicht auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
       <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>`;
   }
   m.innerHTML=`<div class="view welcome">${html}</div>`;
@@ -4920,7 +5042,7 @@ function openGuestMenu(){
       <button class="btn" id="gmNew">Konto anlegen</button>
       <button class="btn ghost danger" id="gmDel">Alle Gastinhalte von diesem Gerät löschen</button>
     </div>
-    <p class="small muted">Beim Anmelden fragt Merkwerk, welche Gastinhalte du in dein Konto übernehmen willst. Ohne deine Auswahl wird nichts übernommen.</p>
+    <p class="small muted">Beim Anmelden fragt Lernleicht, welche Gastinhalte du in dein Konto übernehmen willst. Ohne deine Auswahl wird nichts übernommen.</p>
     <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     const leave=async mode=>{ close(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step:"auth",mode,err:"",fromGuest:true}); render(); };
     $("#gmLogin",m).onclick=()=>leave("login"); $("#gmNew",m).onclick=()=>leave("register");

@@ -85,7 +85,7 @@ async function openCards(set,{rebuild=false}={}){
       try{ const r=await generateCards(set,{signal:ctl.signal}); cards=r.cards; if(r.dropped) toast(`${r.dropped} Karten ohne gültigen Beleg verworfen`,3500); }
       catch(e){ if(box){ if(e&&e.code==="cancelled") box.hidden=true; else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
     } else cards=extractCardsLocal(set);
-    if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Merkwerk in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
+    if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Lernleicht in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
     set.cards=cards; set.fc=null;
   }
   if(!set.fc||rebuild) fcStart(set,set.cards.map(c=>c.id));
