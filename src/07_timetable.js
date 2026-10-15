@@ -117,7 +117,7 @@ Antworte nur mit JSON: {"lessons":[{"day":"Mo|Di|Mi|Do|Fr|Sa","start":"HH:MM","e
 }
 function showIcsHelp(){
   modal(`<h2>WebUntis & Kalenderdateien</h2>
-   <p>Eine direkte Anmeldung bei WebUntis ist aus Lernleicht heraus nicht möglich: WebUntis lässt fremde Webseiten nicht zu, und dein Passwort soll nicht in einer anderen App landen. So kommt dein Plan trotzdem rein:</p>
+   <p>Eine direkte Anmeldung bei WebUntis ist aus Kapiert heraus nicht möglich: WebUntis lässt fremde Webseiten nicht zu, und dein Passwort soll nicht in einer anderen App landen. So kommt dein Plan trotzdem rein:</p>
    <div class="stack small">
      <p><b>Variante 1 – Screenshot (am schnellsten):</b> In der WebUntis-App die Wochenansicht öffnen, Screenshot machen, hier „Aus Screenshot übernehmen“ wählen. Claude ordnet die Fächer den Zeiten zu, du prüfst die Vorschau.</p>
      <p><b>Variante 2 – Kalenderdatei:</b> In WebUntis im Browser „Mein Stundenplan“ öffnen und über das Teilen-/Export-Symbol eine iCal-Datei (.ics) herunterladen (Abo-Links und Export sind je nach Schule freigeschaltet). Uni-Portale wie HISinOne, CAMPUSonline oder Stud.IP bieten ebenfalls einen iCal-Export. Die Datei hier auswählen.</p>

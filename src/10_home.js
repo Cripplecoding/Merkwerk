@@ -63,7 +63,7 @@ VIEWS.home = async function(m){
    ${intro?`<section class="sheet intro stack">
      <h2>So leicht geht es los</h2>
      <ol class="steps">
-       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Lernleicht schlägt Themen aus deinem Bildungsplan vor.</span></li>
+       <li><b>Lernset anlegen</b><span class="small muted">Fach und Thema wählen, Kapiert schlägt Themen aus deinem Bildungsplan vor.</span></li>
        <li><b>Material hinzufügen</b><span class="small muted">PDF, Word, Fotos oder GoodNotes hochladen oder Lerninhalte generieren lassen.</span></li>
        <li><b>Lernoption wählen</b><span class="small muted">Abfrage, Karteikarten, Audiozusammenfassung, Podcast oder Probeklausur.</span></li>
      </ol>

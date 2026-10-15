@@ -12,7 +12,7 @@ function dueReminders(){
 const leftLabel=n=>n===0?"heute":n===1?"morgen":n<0?`vor ${-n} Tagen`:`in ${n} Tagen`;
 function calLinks(it){
   const title=`${TYPE_NAME[it.type]}: ${it.title}${it.subject?` (${it.subject})`:""}`;
-  const details=[it.notes||"","Eingetragen mit Lernleicht."].filter(Boolean).join("\n");
+  const details=[it.notes||"","Eingetragen mit Kapiert."].filter(Boolean).join("\n");
   const ymd=it.date.replace(/-/g,"");
   let g, o;
   if(it.time){ const [h,mi]=it.time.split(":"); const st=`${ymd}T${h}${mi}00`; const endM=toMin(it.time)+(it.type==="klausur"?90:15); const en=`${ymd}T${pad(Math.floor(endM/60)%24)}${pad(endM%60)}00`;
@@ -141,7 +141,7 @@ VIEWS.due = async function(m,arg){
        ${["klausur","abgabe"].map(k=>`<div class="stack" style="gap:8px"><label class="row" style="gap:8px;font-weight:700"><input type="checkbox" data-ron="${k}" ${S.remind[k]?"checked":""}> An ${k==="klausur"?"Klausuren":"Abgaben"} erinnern</label>
          <div class="row" style="gap:6px">${[14,7,3,2,1,0].map(d=>`<button class="chip" data-rd="${k}" data-d="${d}" aria-pressed="${(S.remind[k+"Days"]||[]).includes(d)}">${d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher"}</button>`).join("")}</div></div>`).join("")}
      </div>
-     <p class="small muted">Lernleicht zeigt fällige Erinnerungen, sobald du die Seite öffnest. Damit dein Handy dich auch erinnert, wenn Lernleicht zu ist, übernimm Termine mit einem Klick in Google Kalender oder Outlook und lass dir dort eine Benachrichtigung schicken.</p>
+     <p class="small muted">Kapiert zeigt fällige Erinnerungen, sobald du die Seite öffnest. Damit dein Handy dich auch erinnert, wenn Kapiert zu ist, übernimm Termine mit einem Klick in Google Kalender oder Outlook und lass dir dort eine Benachrichtigung schicken.</p>
    </section>
    ${past.length?`<details class="sheet"><summary>Erledigt und vergangen (${past.length})</summary><div class="list" style="margin-top:8px">${past.reverse().map(itemRow).join("")}</div></details>`:""}
    <div class="row"><span class="spacer"></span><button class="btn ghost sm" id="backup">Termine & Stundenplan sichern (.json)</button></div>
@@ -207,7 +207,7 @@ function renderItem(m,it){
        <div class="row"><button class="btn sm" id="calIt">Im Kalender zeigen</button>${it.type==="klausur"&&!it.done?`<button class="btn sm" id="examIt">Probeklausur schreiben</button>`:""}<button class="btn sm" id="edIt">Bearbeiten</button><button class="btn sm" id="doneIt">${it.done?"Wieder öffnen":"Als erledigt markieren"}</button></div></div>
      ${it.notes?`<p class="small">${esc(it.notes)}</p>`:""}
      <div class="row small"><span class="muted">Erinnerung: ${remindOn(it)?remindDaysOf(it).map(d=>d===0?"am Tag":d===1?"1 Tag vorher":d+" Tage vorher").join(", "):"aus"}</span></div>
-     <p class="small muted">Steht automatisch in deinem Lernleicht-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
+     <p class="small muted">Steht automatisch in deinem Kapiert-Kalender${it.plan?" – zusammen mit allen Lerneinheiten":""}.</p>
      <div class="row"><span class="label">Auch in externen Kalender</span><a class="btn sm" href="${esc(L.google)}" target="_blank" rel="noopener">Google Kalender ↗</a><a class="btn sm" href="${esc(L.outlook)}" target="_blank" rel="noopener">Outlook.com ↗</a><a class="btn sm" href="${esc(L.outlook365)}" target="_blank" rel="noopener">Outlook (Schule/Arbeit) ↗</a></div>
    </section>
    <section class="sheet stack" id="planSec"></section>
@@ -227,7 +227,7 @@ function renderItem(m,it){
      <p class="small muted">Lernzeit pro Lerntag: ${ov.budget} Minuten · noch ca. ${Math.round(left/6)/10} Stunden Lernen bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"}${it.plan.days.some(d=>d.kind==="hoeren")?" (Hörphasen zusätzlich)":""}</p>
      ${ov.over.length?`<div class="note warn small">Der Zeitraum reicht für den Umfang nicht ganz: An ${ov.over.length} Tag${ov.over.length>1?"en":""} sind bis zu ${ov.max} Minuten geplant, mehr als deine ${ov.budget} Minuten (${esc(ov.over.slice(0,4).map(([d,mn])=>fmtDate(d)+": "+mn+" Min.").join(", "))}${ov.over.length>4?" …":""}). Passe den Plan unten an: mehr Lerntage, weniger Wiederholungstage oder mehr Zeit pro Tag.</div>`:""}
      <div class="row"><button class="btn sm" id="addHear">Hörphase einplanen</button><span class="small muted">Audiozusammenfassung oder Podcastdialog aus den hochgeladenen Dateien dieses Lernsets</span></div>
-     ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Lernleicht kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
+     ${missed.length?`<div class="note warn row"><span>${missed.length} Lerntag${missed.length>1?"e":""} verpasst. Kapiert kann den Rest auf die verbleibenden Tage verteilen.</span><button class="btn sm" id="replan">Ab heute neu verteilen</button></div>`:""}
      <div>${it.plan.days.map(d=>{ k++; const secs=d.sectionIds.map(id=>set.sections.find(s=>s.id===id)).filter(Boolean); const chars=secs.reduce((a,s)=>a+s.text.length,0);
         const key=`${d.date}|${d.kind}|${k}`;
         const what=d.kind==="hoeren"?`<b>Hörphase:</b> ${esc((AUD_FORMATS[d.fmt]||AUD_FORMATS.monolog).n)} · ${esc((AUD_LENGTHS[d.len]||AUD_LENGTHS.standard).n)} · ca. ${dayMinutes(d,set)} Min. <span class="muted">(ergänzt die Lerneinheiten, zählt nicht als gelernt)</span>`
@@ -244,7 +244,7 @@ function renderItem(m,it){
     const rp=$("#replan",ps); if(rp) rp.onclick=()=>{ const r=buildPlan(it,set,{weekdays:it.plan.weekdays,reviewDays:it.plan.reviewDays,minutesPerDay:it.plan.minutesPerDay}); if(r.error){toast(r.error);return;} it.plan=r.plan; save(); render(); toast("Plan neu verteilt"); };
     planForm($("#planForm",ps),it,set);
   } else {
-    ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Lernleicht teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
+    ps.innerHTML=`<h2>Lernplan erstellen</h2><p class="muted">Pflege dein Material ein. Kapiert teilt es so auf die Tage bis ${it.type==="klausur"?"zur Klausur":"zur Abgabe"} auf, dass du alles einmal durchgearbeitet hast und am Ende noch Zeit zum Wiederholen bleibt. Jede Lerneinheit startet einen Durchgang mit belegten Fragen zu genau diesen Abschnitten.</p><div id="planForm"></div>`;
     planForm($("#planForm",ps),it,set);
   }
 }

@@ -101,7 +101,7 @@ function needMaterial(set,mode){
 function needAI(set,mode){
   const M=modeByK(mode);
   modal(`<h2>${esc(M.t)} braucht KI</h2>
-    <p>${mode==="exam"?"Bei der Probeklausur stellt Claude die Aufgaben zusammen und korrigiert sie.":"Bei der interaktiven Abfrage erstellt Claude die Fragen aus deinem Material und bewertet deine Antworten."} Auf dieser Seite ist die KI noch nicht eingerichtet. In Lernleicht in claude.ai funktioniert es.</p>
+    <p>${mode==="exam"?"Bei der Probeklausur stellt Claude die Aufgaben zusammen und korrigiert sie.":"Bei der interaktiven Abfrage erstellt Claude die Fragen aus deinem Material und bewertet deine Antworten."} Auf dieser Seite ist die KI noch nicht eingerichtet. In Kapiert in claude.ai funktioniert es.</p>
     <p class="small muted">Ohne KI kannst du mit Karteikarten lernen oder die Abfrage am Beispiel zur Photosynthese ausprobieren.</p>
     <div class="row"><button class="btn primary" id="naCards">${ic("cards")} Karteikarten öffnen</button><button class="btn" id="naEx">Beispiel ausprobieren</button><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     $("#naCards",m).onclick=()=>{ close(); launchMode(set,"cards"); };

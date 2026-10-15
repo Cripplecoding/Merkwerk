@@ -44,7 +44,7 @@ async function enterAccount(ident){
   const fromGuest=WEL.fromGuest; WEL.fromGuest=false;
   const {acc,created}=upsertAccount(ident);
   await useAccountStorage();
-  if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Lernleicht jetzt ohne Konto"); return; }
+  if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Kapiert jetzt ohne Konto"); return; }
   if(fromGuest) setTimeout(()=>offerGuestTransfer(),60);
   if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
   WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home");
@@ -61,7 +61,7 @@ function renderWelcome(m){
   const back=`<button class="btn ghost" id="wBackStart">← Zurück</button>`;
   let html="";
   if(w.step==="start"){
-    html=`<div class="welcome-hero stack"><span class="label">Lernleicht</span><h1>Willkommen bei Lernleicht.<br>Lernen, ganz einfach.</h1></div>
+    html=`<div class="welcome-hero stack"><span class="label">Kapiert</span><h1>Hey, willkommen bei Kapiert.<br>Lernen ohne Stress.</h1></div>
       <div class="grid2 welcome-choice">
         <button class="wizard-opt" id="wHave"><b>Ich habe schon ein Konto</b><span class="small muted">Anmelden und weiterlernen</span></button>
         <button class="wizard-opt primary-opt" id="wNew"><b>Verändere mein Lernen</b><span class="small muted">Neues Konto anlegen</span></button>
@@ -74,8 +74,8 @@ function renderWelcome(m){
     const local=ACC.list.filter(a=>a.provider!=="guest"&&(a.provider==="local"||a.provider==="claude"||!authReady(a.provider)));
     html=`<section class="sheet stack welcome-card">
       <h1>${w.mode==="login"?"Schön, dass du wieder am Start bist":"Leg dein Konto an"}</h1>
-      <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Lernleicht auf dich ab."}</p>
-      ${CAP.user?`<button class="btn primary auth-btn" id="wClaude" ${w.busy?"disabled":""}>${AUTH_ICON.claude}<span>Mit deinem Claude-Konto weiter</span></button><p class="small muted">In claude.ai meldet Lernleicht dich über dein Claude-Konto an; deine Daten sind dann auf allen Geräten da.</p>`:""}
+      <p class="muted">${w.mode==="login"?"Melde dich mit dem Dienst an, mit dem du dich registriert hast.":"Registriere dich mit einem dieser Dienste. Danach stimmen wir Kapiert auf dich ab."}</p>
+      ${CAP.user?`<button class="btn primary auth-btn" id="wClaude" ${w.busy?"disabled":""}>${AUTH_ICON.claude}<span>Mit deinem Claude-Konto weiter</span></button><p class="small muted">In claude.ai meldet Kapiert dich über dein Claude-Konto an; deine Daten sind dann auf allen Geräten da.</p>`:""}
       ${provBtns()}
       ${w.err?`<div class="note bad small">${esc(w.err)}</div>`:""}
       ${w.mode==="login"&&local.length?`<div class="stack" style="gap:6px"><span class="label">Konten auf diesem Gerät</span><div class="list">${local.map(a=>`<div class="li"><div class="grow"><b>${esc(accountLabel(a))}</b><div class="small muted">${a.provider==="local"?"nur auf diesem Gerät":"über "+esc(providerName(a.provider))}</div></div><button class="btn sm" data-acc="${a.id}">Weiter</button></div>`).join("")}</div></div>`:""}
@@ -84,12 +84,12 @@ function renderWelcome(m){
     const pn=providerName(w.provider);
     html=`<section class="sheet stack welcome-card">
       <h2>${esc(pn)}-Anmeldung ist hier noch nicht eingerichtet</h2>
-      <p>Damit Lernleicht dich über ${esc(pn)} anmelden kann, muss die Seite bei ${esc(pn)} registriert sein. Bis dahin kannst du trotzdem starten: Lernleicht legt dein Konto auf diesem Gerät an. Deine Lernsets und Termine bleiben dann in diesem Browser.</p>
+      <p>Damit Kapiert dich über ${esc(pn)} anmelden kann, muss die Seite bei ${esc(pn)} registriert sein. Bis dahin kannst du trotzdem starten: Kapiert legt dein Konto auf diesem Gerät an. Deine Lernsets und Termine bleiben dann in diesem Browser.</p>
       ${w.mode==="login"?`<p class="small muted">Du hattest schon ein Konto auf diesem Gerät? Geh zurück und wähle es unter „Konten auf diesem Gerät“.</p>`:""}
       <label class="f">Wie heißt du?<input type="text" id="wName" placeholder="Vorname" autocomplete="given-name"></label>
       <div class="row"><button class="btn primary" id="wLocal">Konto auf diesem Gerät anlegen</button><button class="btn ghost" id="wBackAuth">← Zurück</button></div></section>`;
   } else if(w.step==="onboard"){
-    html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Lernleicht auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
+    html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Kapiert auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
       <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>`;
   }
   m.innerHTML=`<div class="view welcome">${html}</div>`;
@@ -123,7 +123,7 @@ function openGuestMenu(){
       <button class="btn" id="gmNew">Konto anlegen</button>
       <button class="btn ghost danger" id="gmDel">Alle Gastinhalte von diesem Gerät löschen</button>
     </div>
-    <p class="small muted">Beim Anmelden fragt Lernleicht, welche Gastinhalte du in dein Konto übernehmen willst. Ohne deine Auswahl wird nichts übernommen.</p>
+    <p class="small muted">Beim Anmelden fragt Kapiert, welche Gastinhalte du in dein Konto übernehmen willst. Ohne deine Auswahl wird nichts übernommen.</p>
     <div class="row"><span class="spacer"></span><button class="btn ghost" data-close>Schließen</button></div>`,(m,close)=>{
     const leave=async mode=>{ close(); signOutAccount(); await useAccountStorage(); Object.assign(WEL,{step:"auth",mode,err:"",fromGuest:true}); render(); };
     $("#gmLogin",m).onclick=()=>leave("login"); $("#gmNew",m).onclick=()=>leave("register");

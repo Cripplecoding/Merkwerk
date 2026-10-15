@@ -39,7 +39,7 @@ function openNewSetDialog(preset={}){
     <div class="stack" style="gap:8px"><span class="label">Material</span>
       <div class="grid2" style="gap:10px">
         <button class="wizard-opt" id="nsOwn"><b>Eigene Dateien anfügen</b><span class="small muted">PDF, DOCX, GoodNotes, Fotos – wie gewohnt</span></button>
-        <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Lernleicht gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
+        <button class="wizard-opt" id="nsGen"><b>Lerninhalte generieren</b><span class="small muted">Kapiert gleicht Fach und Thema mit deinem Bildungsplan ab, sucht Erklärungen und Videos und erstellt daraus dein Material</span></button>
       </div>
       <div id="nsModes" hidden></div>
     </div>
@@ -86,7 +86,7 @@ function openNewSetDialog(preset={}){
     };
     $("#nsOwn",m).onclick=()=>create(null);
     $("#nsGen",m).onclick=()=>{
-      if(!tIn.value.trim()){ toast("Gib zuerst ein Thema ein – dazu sucht Lernleicht die Inhalte"); tIn.focus(); return; }
+      if(!tIn.value.trim()){ toast("Gib zuerst ein Thema ein – dazu sucht Kapiert die Inhalte"); tIn.focus(); return; }
       const box=$("#nsModes",m); box.innerHTML=genModesHTML(); box.hidden=false; bindGenModes(box,create); box.scrollIntoView({block:"nearest",behavior:"smooth"});
     };
     (subject?tIn:sIn).focus();
@@ -120,7 +120,7 @@ function learnLinks(subject,topic,p=S.profile){
 async function checkAgainstPlan(set,docs,signal){
   const p=S.profile; const cur=curatedTopics(set.subject,p);
   const inList=cur.some(t=>subjKey(t)===subjKey(set.topic)||subjKey(t).includes(subjKey(set.topic))||subjKey(set.topic).includes(subjKey(t)));
-  if(!CAP.sample) return {fit:inList?"ja":"offen",note:inList?"Das Thema steht in den typischen Themen für deine Klassenstufe.":"Ohne Claude kann Lernleicht nur mit der Themenliste abgleichen; das Thema steht dort nicht. Prüfe es im verlinkten Plan.",focus:[],terms:[set.topic]};
+  if(!CAP.sample) return {fit:inList?"ja":"offen",note:inList?"Das Thema steht in den typischen Themen für deine Klassenstufe.":"Ohne Claude kann Kapiert nur mit der Themenliste abgleichen; das Thema steht dort nicht. Prüfe es im verlinkten Plan.",focus:[],terms:[set.topic]};
   const r=await CAP.sample.json(`Du prüfst für eine Lernseite, ob ein Thema zum Bildungsplan eines Lernenden passt.
 
 Lernende/r: ${levelText(p)||"keine Angaben"}
@@ -194,7 +194,7 @@ async function generateIntoSet(set,{mode="read"}={}){
   try{
     const r=await generateContent(set,{onStatus:status,signal:ctl.signal});
     set.gen=r.gen;
-    if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Lernleicht ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
+    if(!r.files.length){ await putSet(set); go("learn",{manage:true}); setTimeout(()=>{ const b=$("#genBox"); if(b){ b.hidden=false; b.innerHTML=`<div class="note warn">Zu „${esc(set.topic)}“ konnte Kapiert ${CAP.sample?"keinen Lerntext erstellen":"ohne Claude keine Erklärung in Wikipedia finden"}. Unten stehen Links zu Erklärungen und Videos; du kannst auch eigene Dateien anfügen.</div>`; } },50); return; }
     set.files.push(...r.files); set.sections=makeSections(set.files); set.cards=null; set.fc=null;
     await putSet(set); go("learn",{manage:true});
     if(mode==="cards"){ toast("Lerninhalte erstellt – jetzt kommen die Karteikarten"); setTimeout(()=>openCards(set),30); }
@@ -217,6 +217,6 @@ function genInfoHTML(set){
     ${g.docs&&g.docs.length?`<div class="small stack" style="gap:2px">${g.docs.map(d=>`<span>${planDocHTML(d)}</span>`).join("")}</div>`:""}
     <span class="label" style="margin-top:6px">Quellen, Erklärungen und Videos</span>
     <div class="small stack" style="gap:2px">${(g.links||[]).map(l=>`<span><span class="muted">${esc(l.kind)}:</span> <a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)} ↗</a></span>`).join("")}</div>
-    <p class="small muted">${g.by==="claude"?"Der Lerntext ist von Claude geschrieben. Gleiche ihn mit deinem Heft oder Schulbuch ab.":"Ohne Claude übernimmt Lernleicht den Wikipedia-Text als Material. Er kann über deine Klassenstufe hinausgehen."}</p>
+    <p class="small muted">${g.by==="claude"?"Der Lerntext ist von Claude geschrieben. Gleiche ihn mit deinem Heft oder Schulbuch ab.":"Ohne Claude übernimmt Kapiert den Wikipedia-Text als Material. Er kann über deine Klassenstufe hinausgehen."}</p>
   </div>`;
 }
