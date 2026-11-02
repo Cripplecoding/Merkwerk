@@ -383,7 +383,7 @@ table.t td.n{font-family:var(--f-mono);text-align:right}
 .bad-t{color:var(--bad)}
 .warn-t{color:var(--warn)}
 /* ===== Paukr-Design =====
-   Idee: ruhig und leicht. Warmes Papierweiß, eine Akzentfarbe (Indigo) und Textmarker-Gelb nur für „Merk dir das“.
+   Idee: leicht und freundlich. Warmes Papierweiß, Indigo als Hauptfarbe, eine eigene Farbe je Lernoption und Textmarker-Gelb für „Merk dir das“.
    Flache Flächen mit Haarlinien statt Schatten, runde Formen, Überschriften in einer leichten Serifenschrift.
    Auf der Startseite steht oben genau ein nächster Schritt; auf dem Handy liegt die Navigation unten in Daumennähe. */
 :root{
@@ -493,6 +493,62 @@ input[type=text],input[type=date],input[type=time],input[type=number],input[type
 .tile-cta{background:none;color:var(--accent);padding:0;min-height:28px}
 .tile:hover .tile-cta{filter:none;text-decoration:underline}
 .org-tile>.ic{color:var(--ink)}
+/* Mehr Luft und mehr Farbe: jede Lernoption hat ihre eigene Farbe, Kacheln und Bereiche haben großzügige Abstände. */
+:root{
+  --c-quiz:#4338ca; --c-quiz-soft:#ecebfc; --c-cards:#c2255c; --c-cards-soft:#fde8f0; --c-monolog:#0b7a6c; --c-monolog-soft:#ddf4ef;
+  --c-podcast:#b5420e; --c-podcast-soft:#ffeadb; --c-generate:#7a3cc9; --c-generate-soft:#f2e9fd; --c-exam:#1a64b0; --c-exam-soft:#e2effc;
+  --c-ink-on:#ffffff;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --c-quiz:#a9b1ff; --c-quiz-soft:#24254a; --c-cards:#ff8fb6; --c-cards-soft:#3b1a29; --c-monolog:#62d6c3; --c-monolog-soft:#11312c;
+  --c-podcast:#ffa36e; --c-podcast-soft:#3a2214; --c-generate:#cba6ff; --c-generate-soft:#2e2045; --c-exam:#82c1ff; --c-exam-soft:#142a42;
+  --c-ink-on:#121316;}}
+:root[data-theme="dark"]{
+  --c-quiz:#a9b1ff; --c-quiz-soft:#24254a; --c-cards:#ff8fb6; --c-cards-soft:#3b1a29; --c-monolog:#62d6c3; --c-monolog-soft:#11312c;
+  --c-podcast:#ffa36e; --c-podcast-soft:#3a2214; --c-generate:#cba6ff; --c-generate-soft:#2e2045; --c-exam:#82c1ff; --c-exam-soft:#142a42;
+  --c-ink-on:#121316;}
+main{padding-block:30px 72px}
+.view{gap:26px}
+.home{gap:52px}
+.home .sec-head{margin-bottom:6px}
+.grid2{gap:22px}
+.set-grid{gap:20px}
+.tiles{gap:22px}
+.org{gap:18px}
+.stack{gap:12px}
+.tile{padding:24px;gap:8px;min-height:214px;border-color:transparent;background:var(--tc-soft,var(--sheet))}
+.tile:hover{border-color:var(--tc,var(--ink))}
+.tile:focus-visible{outline-color:var(--tc,var(--accent))}
+.tile-ic{width:50px;height:50px;background:var(--tc,var(--ink));color:var(--c-ink-on);margin-bottom:8px}
+.tile:hover .tile-ic{background:var(--tc,var(--accent));color:var(--c-ink-on)}
+.tile-d{color:var(--ink);opacity:.78}
+.tile-cta{color:var(--tc,var(--accent))}
+.tile[data-mode="quiz"]{--tc:var(--c-quiz);--tc-soft:var(--c-quiz-soft)}
+.tile[data-mode="cards"]{--tc:var(--c-cards);--tc-soft:var(--c-cards-soft)}
+.tile[data-mode="monolog"]{--tc:var(--c-monolog);--tc-soft:var(--c-monolog-soft)}
+.tile[data-mode="podcast"]{--tc:var(--c-podcast);--tc-soft:var(--c-podcast-soft)}
+.tile[data-mode="generate"]{--tc:var(--c-generate);--tc-soft:var(--c-generate-soft)}
+.tile[data-mode="exam"]{--tc:var(--c-exam);--tc-soft:var(--c-exam-soft)}
+.org-tile{padding:18px 20px;min-height:76px}
+.org-tile[data-org="lib"]>.ic{color:var(--c-generate)}
+.org-tile[data-org="tt"]>.ic{color:var(--c-monolog)}
+.org-tile[data-org="plan"]>.ic{color:var(--c-podcast)}
+.set-card{padding:20px;gap:12px}
+.sheet{padding:22px}
+/* Nächster Schritt in der Akzentfarbe statt Schwarz */
+.focus{background:var(--accent);color:var(--accent-ink)}
+.focus .label{color:color-mix(in srgb,var(--accent-ink) 72%,transparent)}
+.focus-d{color:color-mix(in srgb,var(--accent-ink) 82%,transparent)}
+.focus .btn.ghost{color:var(--accent-ink)}
+.focus .btn.ghost:hover{background:color-mix(in srgb,var(--accent-ink) 12%,transparent)}
+.hero h1 #hiName{background:linear-gradient(transparent 62%,var(--mark) 62%,var(--mark) 92%,transparent 92%)}
+.steps{gap:16px}
+.steps li:nth-child(1)::before{background:var(--c-quiz);color:var(--c-ink-on)}
+.steps li:nth-child(2)::before{background:var(--c-cards);color:var(--c-ink-on)}
+.steps li:nth-child(3)::before{background:var(--c-monolog);color:var(--c-ink-on)}
+.welcome-skip{gap:12px;justify-content:center;text-align:center}
+.home>section.stack{gap:20px}
+@media (max-width:560px){.tiles{gap:16px}.tile{min-height:0;padding:20px}.home{gap:40px}}
 </style>
 
 <header class="top">

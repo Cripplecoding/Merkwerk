@@ -71,6 +71,7 @@ const DEFAULT_STATE = () => ({
   remind:{ klausur:true, abgabe:true, klausurDays:[14,7,1], abgabeDays:[3,1,0] },
   dismissed:{},            // Erinnerung-ID -> true
   lastView:"home",
+  profileSkipped:false,    // Schule/Studium und Fächer beim Anmelden übersprungen
   ocrThorough:false,       // Bilder und Handschrift mit dem gründlicheren, langsameren Claude-Modell lesen
 });
 let S = Object.assign(DEFAULT_STATE(), lsGet(LS_KEY, {}));

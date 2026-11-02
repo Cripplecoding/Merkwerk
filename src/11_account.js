@@ -46,7 +46,7 @@ async function enterAccount(ident){
   await useAccountStorage();
   if(acc.provider==="guest"){ WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home"); toast("Du nutzt Paukr jetzt ohne Konto"); return; }
   if(fromGuest) setTimeout(()=>offerGuestTransfer(),60);
-  if(!S.profile||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
+  if((!S.profile&&!S.profileSkipped)||(created&&WEL.mode==="register")){ WEL.step="onboard"; WEL.note=WEL.mode==="login"&&created?"Auf diesem Gerät gab es noch keine Daten zu deinem Konto. Lass uns kurz alles einrichten.":""; render(); return; }
   WEL.step="start"; go(S.lastView&&S.lastView!=="welcome"?S.lastView:"home");
   toast(created?"Konto angelegt":`Willkommen zurück${acc.name?", "+acc.name.split(" ")[0]:""}`);
 }
@@ -90,7 +90,8 @@ function renderWelcome(m){
       <div class="row"><button class="btn primary" id="wLocal">Konto auf diesem Gerät anlegen</button><button class="btn ghost" id="wBackAuth">← Zurück</button></div></section>`;
   } else if(w.step==="onboard"){
     html=`<div class="welcome-hero stack"><span class="label">Fast geschafft</span><h1>Lass uns Paukr auf deine Bedürfnisse abstimmen</h1>${w.note?`<p class="muted">${esc(w.note)}</p>`:""}</div>
-      <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>`;
+      <section class="sheet" id="wizRoot">${wizardHTML(S.profile,{onboard:true})}</section>
+      <div class="row welcome-skip"><button class="btn" id="wSkip">Überspringen</button><span class="small muted">Du kannst Schule oder Studium und deine Fächer später auf der Startseite angeben.</span></div>`;
   }
   m.innerHTML=`<div class="view welcome">${html}</div>`;
   const on=(id,fn)=>{ const e=$("#"+id,m); if(e) e.onclick=fn; };
@@ -110,6 +111,7 @@ function renderWelcome(m){
   $$("[data-acc]",m).forEach(b=>b.onclick=async()=>{ ACC.current=b.dataset.acc; accStore(ACC); const a=currentAccount(); await enterAccount({provider:a.provider,sub:a.sub,name:a.name}); });
   on("wLocal",async()=>{ const n=$("#wName",m).value.trim(); if(!n){ toast("Bitte gib deinen Namen ein"); return; } await enterAccount({provider:"local",sub:rid("local_"),name:n}); });
   const wn=$("#wName",m); if(wn){ wn.focus(); wn.onkeydown=e=>{ if(e.key==="Enter") $("#wLocal",m).click(); }; }
+  on("wSkip",()=>{ S.profileSkipped=true; save(); WEL.step="start"; WEL.note=""; go("home"); toast("Übersprungen – leg dein erstes Lernset an"); });
   const wr=$("#wizRoot",m); if(wr) mountWizard(wr,()=>{ WEL.step="start"; WEL.note=""; go("home"); toast("Alles eingerichtet – leg dein erstes Lernset an"); },{onboard:true});
 }
 
