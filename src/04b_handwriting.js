@@ -19,8 +19,15 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 // Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
+// Beim ersten Mal lädt der Browser Programm und deutsches Sprachmodell (zusammen einige MB); danach kommen sie aus dem Zwischenspeicher.
+// Nur Worker 0 meldet den Ladefortschritt; nach OCR_LOAD_MS ohne Erfolg gibt es eine verständliche Meldung statt endlosem Warten.
+const OCR_LOAD_MS=90000;
+let tessLoadInfo=null;
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>{
+    const w=window.Tesseract.createWorker(OCR_LANG,1,i?{}:{logger:m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); }});
+    return Promise.race([w,new Promise((_,rej)=>setTimeout(()=>rej(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS))]);
+  }).catch(e=>{tessWorkers[i]=null;throw e;});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
@@ -35,7 +42,9 @@ async function shrinkForOcr(blob){
 async function ocrLocal(items,progress){
   const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
   const show=()=>progress&&progress(n===1?"Texterkennung im Browser läuft …":`Texterkennung im Browser: ${done} von ${n} Bildern fertig …`);
-  progress&&progress("Lade Texterkennung …");
+  const first=!tessWorkers[0];
+  progress&&progress(first?"Lade Texterkennung (beim ersten Mal einige MB, danach schneller) …":"Starte Texterkennung …");
+  tessLoadInfo=p=>progress&&progress(`Lade Texterkennung … ${Math.round(p*100)} %`);
   const lanes=Math.min(n,ocrWorkerCap());
   for(let k=0;k<lanes;k++) tessWorker(k).catch(()=>{}); // alle Worker laden gleichzeitig
   const lane=async k=>{
@@ -43,7 +52,7 @@ async function ocrLocal(items,progress){
     if(k>0){ try{ w=await tessWorker(k); }catch{ return; } } // weitere Worker sind nur Zusatz
     while(next<n){ const i=next++;
       const b=await ocrBlob(items[i]); // Worker 0 lädt, während die erste Seite vorbereitet wird
-      if(!w){ w=await tessWorker(0); show(); }
+      if(!w){ w=await tessWorker(0); tessLoadInfo=null; show(); }
       if(b){ const {data}=await w.recognize(await shrinkForOcr(b)); out[i]=String(data.text||"").replace(/[ \t]+\n/g,"\n").trim(); }
       done++; show();
     }

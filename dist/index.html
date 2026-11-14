@@ -1072,17 +1072,20 @@ function save(remote=true){
 
 /* ---------- Claude-Fähigkeiten ---------- */
 const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false,remote:false,aiRest:null};
+// Wird erfüllt, sobald feststeht, ob Claude mitliest (claude.ai) – Uploads warten kurz darauf, statt vorschnell im Browser zu lesen
+let capsDone; const CAPS_READY=new Promise(r=>capsDone=r);
+const capsReady=(ms=12000)=>CAP.ready?Promise.resolve():Promise.race([CAPS_READY,new Promise(r=>setTimeout(r,ms))]);
 async function initCaps(){
   if(!window.claude||!window.claude.use){
     // Außerhalb von claude.ai: KI über den eigenen Server, sobald er eingerichtet ist (src/04c_ai.js)
     if(aiReady()){ CAP.sample=remoteSample(); CAP.images=(await CAP.sample.limits()).images; CAP.remote=true; }
-    CAP.ready=true; if(CAP.remote) render(); return;
+    CAP.ready=true; capsDone(); if(CAP.remote) render(); return;
   }
   const [sample,db,user,downloads]=await Promise.all(["sample","db","user","downloads"].map(n=>window.claude.use(n).catch(()=>null)));
   Object.assign(CAP,{sample,db,user,downloads});
   if(sample){ try{ const l=await sample.limits(); CAP.images=l.images||null; }catch{} }
   if(user){ try{ CAP.uid=await user.id(); CAP.isOwner=await user.isOwner(); CAP.canWrite=await user.can("data.write"); }catch{} }
-  CAP.ready=true;
+  CAP.ready=true; capsDone();
   await syncDown();
   render();
 }
@@ -1171,8 +1174,15 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 // Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
+// Beim ersten Mal lädt der Browser Programm und deutsches Sprachmodell (zusammen einige MB); danach kommen sie aus dem Zwischenspeicher.
+// Nur Worker 0 meldet den Ladefortschritt; nach OCR_LOAD_MS ohne Erfolg gibt es eine verständliche Meldung statt endlosem Warten.
+const OCR_LOAD_MS=90000;
+let tessLoadInfo=null;
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>{
+    const w=window.Tesseract.createWorker(OCR_LANG,1,i?{}:{logger:m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); }});
+    return Promise.race([w,new Promise((_,rej)=>setTimeout(()=>rej(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS))]);
+  }).catch(e=>{tessWorkers[i]=null;throw e;});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
@@ -1187,7 +1197,9 @@ async function shrinkForOcr(blob){
 async function ocrLocal(items,progress){
   const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
   const show=()=>progress&&progress(n===1?"Texterkennung im Browser läuft …":`Texterkennung im Browser: ${done} von ${n} Bildern fertig …`);
-  progress&&progress("Lade Texterkennung …");
+  const first=!tessWorkers[0];
+  progress&&progress(first?"Lade Texterkennung (beim ersten Mal einige MB, danach schneller) …":"Starte Texterkennung …");
+  tessLoadInfo=p=>progress&&progress(`Lade Texterkennung … ${Math.round(p*100)} %`);
   const lanes=Math.min(n,ocrWorkerCap());
   for(let k=0;k<lanes;k++) tessWorker(k).catch(()=>{}); // alle Worker laden gleichzeitig
   const lane=async k=>{
@@ -1195,7 +1207,7 @@ async function ocrLocal(items,progress){
     if(k>0){ try{ w=await tessWorker(k); }catch{ return; } } // weitere Worker sind nur Zusatz
     while(next<n){ const i=next++;
       const b=await ocrBlob(items[i]); // Worker 0 lädt, während die erste Seite vorbereitet wird
-      if(!w){ w=await tessWorker(0); show(); }
+      if(!w){ w=await tessWorker(0); tessLoadInfo=null; show(); }
       if(b){ const {data}=await w.recognize(await shrinkForOcr(b)); out[i]=String(data.text||"").replace(/[ \t]+\n/g,"\n").trim(); }
       done++; show();
     }
@@ -1511,7 +1523,11 @@ const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
 async function ocrImages(items,progress){
-  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
+  if(!(CAP.sample&&CAP.images)){
+    // In claude.ai blockiert die Seitenrichtlinie die Sprachdaten der Browser-Erkennung: dort nie Tesseract, sonst hängt „Lade Texterkennung …“ endlos
+    if(window.claude&&window.claude.use) throw new Error(CAP.sample?"Claude kann in dieser Ansicht keine Bilder lesen. Lade eine PDF mit Text hoch oder öffne Paukr neu.":"Für Bilder und Scans braucht Paukr Claude. Erlaube die Nutzung von Claude für diese Seite (oder lade die Seite neu) und versuch es noch einmal.");
+    return {texts:await ocrLocal(items,progress),by:"browser"};
+  }
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
   const texts=new Array(n).fill(""), chars=starts.map(()=>0); let next=0, done=0;
@@ -1595,6 +1611,7 @@ async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
+  if(!CAP.ready&&window.claude){ progress&&progress("Verbinde mit Claude …"); await capsReady(); }
   if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const buf=await file.arrayBuffer();
     let r; try{ r=await window.mammoth.extractRawText({arrayBuffer:buf}); }
     catch{ throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt, passwortgeschützt oder keine echte DOCX. Speichere sie in Word neu oder als PDF.`); }

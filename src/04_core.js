@@ -93,17 +93,20 @@ function save(remote=true){
 
 /* ---------- Claude-Fähigkeiten ---------- */
 const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false,remote:false,aiRest:null};
+// Wird erfüllt, sobald feststeht, ob Claude mitliest (claude.ai) – Uploads warten kurz darauf, statt vorschnell im Browser zu lesen
+let capsDone; const CAPS_READY=new Promise(r=>capsDone=r);
+const capsReady=(ms=12000)=>CAP.ready?Promise.resolve():Promise.race([CAPS_READY,new Promise(r=>setTimeout(r,ms))]);
 async function initCaps(){
   if(!window.claude||!window.claude.use){
     // Außerhalb von claude.ai: KI über den eigenen Server, sobald er eingerichtet ist (src/04c_ai.js)
     if(aiReady()){ CAP.sample=remoteSample(); CAP.images=(await CAP.sample.limits()).images; CAP.remote=true; }
-    CAP.ready=true; if(CAP.remote) render(); return;
+    CAP.ready=true; capsDone(); if(CAP.remote) render(); return;
   }
   const [sample,db,user,downloads]=await Promise.all(["sample","db","user","downloads"].map(n=>window.claude.use(n).catch(()=>null)));
   Object.assign(CAP,{sample,db,user,downloads});
   if(sample){ try{ const l=await sample.limits(); CAP.images=l.images||null; }catch{} }
   if(user){ try{ CAP.uid=await user.id(); CAP.isOwner=await user.isOwner(); CAP.canWrite=await user.can("data.write"); }catch{} }
-  CAP.ready=true;
+  CAP.ready=true; capsDone();
   await syncDown();
   render();
 }

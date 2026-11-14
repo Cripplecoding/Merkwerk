@@ -83,7 +83,11 @@ const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
 async function ocrImages(items,progress){
-  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
+  if(!(CAP.sample&&CAP.images)){
+    // In claude.ai blockiert die Seitenrichtlinie die Sprachdaten der Browser-Erkennung: dort nie Tesseract, sonst hängt „Lade Texterkennung …“ endlos
+    if(window.claude&&window.claude.use) throw new Error(CAP.sample?"Claude kann in dieser Ansicht keine Bilder lesen. Lade eine PDF mit Text hoch oder öffne Paukr neu.":"Für Bilder und Scans braucht Paukr Claude. Erlaube die Nutzung von Claude für diese Seite (oder lade die Seite neu) und versuch es noch einmal.");
+    return {texts:await ocrLocal(items,progress),by:"browser"};
+  }
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
   const texts=new Array(n).fill(""), chars=starts.map(()=>0); let next=0, done=0;
@@ -167,6 +171,7 @@ async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
+  if(!CAP.ready&&window.claude){ progress&&progress("Verbinde mit Claude …"); await capsReady(); }
   if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const buf=await file.arrayBuffer();
     let r; try{ r=await window.mammoth.extractRawText({arrayBuffer:buf}); }
     catch{ throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt, passwortgeschützt oder keine echte DOCX. Speichere sie in Word neu oder als PDF.`); }
