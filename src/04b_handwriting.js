@@ -21,12 +21,19 @@ const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math
 const tessWorkers=[];
 // Beim ersten Mal lädt der Browser Programm und deutsches Sprachmodell (zusammen einige MB); danach kommen sie aus dem Zwischenspeicher.
 // Nur Worker 0 meldet den Ladefortschritt; nach OCR_LOAD_MS ohne Erfolg gibt es eine verständliche Meldung statt endlosem Warten.
+// Scheitert das Laden (z. B. die Sprachdaten), meldet Tesseract.js das nur an errorHandler und createWorker bleibt für immer
+// offen. Darum kommt die Meldung dann sofort, nicht erst nach OCR_LOAD_MS.
 const OCR_LOAD_MS=90000;
+const TESS_FAIL="Die Texterkennung im Browser konnte nicht geladen werden. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.";
 let tessLoadInfo=null;
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>{
-    const w=window.Tesseract.createWorker(OCR_LANG,1,i?{}:{logger:m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); }});
-    return Promise.race([w,new Promise((_,rej)=>setTimeout(()=>rej(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS))]);
+  return tessWorkers[i] ||= new Promise((ok,fail)=>{
+    let over=false, stop=0;
+    const end=(e,w)=>{ if(over){ if(w) w.terminate(); return; } over=true; clearTimeout(stop); if(e) fail(e); else ok(w); };
+    stop=setTimeout(()=>end(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS);
+    const opt={errorHandler:()=>end(new Error(TESS_FAIL))};
+    if(!i) opt.logger=m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); };
+    loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG,1,opt)).then(w=>end(null,w),()=>end(new Error(TESS_FAIL)));
   }).catch(e=>{tessWorkers[i]=null;throw e;});
 }
 async function shrinkForOcr(blob){

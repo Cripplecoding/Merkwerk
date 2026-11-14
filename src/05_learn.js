@@ -459,14 +459,18 @@ function renderSetPanel(el,set){
     fi.onchange=()=>addFiles(set,[...fi.files]); }
 }
 async function addFiles(set,files){
-  const st=$("#upStatus"); const errs=[]; const notes=[];
+  const errs=[]; const notes=[];
   for(const f of files){
-    try{ const r=await readFile(f,t=>{st.innerHTML=`<span class="spin"></span> ${esc(t)}`;});
+    // Fortschritt immer ins aktuelle Feld schreiben: Sobald Claude verbunden ist, wird die Ansicht neu gezeichnet,
+    // und ein vorher gemerktes Feld hängt dann nicht mehr auf der Seite – der Fortschritt wäre unsichtbar.
+    let live=true; const show=t=>{ const s=live&&$("#upStatus"); if(s) s.innerHTML=`<span class="spin"></span> ${esc(t)}`; };
+    try{ const r=await readFile(f,show);
       if(!r.text.trim()){ errs.push(r.kind==="bild"?`„${f.name}“: Die Texterkennung hat keinen Text gefunden. Fotografiere die Seite gerade, scharf und mit mehr Licht oder lade eine PDF hoch.`:`„${f.name}“: Kein Text gefunden. Ist es ein Scan? Dann lade die Seiten als Fotos oder als PDF mit Text hoch.`); continue; }
       set.files.push(fileEntry(f.name,r));
       if(r.note) notes.push(r.note);
       if(r.ocrBy==="browser"&&!notes.includes(BROWSER_OCR_NOTE)) notes.push(BROWSER_OCR_NOTE);
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
+    finally{ live=false; } // ein noch laufender Worker schreibt danach nichts mehr hinein
   }
   set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});

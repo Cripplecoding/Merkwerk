@@ -95,7 +95,7 @@ function save(remote=true){
 const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false,remote:false,aiRest:null};
 // Wird erfüllt, sobald feststeht, ob Claude mitliest (claude.ai) – Uploads warten kurz darauf, statt vorschnell im Browser zu lesen
 let capsDone; const CAPS_READY=new Promise(r=>capsDone=r);
-const capsReady=(ms=12000)=>CAP.ready?Promise.resolve():Promise.race([CAPS_READY,new Promise(r=>setTimeout(r,ms))]);
+const capsReady=(ms=12000)=>CAP.ready?Promise.resolve():new Promise(r=>{ const t=setTimeout(r,ms); CAPS_READY.then(()=>{ clearTimeout(t); r(); }); });
 async function initCaps(){
   if(!window.claude||!window.claude.use){
     // Außerhalb von claude.ai: KI über den eigenen Server, sobald er eingerichtet ist (src/04c_ai.js)
