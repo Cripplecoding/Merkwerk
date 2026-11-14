@@ -1175,8 +1175,12 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 // Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
+// Ladefortschritt des ersten Workers (Programm und Sprachmodell kommen beim ersten Mal aus dem Internet)
+let tessLoadInfo=null;
+const TESS_STEP={"loading tesseract core":"Programm","loading language traineddata":"deutsches Sprachmodell","initializing api":"Start"};
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  const logger=i===0?m=>{ const t=TESS_STEP[m&&m.status]; if(t&&tessLoadInfo) tessLoadInfo(t,m.progress); }:undefined;
+  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG,undefined,logger?{logger}:{})).catch(e=>{tessWorkers[i]=null;throw e;});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
@@ -1195,7 +1199,9 @@ const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()
 async function ocrLocal(items,progress){
   const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
   const show=()=>progress&&progress(n===1?"Texterkennung im Browser läuft …":`Texterkennung im Browser: ${done} von ${n} Bildern fertig …`);
-  progress&&progress("Lade Texterkennung …");
+  const hint=window.claude?" Schneller geht es mit Claude: Seite neu laden und den Claude-Zugriff erlauben.":"";
+  progress&&progress("Lade Texterkennung …"+hint);
+  tessLoadInfo=(t,p)=>progress&&progress(`Lade Texterkennung: ${t}${p>0&&p<1?` ${Math.round(p*100)} %`:""} …${hint}`);
   const lanes=Math.min(n,ocrWorkerCap());
   for(let k=0;k<lanes;k++) tessWorker(k).catch(()=>{}); // alle Worker laden gleichzeitig
   const lane=async k=>{
@@ -1203,7 +1209,7 @@ async function ocrLocal(items,progress){
     if(k>0){ try{ w=await tessWorker(k); }catch{ return; } } // weitere Worker sind nur Zusatz
     while(next<n){ const i=next++;
       const b=await ocrBlob(items[i]); // Worker 0 lädt, während die erste Seite vorbereitet wird
-      if(!w){ w=await withTimeout(tessWorker(0),OCR_LOAD_MS,OCR_LOAD_ERR); show(); }
+      if(!w){ try{ w=await withTimeout(tessWorker(0),OCR_LOAD_MS,OCR_LOAD_ERR); }finally{ tessLoadInfo=null; } show(); }
       if(b){ const {data}=await w.recognize(await shrinkForOcr(b)); out[i]=String(data.text||"").replace(/[ \t]+\n/g,"\n").trim(); }
       done++; show();
     }
