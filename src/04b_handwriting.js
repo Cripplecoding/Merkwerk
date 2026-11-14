@@ -19,8 +19,16 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 // Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
+// Lädt die Texterkennung nicht (Netz, oder die Seite lässt den Worker nicht zu, etwa in claude.ai), bricht Paukr ab statt ewig zu warten
+const OCR_LOAD_MS=60000;
+const ocrLoadError=()=>new Error(window.claude&&window.claude.use
+  ?"Die Texterkennung im Browser lädt hier nicht. Erlaube Paukr die Nutzung von Claude (die Freigabe erscheint beim ersten Mal), dann liest Claude die Bilder – auch Handschrift. Oder lade das Material als PDF mit Text oder als DOCX hoch."
+  :"Die Texterkennung im Browser lädt nicht. Prüfe die Internetverbindung und versuch es noch einmal, oder lade das Material als PDF mit Text oder als DOCX hoch.");
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  return tessWorkers[i] ||= Promise.race([
+    loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)),
+    new Promise((_,rej)=>setTimeout(()=>rej(ocrLoadError()),OCR_LOAD_MS)),
+  ]).catch(e=>{tessWorkers[i]=null;throw e&&e.message===ocrLoadError().message?e:ocrLoadError();});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
@@ -35,7 +43,7 @@ async function shrinkForOcr(blob){
 async function ocrLocal(items,progress){
   const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
   const show=()=>progress&&progress(n===1?"Texterkennung im Browser läuft …":`Texterkennung im Browser: ${done} von ${n} Bildern fertig …`);
-  progress&&progress("Lade Texterkennung …");
+  progress&&progress("Lade Texterkennung … beim ersten Mal kann das bis zu einer Minute dauern");
   const lanes=Math.min(n,ocrWorkerCap());
   for(let k=0;k<lanes;k++) tessWorker(k).catch(()=>{}); // alle Worker laden gleichzeitig
   const lane=async k=>{

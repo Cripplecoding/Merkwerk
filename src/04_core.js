@@ -93,6 +93,9 @@ function save(remote=true){
 
 /* ---------- Claude-Fähigkeiten ---------- */
 const CAP={sample:null,db:null,user:null,downloads:null,uid:null,images:null,canWrite:null,isOwner:false,ready:false,remote:false,aiRest:null};
+// Erst wenn die Fähigkeiten bekannt sind, steht fest, ob Claude Bilder liest (sonst würde ein früher Upload im Browser erkannt)
+let capsReady=Promise.resolve();
+const waitCaps=(ms=8000)=>Promise.race([capsReady,new Promise(r=>setTimeout(r,ms))]);
 async function initCaps(){
   if(!window.claude||!window.claude.use){
     // Außerhalb von claude.ai: KI über den eigenen Server, sobald er eingerichtet ist (src/04c_ai.js)

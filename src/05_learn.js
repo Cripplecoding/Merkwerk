@@ -83,6 +83,7 @@ const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
 async function ocrImages(items,progress){
+  await waitCaps();
   if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
@@ -122,7 +123,7 @@ async function readPdf(data,name,progress,opt={}){
     if(e&&e.name==="PasswordException") throw new Error(`„${name}“ ist passwortgeschützt. Entferne den Schutz (zum Beispiel über „Drucken als PDF“) und lade die Datei erneut hoch.`);
     throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt oder keine echte PDF. Exportiere sie neu und lade sie erneut hoch.`);
   }
-  const claude=!!(CAP.sample&&CAP.images);
+  await waitCaps(); const claude=!!(CAP.sample&&CAP.images);
   const pages=[]; const scans=[]; let inkOnly=0;
   for(let p=1;p<=pdf.numPages;p++){
     const page=await pdf.getPage(p); const tc=await page.getTextContent();
