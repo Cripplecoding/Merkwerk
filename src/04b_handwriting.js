@@ -31,6 +31,10 @@ async function shrinkForOcr(blob){
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height); bmp.close&&bmp.close();
   return new Promise(r=>c.toBlob(b=>r(b||blob),"image/jpeg",0.92));
 }
+// Lädt die Texterkennung nicht (gesperrtes Netz, sehr langsame Verbindung), bricht Paukr ab, statt endlos zu warten
+const OCR_LOAD_MS=90000;
+const OCR_LOAD_ERR="Die Texterkennung im Browser lädt nicht. Prüfe die Internetverbindung, lade das Material als PDF mit Text hoch oder öffne Paukr in claude.ai: Dort liest Claude Bilder und Handschrift.";
+const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)),ms))]);
 // items: Bilder oder Funktionen, die ein Bild (oder null für eine leere Seite) liefern – siehe ocrImages
 async function ocrLocal(items,progress){
   const n=items.length, out=new Array(n).fill(""); let next=0, done=0;
@@ -43,7 +47,7 @@ async function ocrLocal(items,progress){
     if(k>0){ try{ w=await tessWorker(k); }catch{ return; } } // weitere Worker sind nur Zusatz
     while(next<n){ const i=next++;
       const b=await ocrBlob(items[i]); // Worker 0 lädt, während die erste Seite vorbereitet wird
-      if(!w){ w=await tessWorker(0); show(); }
+      if(!w){ w=await withTimeout(tessWorker(0),OCR_LOAD_MS,OCR_LOAD_ERR); show(); }
       if(b){ const {data}=await w.recognize(await shrinkForOcr(b)); out[i]=String(data.text||"").replace(/[ \t]+\n/g,"\n").trim(); }
       done++; show();
     }

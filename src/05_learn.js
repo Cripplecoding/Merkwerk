@@ -82,7 +82,15 @@ const OCR_PARALLEL=2;
 const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
+// In claude.ai verbindet sich Paukr beim Start erst mit Claude. Wer sofort hochlädt, wartet kurz darauf,
+// statt in die viel langsamere Texterkennung im Browser zu fallen.
+async function claudeForImages(progress){
+  if(!(window.claude&&window.claude.use)) return;
+  if(!CAP.ready){ progress&&progress("Verbinde mit Claude …"); for(let t=0;t<60&&!CAP.ready;t++) await new Promise(r=>setTimeout(r,250)); }
+  if(CAP.sample&&!CAP.images){ try{ CAP.images=(await CAP.sample.limits()).images||null; }catch{} }
+}
 async function ocrImages(items,progress){
+  await claudeForImages(progress);
   if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);

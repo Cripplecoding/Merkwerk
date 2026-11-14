@@ -15,7 +15,7 @@ vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
-;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;},
+;globalThis.__api={ocrImages,setWin:w=>{window.claude=w;},EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;},
   audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
@@ -683,6 +683,14 @@ ok("Interaktive Abfrage: Hinweis, wenn das Material keine 15 belegbaren Fragen h
   assert.equal(A.shortNote({}), "");
   assert.match(A.shortNote({short:{got:9,want:15}}), /9 statt 15/);
   assert.match(A.shortNote({short:{got:9,want:15}}), /erfindet keine Inhalte/);
+});
+okAsync("Bilder: in claude.ai wartet Paukr auf Claude, statt die Texterkennung im Browser zu laden", async () => {
+  A.setWin({use:()=>{}}); A.CAP.ready = false; A.CAP.sample = null; A.CAP.images = null;
+  const fake = async () => ({ text: "abgeschrieben" }); fake.limits = async () => ({ images: { maxCount: 5 } });
+  setTimeout(() => { A.CAP.sample = fake; A.CAP.ready = true; }, 300);
+  const steps = []; const r = await A.ocrImages([new Blob(["x"])], t => steps.push(t));
+  assert.equal(r.by, "claude"); assert.equal(r.texts[0], "abgeschrieben"); assert.equal(steps[0], "Verbinde mit Claude …");
+  A.setWin(undefined); A.CAP.sample = null; A.CAP.images = null; A.CAP.ready = true;
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);
