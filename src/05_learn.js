@@ -167,6 +167,7 @@ async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
   if(["txt","md"].includes(ext)) return {text:await file.text(),ocr:false,kind:"text"};
+  if(!CAP.ready&&window.claude){ progress&&progress("Verbinde mit Claude …"); await capsReady(); }
   if(ext==="docx"){ progress&&progress(`Lese ${name} …`); await loadScript(MAMMOTH); const buf=await file.arrayBuffer();
     let r; try{ r=await window.mammoth.extractRawText({arrayBuffer:buf}); }
     catch{ throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt, passwortgeschützt oder keine echte DOCX. Speichere sie in Word neu oder als PDF.`); }
