@@ -1175,8 +1175,17 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 // Jeder Worker braucht eigenen Speicher: höchstens drei, auf schwachen Geräten einer
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
+// Lädt die Texterkennung nicht (z. B. weil eine Seite wie das claude.ai-Artifact das Nachladen von Sprachdaten sperrt),
+// bricht Paukr nach OCR_LOAD_MS mit einer Erklärung ab, statt endlos „Lade Texterkennung …“ zu zeigen.
+const OCR_LOAD_MS=60000;
+const OCR_LOAD_ERR=()=>new Error(window.claude&&window.claude.use
+  ?"Die Texterkennung lässt sich in dieser Ansicht nicht laden, und Claude kann hier keine Bilder lesen. Öffne Paukr in claude.ai im Browser am Computer, dann liest Claude Fotos und Handschrift, oder lade eine PDF mit Text hoch."
+  :"Die Texterkennung ließ sich nicht laden. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.");
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  return tessWorkers[i] ||= Promise.race([
+    loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)),
+    new Promise((_,rej)=>setTimeout(()=>rej(OCR_LOAD_ERR()),OCR_LOAD_MS))
+  ]).catch(e=>{tessWorkers[i]=null;throw e&&e.message&&e.message.startsWith("Die Texterkennung")?e:OCR_LOAD_ERR();});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
