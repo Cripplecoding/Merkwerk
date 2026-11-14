@@ -182,6 +182,13 @@ okAsync("Bilder lesen: zwei Stapel gleichzeitig, leere Seiten werden nicht gesch
   assert.equal(calls.at(-1).tier, "default");
   A.CAP.sample = null; A.CAP.images = null;
 });
+okAsync("In claude.ai ohne Claude-Freigabe: klare Meldung statt endlosem Laden der Browser-Texterkennung", async () => {
+  const ready = A.CAP.ready; A.CAP.ready = true; ctx.window.claude = { use: async () => null };
+  await assert.rejects(A.ocrImages([new Blob(["x"])], null), /nicht freigegeben/);
+  A.CAP.sample = async () => ({ text: "" });
+  await assert.rejects(A.ocrImages([new Blob(["x"])], null), /gerade nicht lesen/);
+  A.CAP.sample = null; delete ctx.window.claude; A.CAP.ready = ready;
+});
 ok("Bildungspläne: Realschule Bayern Klasse 7 bekommt die Fachlehrpläne der 7. Jahrgangsstufe", () => {
   const p = {track:"schule",state:"BY",type:"real",grade:7};
   const docs = A.plansForSubject(p,"Mathematik").docs;

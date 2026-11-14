@@ -82,8 +82,17 @@ const OCR_PARALLEL=2;
 const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
+// In claude.ai lädt die Seite keine Dateien von fremden Servern nach; die Texterkennung im Browser (Tesseract) bleibt dort beim Laden hängen.
+const inClaudeAi=()=>!!(window.claude&&window.claude.use);
+async function capsReady(ms=15000){ const t0=Date.now(); while(!CAP.ready&&Date.now()-t0<ms) await new Promise(r=>setTimeout(r,200)); }
 async function ocrImages(items,progress){
-  if(!(CAP.sample&&CAP.images)) return {texts:await ocrLocal(items,progress),by:"browser"};
+  if(!CAP.ready){ progress&&progress("Verbinde mit Claude …"); await capsReady(); }
+  if(!(CAP.sample&&CAP.images)){
+    if(inClaudeAi()) throw new Error(CAP.sample
+      ? "Bilder und Handschrift kann Claude hier gerade nicht lesen. Lade die Seite neu und versuch es noch einmal, oder nutze PDF-, DOCX- oder Textdateien."
+      : "Bilder und Handschrift liest hier Claude, aber Claude ist für diese Seite nicht freigegeben. Erlaube Claude über das Berechtigungen-Menü der Seite und lade die Datei erneut.");
+    return {texts:await ocrLocal(items,progress),by:"browser"};
+  }
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
   const texts=new Array(n).fill(""), chars=starts.map(()=>0); let next=0, done=0;

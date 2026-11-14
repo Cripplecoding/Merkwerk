@@ -20,7 +20,9 @@ const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennu
 const ocrWorkerCap=()=>(navigator.deviceMemory&&navigator.deviceMemory<4)?1:Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));
 const tessWorkers=[];
 function tessWorker(i){
-  return tessWorkers[i] ||= loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)).catch(e=>{tessWorkers[i]=null;throw e;});
+  // Ohne Antwort nach 90 Sekunden abbrechen, statt ewig bei „Lade Texterkennung …“ zu stehen
+  const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error("Die Texterkennung konnte nicht geladen werden. Prüfe die Internetverbindung und versuch es noch einmal.")),90000));
+  return tessWorkers[i] ||= Promise.race([loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG)),timeout]).catch(e=>{tessWorkers[i]=null;throw e;});
 }
 async function shrinkForOcr(blob){
   if(typeof createImageBitmap!=="function") return blob;
