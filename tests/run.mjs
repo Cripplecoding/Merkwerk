@@ -16,7 +16,7 @@ vm.createContext(ctx);
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
 ;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;},
-  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry,initCaps,readFile,ocrLocal,scriptCache,TESSERACT};`, ctx);
+  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry,initCaps,readFile,readImages,findGap,isImageFile,ocrLocal,scriptCache,TESSERACT};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -195,6 +195,28 @@ okAsync("Bilder in claude.ai: Ein Upload gleich nach dem Öffnen wartet auf Clau
   const r = await reading;
   assert.equal(r.ocrBy, "claude"); assert.equal(r.text, "Abgeschrieben");
   await caps;
+});
+okAsync("Mehrere Fotos auf einmal: Claude liest sie in zwei gleichzeitigen Stapeln statt eins nach dem anderen", async () => {
+  let live = 0, maxLive = 0; const calls = [];
+  const sample = Object.assign(async (p, o) => { live++; maxLive = Math.max(maxLive, live); calls.push({ n: o.images.length, cache: o.cache });
+    await new Promise(r => setTimeout(r, 20)); live--; return { text: o.images.map((_, i) => "Seite " + i).join("\n=====\n") }; },
+    { limits: async () => ({ images: { maxCount: 5 } }) });
+  ctx.window.claude = { use: n => Promise.resolve(n === "sample" ? sample : null) };
+  await A.initCaps().catch(() => {});
+  const files = [1, 2, 3, 4].map(i => ({ name: `seite${i}.jpg`, type: "image/jpeg" }));
+  assert.ok(files.every(A.isImageFile)); assert.ok(!A.isImageFile({ name: "a.pdf", type: "application/pdf" }));
+  const rs = await A.readImages(files, null);
+  assert.equal(calls.length, 2); assert.equal(maxLive, 2); assert.deepEqual(calls.map(c => c.n), [2, 2]);
+  assert.equal(calls[0].cache.gcTime, 24 * 3600 * 1000); // dieselben Bilder einen Tag lang nicht erneut lesen lassen
+  assert.deepEqual(rs.map(r => r.text), ["Seite 0", "Seite 1", "Seite 0", "Seite 1"]);
+  assert.ok(rs.every(r => r.ocrBy === "claude" && r.kind === "bild"));
+  delete ctx.window.claude; A.CAP.sample = null; A.CAP.images = null;
+});
+ok("Ein Foto in zwei Hälften: geschnitten wird nur an einer sauberen Lücke zwischen Zeilen nahe der Mitte", () => {
+  const page = (gapAt, gapLen) => Array.from({ length: 400 }, (_, y) => (y >= gapAt && y < gapAt + gapLen) || y % 12 >= 8 ? 0 : 40); // Zeilen mit kleinen Abständen
+  const cut = A.findGap(page(190, 10), 300); assert.ok(cut >= 190 && cut < 200, String(cut));
+  assert.equal(A.findGap(Array(400).fill(40), 300), -1); // keine Lücke (z. B. Foto mit Schatten): ganze Seite lesen
+  assert.equal(A.findGap(page(40, 10).map((v, y) => y > 60 ? 0 : v), 300), -1); // unten kein Text: nicht teilen
 });
 okAsync("Bilder in claude.ai ohne Bildfunktion: klare Meldung statt endlosem „Lade Texterkennung …“", async () => {
   const sample = Object.assign(async () => ({ text: "" }), { limits: async () => ({ maxPromptBytes: 262144 }) });
