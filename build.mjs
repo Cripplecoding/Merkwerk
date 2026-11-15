@@ -36,4 +36,7 @@ ${body}</body>
 </html>
 `);
 copyFileSync(join(root, "data", "bildungsplaene.js"), join(root, "dist", "bildungsplaene.js"));
-console.log(`Gebaut aus ${scripts.length} Skriptdateien: dist/index.html, dist/merkwerk-artifact.html, dist/bildungsplaene.js`);
+// Schnelles deutsches Modell für die Texterkennung im Browser (nur Website)
+mkdirSync(join(root, "dist", "tessdata"), { recursive: true });
+copyFileSync(join(root, "data", "tessdata", "deu.traineddata.gz"), join(root, "dist", "tessdata", "deu.traineddata.gz"));
+console.log(`Gebaut aus ${scripts.length} Skriptdateien: dist/index.html, dist/merkwerk-artifact.html, dist/bildungsplaene.js, dist/tessdata/`);

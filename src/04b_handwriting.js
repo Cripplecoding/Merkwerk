@@ -12,7 +12,7 @@ const BROWSER_OCR_NOTE="Ohne Claude liest Paukr Bilder mit einer Texterkennung i
 const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
 
 /* ---------- Texterkennung im Browser (ohne Claude) ---------- */
-// Tempo: nur das deutsche Sprachmodell (es liest auch englische Wörter; ein zweites Modell kostet fast die doppelte Zeit),
+// Tempo: nur das deutsche Sprachmodell in der schnellen Fassung (tessdata_fast, etwa 40 % schneller), (es liest auch englische Wörter; ein zweites Modell kostet fast die doppelte Zeit),
 // mehrere Bilder gleichzeitig in eigenen Workern und große Fotos vorher verkleinert.
 const OCR_LANG="deu";
 const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennung langsamer, aber kaum genauer
@@ -32,6 +32,8 @@ function tessWorker(i){
     const end=(e,w)=>{ if(over){ if(w) w.terminate(); return; } over=true; clearTimeout(stop); if(e) fail(e); else ok(w); };
     stop=setTimeout(()=>end(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS);
     const opt={errorHandler:()=>end(new Error(TESS_FAIL))};
+    // Auf der Website das schnelle Modell aus tessdata/ (eigener Zwischenspeicher-Name, sonst bliebe ein früher gespeichertes Standardmodell)
+    if(typeof location!=="undefined"&&/^https?:$/.test(location.protocol)){ opt.langPath=new URL("tessdata/",location.href).href; opt.cachePath="tessdata-fast"; }
     if(!i) opt.logger=m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); };
     loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG,1,opt)).then(w=>end(null,w),()=>end(new Error(TESS_FAIL)));
   }).catch(e=>{tessWorkers[i]=null;throw e;});
