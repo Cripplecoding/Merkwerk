@@ -10,13 +10,13 @@ const src = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 const files = ["02_data.js","02b_plans.js","03_example.js","03b_account.js","04_core.js","04b_handwriting.js","04c_ai.js","05_learn.js","05b_cards.js","05c_generate.js","05d_tutor.js","05e_audio.js","05f_modes.js","07_timetable.js","08_due.js","09_calendar.js"];
 const store = {};
 const ctx = { console, atob, Intl, Date, Math, JSON, Set, Map, Promise, setTimeout, clearTimeout, Blob, Response, ReadableStream, DecompressionStream, TextDecoder, TextEncoder, btoa, AbortController,
-  localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{} };
+  localStorage:{getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}}, document:{querySelector:()=>null,querySelectorAll:()=>[]}, window:{}, navigator:{hardwareConcurrency:2} };
 vm.createContext(ctx);
 // Bildungsplan-Daten wie im Browser als window.PLAN_DB
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
 ;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;},
-  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry};`, ctx);
+  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry,initCaps,readFile,ocrLocal,scriptCache,TESSERACT};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -181,6 +181,40 @@ okAsync("Bilder lesen: zwei Stapel gleichzeitig, leere Seiten werden nicht gesch
   A.S().ocrThorough = true; await A.ocrImages([img("F")], null); A.S().ocrThorough = false;
   assert.equal(calls.at(-1).tier, "default");
   A.CAP.sample = null; A.CAP.images = null;
+});
+okAsync("Bilder in claude.ai: Ein Upload gleich nach dem Öffnen wartet auf Claude statt auf die Texterkennung im Browser", async () => {
+  let release; const gate = new Promise(r => { release = r; });
+  const sample = Object.assign(async () => ({ text: "Abgeschrieben" }), { limits: async () => ({ images: { maxCount: 5 } }) });
+  ctx.window.claude = { use: n => n === "sample" ? gate.then(() => sample) : Promise.resolve(null) };
+  const caps = A.initCaps().catch(() => {}); // render() hat im Test keine Seite
+  const shown = [];
+  const reading = A.readFile({ name: "foto.png", type: "image/png" }, t => shown.push(t));
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(JSON.stringify(shown), JSON.stringify(["Verbinde mit Claude …"]));
+  release();
+  const r = await reading;
+  assert.equal(r.ocrBy, "claude"); assert.equal(r.text, "Abgeschrieben");
+  await caps;
+});
+okAsync("Bilder in claude.ai ohne Bildfunktion: klare Meldung statt endlosem „Lade Texterkennung …“", async () => {
+  const sample = Object.assign(async () => ({ text: "" }), { limits: async () => ({ maxPromptBytes: 262144 }) });
+  ctx.window.claude = { use: n => Promise.resolve(n === "sample" ? sample : null) };
+  await A.initCaps().catch(() => {});
+  assert.ok(A.CAP.sample && !A.CAP.images);
+  await assert.rejects(A.ocrImages([new Blob(["x"])], null), /keine Bilder lesen/);
+  delete ctx.window.claude; A.CAP.sample = null; A.CAP.images = null;
+});
+okAsync("Texterkennung im Browser: Scheitern die Sprachdaten, kommt die Meldung sofort statt nach 90 Sekunden", async () => {
+  A.scriptCache[A.TESSERACT] = Promise.resolve();
+  // So verhält sich Tesseract.js, wenn die Sprachdaten nicht laden: Meldung an errorHandler, createWorker bleibt offen
+  ctx.window.Tesseract = { createWorker: (lang, oem, opt) => { setTimeout(() => opt.errorHandler("TypeError: Failed to fetch"), 5); return new Promise(() => {}); } };
+  const t0 = Date.now();
+  await assert.rejects(A.ocrLocal([new Blob(["x"])], null), /konnte nicht geladen werden/);
+  assert.ok(Date.now() - t0 < 2000);
+  // Der nächste Versuch lädt neu und liest
+  ctx.window.Tesseract = { createWorker: async () => ({ recognize: async () => ({ data: { text: "Hallo  \nWelt " } }), terminate() {} }) };
+  assert.equal((await A.ocrLocal([new Blob(["x"])], null))[0], "Hallo\nWelt");
+  delete ctx.window.Tesseract;
 });
 ok("Bildungspläne: Realschule Bayern Klasse 7 bekommt die Fachlehrpläne der 7. Jahrgangsstufe", () => {
   const p = {track:"schule",state:"BY",type:"real",grade:7};
