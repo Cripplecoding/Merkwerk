@@ -1167,7 +1167,7 @@ const BROWSER_OCR_NOTE="Ohne Claude liest Paukr Bilder mit einer Texterkennung i
 const ocrLabel=f=>f&&f.ocr?`${OCR_BY[f.ocrBy]||OCR_BY.claude} – bitte prüfen`:"";
 
 /* ---------- Texterkennung im Browser (ohne Claude) ---------- */
-// Tempo: nur das deutsche Sprachmodell (es liest auch englische Wörter; ein zweites Modell kostet fast die doppelte Zeit),
+// Tempo: nur das deutsche Sprachmodell in der schnellen Fassung (tessdata_fast, etwa 40 % schneller), (es liest auch englische Wörter; ein zweites Modell kostet fast die doppelte Zeit),
 // mehrere Bilder gleichzeitig in eigenen Workern und große Fotos vorher verkleinert.
 const OCR_LANG="deu";
 const OCR_MAX_SIDE=2400; // längere Bildseite in Pixeln; mehr macht die Erkennung langsamer, aber kaum genauer
@@ -1187,6 +1187,8 @@ function tessWorker(i){
     const end=(e,w)=>{ if(over){ if(w) w.terminate(); return; } over=true; clearTimeout(stop); if(e) fail(e); else ok(w); };
     stop=setTimeout(()=>end(new Error("Die Texterkennung lädt zu lange. Prüfe die Internetverbindung und versuch es noch einmal, oder lade eine PDF mit Text hoch.")),OCR_LOAD_MS);
     const opt={errorHandler:()=>end(new Error(TESS_FAIL))};
+    // Auf der Website das schnelle Modell aus tessdata/ (eigener Zwischenspeicher-Name, sonst bliebe ein früher gespeichertes Standardmodell)
+    if(typeof location!=="undefined"&&/^https?:$/.test(location.protocol)){ opt.langPath=new URL("tessdata/",location.href).href; opt.cachePath="tessdata-fast"; }
     if(!i) opt.logger=m=>{ if(tessLoadInfo&&/load|initializ/i.test(m.status||"")&&m.progress<1) tessLoadInfo(m.progress); };
     loadScript(TESSERACT).then(()=>window.Tesseract.createWorker(OCR_LANG,1,opt)).then(w=>end(null,w),()=>end(new Error(TESS_FAIL)));
   }).catch(e=>{tessWorkers[i]=null;throw e;});
@@ -1526,14 +1528,64 @@ const MAMMOTH="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js
 // Tempo: Claude liest zwei Stapel gleichzeitig (claude.ai lässt pro Person etwa zwei Anfragen parallel laufen) und nimmt
 // das schnelle Modell. Mit „Handschrift gründlich lesen“ liest das stärkere Modell, das vorher nachdenkt – genauer, aber langsamer.
 const OCR_PARALLEL=2;
+// Dieselben Bilder 24 Stunden lang nicht erneut lesen lassen (z. B. dieselbe Datei in einem zweiten Lernset)
+const OCR_CACHE={gcTime:24*3600*1000};
 const ocrTier=()=>S.ocrThorough?"default":"quick";
 const ocrBlob=x=>typeof x==="function"?x():x;
 const ocrPrompt=n=>`Du bekommst ${n} Bild(er) von Lernmaterial: Scan, Foto, Screenshot oder handschriftliche Notizen (z. B. aus GoodNotes). Schreibe den gesamten sichtbaren Text exakt und vollständig ab, in Lesereihenfolge – gedruckten Text und Handschrift, auch Randnotizen, Beschriftungen von Pfeilen und Skizzen. Nichts zusammenfassen, nichts ergänzen, nichts korrigieren; Rechtschreibung so übernehmen, wie sie dasteht. Ein Wort, das du nicht sicher lesen kannst, markierst du mit [?]. Tabellen zeilenweise, Formeln als Text. Trenne die Bilder mit einer Zeile "=====". Gib nur den abgeschriebenen Text aus.`;
+// Ein einzelnes Bild in zwei Hälften teilen, damit Claude beide gleichzeitig abschreibt (etwa doppelt so schnell, und jede
+// Hälfte bekommt die volle Auflösung). Geteilt wird nur an einer sauberen Lücke zwischen zwei Zeilen nahe der Mitte –
+// gibt es keine, liest Claude die ganze Seite wie bisher. ink: dunkle Pixel pro Zeile; liefert die Schnittzeile oder -1.
+function findGap(ink,w){
+  const h=ink.length, need=Math.max(3,Math.round(h*0.006)), quiet=Math.max(1,Math.round(w*0.002));
+  const lo=Math.round(h*0.35), hi=Math.round(h*0.65); let best=-1, run=0;
+  for(let y=lo;y<hi;y++){
+    if(ink[y]<=quiet){ run++; if(run>=need){ const mid=y-Math.floor(run/2); if(best<0||Math.abs(mid-h/2)<Math.abs(best-h/2)) best=mid; } }
+    else run=0;
+  }
+  if(best<0) return -1;
+  // Oben und unten muss Text stehen, sonst lohnt das Teilen nicht
+  const sum=(a,b)=>{ let t=0; for(let y=a;y<b;y++) t+=ink[y]>quiet?1:0; return t; };
+  return sum(0,best)>=need*2&&sum(best,h)>=need*2?best:-1;
+}
+async function splitPage(blob){
+  if(typeof createImageBitmap!=="function"||typeof document==="undefined") return null;
+  let bmp; try{ bmp=await createImageBitmap(blob); }catch{ return null; }
+  try{
+    const W=bmp.width, H=bmp.height; if(H<800||H<W*0.8) return null; // kleine oder quer liegende Bilder bleiben ganz
+    const aw=300, ah=Math.round(H*aw/W);
+    const c=document.createElement("canvas"); c.width=aw; c.height=ah; const x=c.getContext("2d",{willReadFrequently:true});
+    x.drawImage(bmp,0,0,aw,ah); const d=x.getImageData(0,0,aw,ah).data;
+    const g=new Uint8Array(aw*ah); const hist=new Array(256).fill(0);
+    for(let i=0,j=0;i<d.length;i+=4,j++){ const v=(d[i]*3+d[i+1]*6+d[i+2])/10|0; g[j]=v; hist[v]++; }
+    let acc=0, med=255; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=g.length/2){ med=v; break; } }
+    const thr=med-50, ink=new Array(ah).fill(0);
+    for(let y=0;y<ah;y++) for(let k=y*aw,e=k+aw;k<e;k++) if(g[k]<thr) ink[y]++;
+    const cut=findGap(ink,aw); if(cut<0) return null;
+    const cy=Math.round(cut*H/ah);
+    const part=(y0,y1)=>{ const p=document.createElement("canvas"); p.width=W; p.height=y1-y0; const q=p.getContext("2d");
+      q.fillStyle="#fff"; q.fillRect(0,0,W,y1-y0); q.drawImage(bmp,0,y0,W,y1-y0,0,0,W,y1-y0); return new Promise(r=>p.toBlob(r,"image/jpeg",0.9)); };
+    const parts=await Promise.all([part(0,cy),part(cy,H)]);
+    return parts.every(Boolean)?parts:null;
+  }finally{ bmp.close&&bmp.close(); }
+}
+const halfPrompt=(top)=>`Das Bild ist die ${top?"obere":"untere"} Hälfte einer Seite; die andere Hälfte wird getrennt gelesen. `+ocrPrompt(1);
 async function ocrImages(items,progress){
   if(!(CAP.sample&&CAP.images)){
     // In claude.ai blockiert die Seitenrichtlinie die Sprachdaten der Browser-Erkennung: dort nie Tesseract, sonst hängt „Lade Texterkennung …“ endlos
     if(window.claude&&window.claude.use) throw new Error(CAP.sample?"Claude kann in dieser Ansicht keine Bilder lesen. Lade eine PDF mit Text hoch oder öffne Paukr neu.":"Für Bilder und Scans braucht Paukr Claude. Erlaube die Nutzung von Claude für diese Seite (oder lade die Seite neu) und versuch es noch einmal.");
     return {texts:await ocrLocal(items,progress),by:"browser"};
+  }
+  if(items.length===1){ // ein einzelnes Bild: wenn möglich als zwei Hälften gleichzeitig lesen
+    const b=await ocrBlob(items[0]); if(!b) return {texts:[""],by:"claude"};
+    items=[b]; const halves=await splitPage(b).catch(()=>null);
+    if(halves){
+      const chars=[0,0], ctl=new AbortController();
+      const show=()=>{ const c=chars[0]+chars[1]; progress&&progress(`Claude liest das Bild …${c?` · ${c.toLocaleString("de-DE")} Zeichen abgeschrieben`:""}`); }; show();
+      try{ const rs=await Promise.all(halves.map((h,k)=>CAP.sample(halfPrompt(!k),{images:[h],modelTier:ocrTier(),signal:ctl.signal,cache:OCR_CACHE,onText:u=>{chars[k]=u.text.length;show();}})));
+        return {texts:[rs.map(r=>r.text.trim()).filter(Boolean).join("\n")],by:"claude"}; }
+      catch(e){ ctl.abort(); throw e; }
+    }
   }
   const n=items.length, per=Math.max(1,Math.min(CAP.images.maxCount||1,5,Math.ceil(n/OCR_PARALLEL)));
   const starts=[]; for(let i=0;i<n;i+=per) starts.push(i);
@@ -1545,7 +1597,7 @@ async function ocrImages(items,progress){
       const got=await Promise.all(items.slice(s0,s0+per).map(ocrBlob));
       const at=[], imgs=[]; got.forEach((b,j)=>{ if(b){ at.push(s0+j); imgs.push(b); } });
       if(imgs.length){
-        const {text}=await CAP.sample(ocrPrompt(imgs.length),{images:imgs,modelTier:ocrTier(),signal:ctl.signal,onText:u=>{chars[k]=u.text.length;show();}});
+        const {text}=await CAP.sample(ocrPrompt(imgs.length),{images:imgs,modelTier:ocrTier(),signal:ctl.signal,cache:OCR_CACHE,onText:u=>{chars[k]=u.text.length;show();}});
         const ps=text.trim().split(/\n*=====\n*/);
         if(ps.length===imgs.length) ps.forEach((t,j)=>{texts[at[j]]=t.trim();}); else texts[at[0]]=text.trim();
       }
@@ -1614,6 +1666,15 @@ async function docxParas(buf){
 }
 // Eintrag für set.files aus dem Ergebnis von readFile
 const fileEntry=(name,r)=>({id:rid("f_"),name,kind:r.kind,text:r.text,ocr:r.ocr,ocrBy:r.ocrBy||"",...(r.pages?{pages:r.pages}:{}),...(r.paras?{paras:r.paras}:{}),addedAt:Date.now()});
+const IMG_EXT=["png","jpg","jpeg","webp","gif","heic"];
+const isImageFile=f=>IMG_EXT.includes((f.name.split(".").pop()||"").toLowerCase())||(f.type||"").startsWith("image/");
+// Mehrere Fotos auf einmal: in einem Durchgang lesen, damit Claude (zwei Anfragen gleichzeitig) bzw. alle Worker
+// der Browser-Erkennung arbeiten. Liefert pro Foto ein Ergebnis wie readFile oder {err}.
+async function readImages(files,progress){
+  if(!CAP.ready&&window.claude){ progress&&progress("Verbinde mit Claude …"); await capsReady(); }
+  try{ const r=await ocrImages(files,progress); return files.map((f,i)=>({text:r.texts[i]||"",ocr:true,ocrBy:r.by,kind:"bild"})); }
+  catch(e){ return files.map(()=>({err:e})); }
+}
 async function readFile(file,progress){
   const name=file.name; const ext=(name.split(".").pop()||"").toLowerCase();
   if(ext==="doc") throw new Error(`„${name}“: Alte .doc-Dateien werden nicht unterstützt. Speichere sie als .docx oder PDF.`);
@@ -1625,7 +1686,7 @@ async function readFile(file,progress){
     return {text:r.value,ocr:false,kind:"docx",paras:await docxParas(buf)}; }
   if(ext==="pdf") return readPdf(await file.arrayBuffer(),name,progress);
   if(ext==="goodnotes") return readGoodnotes(file,progress,readPdf,ocrImages);
-  if(["png","jpg","jpeg","webp","gif","heic"].includes(ext)||file.type.startsWith("image/")){ const r=await ocrImages([file],progress); return {text:r.texts[0]||"",ocr:true,ocrBy:r.by,kind:"bild"}; }
+  if(isImageFile(file)){ const r=await ocrImages([file],progress); return {text:r.texts[0]||"",ocr:true,ocrBy:r.by,kind:"bild"}; }
   throw new Error(`„${name}“: Dieses Format wird nicht unterstützt (PDF, DOCX, TXT, GoodNotes oder Bild).`);
 }
 
@@ -1907,21 +1968,26 @@ function renderSetPanel(el,set){
 }
 async function addFiles(set,files){
   const errs=[]; const notes=[];
+  // Fortschritt immer ins aktuelle Feld schreiben: Sobald Claude verbunden ist, wird die Ansicht neu gezeichnet,
+  // und ein vorher gemerktes Feld hängt dann nicht mehr auf der Seite – der Fortschritt wäre unsichtbar.
+  const shower=()=>{ let live=true; const show=t=>{ const s=live&&$("#upStatus"); if(s) s.innerHTML=`<span class="spin"></span> ${esc(t)}`; }; return [show,()=>{live=false;}]; };
+  // Mehrere Fotos zuerst gemeinsam lesen (statt eins nach dem anderen)
+  const imgs=files.filter(isImageFile); const pre=new Map();
+  if(imgs.length>1){ const [show,stop]=shower(); const rs=await readImages(imgs,show); stop(); imgs.forEach((f,i)=>pre.set(f,rs[i])); }
   for(const f of files){
-    // Fortschritt immer ins aktuelle Feld schreiben: Sobald Claude verbunden ist, wird die Ansicht neu gezeichnet,
-    // und ein vorher gemerktes Feld hängt dann nicht mehr auf der Seite – der Fortschritt wäre unsichtbar.
-    let live=true; const show=t=>{ const s=live&&$("#upStatus"); if(s) s.innerHTML=`<span class="spin"></span> ${esc(t)}`; };
-    try{ const r=await readFile(f,show);
+    const [show,stop]=shower();
+    try{ const r=pre.has(f)?pre.get(f):await readFile(f,show);
+      if(r.err) throw r.err;
       if(!r.text.trim()){ errs.push(r.kind==="bild"?`„${f.name}“: Die Texterkennung hat keinen Text gefunden. Fotografiere die Seite gerade, scharf und mit mehr Licht oder lade eine PDF hoch.`:`„${f.name}“: Kein Text gefunden. Ist es ein Scan? Dann lade die Seiten als Fotos oder als PDF mit Text hoch.`); continue; }
       set.files.push(fileEntry(f.name,r));
       if(r.note) notes.push(r.note);
       if(r.ocrBy==="browser"&&!notes.includes(BROWSER_OCR_NOTE)) notes.push(BROWSER_OCR_NOTE);
     }catch(e){ errs.push(e&&e.code?`„${f.name}“: ${sampleErr(e)}`:String(e.message||e)); }
-    finally{ live=false; } // ein noch laufender Worker schreibt danach nichts mehr hinein
+    finally{ stop(); } // ein noch laufender Worker schreibt danach nichts mehr hinein
   }
   set.sections=makeSections(set.files); set.cards=null; set.fc=null; await putSet(set);
   go("learn",{manage:true});
-  if(errs.length||notes.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=(errs.length?`<div class="note bad">${errs.map(esc).join("<br>")}</div>`:"")+(notes.length?`<div class="note warn">${notes.map(esc).join("<br>")}</div>`:"");},50);
+  if(errs.length||notes.length) setTimeout(()=>{const s=$("#upStatus"); if(s) s.innerHTML=(errs.length?`<div class="note bad">${[...new Set(errs)].map(esc).join("<br>")}</div>`:"")+(notes.length?`<div class="note warn">${notes.map(esc).join("<br>")}</div>`:"");},50);
   if(!errs.length) toast(`${files.length} Datei(en) gelesen`);
 }
 
