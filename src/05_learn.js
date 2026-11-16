@@ -121,7 +121,16 @@ async function splitPage(blob){
   }finally{ bmp.close&&bmp.close(); }
 }
 const halfPrompt=(top)=>`Das Bild ist die ${top?"obere":"untere"} Hälfte einer Seite; die andere Hälfte wird getrennt gelesen. `+ocrPrompt(1);
+// Ob Claude Bilder lesen kann, meldet sample.limits(). Die Antwort beim Öffnen kann zu früh oder einmalig leer sein –
+// darum vor dem Lesen noch einmal fragen und es notfalls mit einem Bild pro Anfrage einfach versuchen: Kann die
+// Ansicht wirklich keine Bilder senden, lehnt Claude sofort mit images_unavailable ab (ohne Nutzung).
+async function imageCaps(){
+  if(!CAP.sample||CAP.images||CAP.remote) return;
+  try{ const l=await CAP.sample.limits(); if(l&&l.images){ CAP.images=l.images; return; } }catch{}
+  CAP.images={maxCount:1,guess:true};
+}
 async function ocrImages(items,progress){
+  if(window.claude&&window.claude.use) await imageCaps();
   if(!(CAP.sample&&CAP.images)){
     // In claude.ai blockiert die Seitenrichtlinie die Sprachdaten der Browser-Erkennung: dort nie Tesseract, sonst hängt „Lade Texterkennung …“ endlos
     if(window.claude&&window.claude.use) throw new Error(CAP.sample?"Claude kann in dieser Ansicht keine Bilder lesen. Lade eine PDF mit Text hoch oder öffne Paukr neu.":"Für Bilder und Scans braucht Paukr Claude. Erlaube die Nutzung von Claude für diese Seite (oder lade die Seite neu) und versuch es noch einmal.");
@@ -176,6 +185,7 @@ async function readPdf(data,name,progress,opt={}){
     if(e&&e.name==="PasswordException") throw new Error(`„${name}“ ist passwortgeschützt. Entferne den Schutz (zum Beispiel über „Drucken als PDF“) und lade die Datei erneut hoch.`);
     throw new Error(`„${name}“ lässt sich nicht öffnen – die Datei ist vermutlich beschädigt oder keine echte PDF. Exportiere sie neu und lade sie erneut hoch.`);
   }
+  if(window.claude&&window.claude.use) await imageCaps();
   const claude=!!(CAP.sample&&CAP.images);
   const pages=[]; const scans=[]; let inkOnly=0;
   for(let p=1;p<=pdf.numPages;p++){

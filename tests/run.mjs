@@ -218,12 +218,26 @@ ok("Ein Foto in zwei Hälften: geschnitten wird nur an einer sauberen Lücke zwi
   assert.equal(A.findGap(Array(400).fill(40), 300), -1); // keine Lücke (z. B. Foto mit Schatten): ganze Seite lesen
   assert.equal(A.findGap(page(40, 10).map((v, y) => y > 60 ? 0 : v), 300), -1); // unten kein Text: nicht teilen
 });
-okAsync("Bilder in claude.ai ohne Bildfunktion: klare Meldung statt endlosem „Lade Texterkennung …“", async () => {
-  const sample = Object.assign(async () => ({ text: "" }), { limits: async () => ({ maxPromptBytes: 262144 }) });
+okAsync("Bilder in claude.ai: Meldet limits() beim Öffnen keine Bilder, fragt Paukr vor dem Lesen erneut", async () => {
+  let n = 0;
+  const sample = Object.assign(async (p, o) => ({ text: "Abgeschrieben" }), { limits: async () => (++n === 1 ? { maxPromptBytes: 262144 } : { maxPromptBytes: 262144, images: { maxCount: 5 } }) });
+  ctx.window.claude = { use: x => Promise.resolve(x === "sample" ? sample : null) };
+  await A.initCaps().catch(() => {});
+  assert.ok(!A.CAP.images);
+  const r = await A.ocrImages([new Blob(["x"])], null);
+  assert.equal(r.by, "claude"); assert.equal(r.texts[0], "Abgeschrieben"); assert.equal(A.CAP.images.maxCount, 5);
+  delete ctx.window.claude; A.CAP.sample = null; A.CAP.images = null;
+});
+okAsync("Bilder in claude.ai ohne Bildfunktion: erst versuchen, dann klare Meldung statt endlosem „Lade Texterkennung …“", async () => {
+  let calls = 0;
+  const sample = Object.assign(async (p, o) => { calls++; if (o.images) throw { code: "images_unavailable", message: "no images" }; return { text: "x" }; }, { limits: async () => ({ maxPromptBytes: 262144 }) });
   ctx.window.claude = { use: n => Promise.resolve(n === "sample" ? sample : null) };
   await A.initCaps().catch(() => {});
   assert.ok(A.CAP.sample && !A.CAP.images);
-  await assert.rejects(A.ocrImages([new Blob(["x"])], null), /keine Bilder lesen/);
+  // limits() meldet beim Öffnen keine Bilder: Paukr versucht es trotzdem einmal, die Ablehnung kostet nichts
+  const e = await A.ocrImages([new Blob(["x"])], null).catch(e => e);
+  assert.equal(calls, 1); assert.equal(e.code, "images_unavailable");
+  assert.match(A.sampleErr(e), /keine Bilder lesen/); assert.equal(A.CAP.images, null);
   delete ctx.window.claude; A.CAP.sample = null; A.CAP.images = null;
 });
 okAsync("Texterkennung im Browser: Scheitern die Sprachdaten, kommt die Meldung sofort statt nach 90 Sekunden", async () => {
