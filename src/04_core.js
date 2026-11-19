@@ -112,6 +112,7 @@ async function initCaps(){
 }
 function sampleErr(e){
   const c=e&&e.code;
+  if(c==="images_unavailable"||c==="image_rejected"){ if(c==="images_unavailable"&&CAP.images&&CAP.images.guess) CAP.images=null; return c==="image_rejected"?"Dieses Bild kann Claude nicht öffnen. Nutze JPG oder PNG (iPhone: Kamera-Einstellungen → Formate → „Maximale Kompatibilität“) oder mach einen Screenshot davon.":"Claude kann in dieser Ansicht keine Bilder lesen (z. B. in manchen Handy-Apps). Öffne Paukr im Browser auf claude.ai oder lade eine PDF mit Text hoch."; }
   if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Paukr in claude.ai und erlaube die Nutzung.";
   if(c==="rate_limited") return "Zu viele Anfragen oder Nutzungslimit erreicht. Versuch es in ein paar Minuten noch einmal.";
   if(c==="daily_limit") return e.message==="gesamt"?"Die kostenlosen KI-Anfragen für heute sind aufgebraucht. Morgen geht es weiter.":"Du hast dein Tageslimit für KI-Anfragen erreicht. Morgen geht es weiter.";
@@ -119,7 +120,6 @@ function sampleErr(e){
   if(c==="network") return "Keine Verbindung zum Paukr-Server. Prüfe die Internetverbindung.";
   if(c==="prompt_too_large") return "Das Material ist für eine Anfrage zu groß. Teile es in kleinere Lernsets auf.";
   if(c==="invalid_json") return "Claudes Antwort war nicht lesbar. Versuch es noch einmal.";
-  if(c==="images_unavailable"||c==="image_rejected") return "Bilder können hier nicht gelesen werden. Versuch ein anderes Format (JPG oder PNG).";
   if(c==="refused") return "Claude hat diese Anfrage abgelehnt. Prüfe das Material.";
   if(c==="session_expired") return CAP.remote?"Die Anmeldung beim Paukr-Server ist abgelaufen. Lade die Seite neu.":"Bitte melde dich bei claude.ai erneut an.";
   return "Verbindung zu Claude unterbrochen. Versuch es noch einmal.";
