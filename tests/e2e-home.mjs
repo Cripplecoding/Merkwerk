@@ -136,6 +136,13 @@ assert.equal(await p.inputValue('.tile-note[data-note="cards"] input'), "nur Mit
 assert.match(await p.getAttribute('.tile-note[data-note="cards"]', "class"), /\bhas\b/);
 await p.fill('.tile-note[data-note="cards"] input', ""); await p.click('.tile-note[data-note="cards"] .tile-send'); await p.waitForSelector("#fcCard");
 assert.match(await p.textContent(".fc-progress"), /\/\s*[4-9]\b/);
+await p.click("#tab-learn"); await p.waitForSelector("#cardsBtn");
+assert.equal(await p.locator(".opt-box .tile-note").count(), 5, "Lernset-Seite: Zeile unter jedem Lernmodus");
+await p.fill('.opt-box .tile-note[data-note="cards"] input', "Ribosomen"); await p.press('.opt-box .tile-note[data-note="cards"] input', "Enter");
+await p.waitForSelector("#fcCard"); assert.match(await p.textContent(".fc-term"), /Ribosomen/);
+await p.click("#tab-learn"); await p.waitForSelector("#cardsBtn");
+await p.locator(".opt-box").first().scrollIntoViewIfNeeded(); await p.screenshot({ path: join(shots, "wunschzeile-lernset.png") });
+await p.fill('.opt-box .tile-note[data-note="cards"] input', ""); await p.press('.opt-box .tile-note[data-note="cards"] input', "Tab");
 await home(p);
 step("Wunschzeile: Zusatzanweisung je Lernoption, ohne KI als Stichwort-Filter für Karteikarten");
 

@@ -552,12 +552,16 @@ main{padding-block:30px 72px}
 /* Wunschzeile auf jeder Lernoption: Zusatzanweisung für die Erstellung */
 .tile-box{position:relative;display:flex;min-width:0}
 .tile-box>.tile{flex:1;padding-bottom:84px}
-.tile-box[data-box="quiz"]{--tc:var(--c-quiz)}
-.tile-box[data-box="cards"]{--tc:var(--c-cards)}
-.tile-box[data-box="monolog"]{--tc:var(--c-monolog)}
-.tile-box[data-box="podcast"]{--tc:var(--c-podcast)}
-.tile-box[data-box="generate"]{--tc:var(--c-generate)}
-.tile-box[data-box="exam"]{--tc:var(--c-exam)}
+[data-box="quiz"]{--tc:var(--c-quiz)}
+[data-box="cards"]{--tc:var(--c-cards)}
+[data-box="monolog"]{--tc:var(--c-monolog)}
+[data-box="podcast"]{--tc:var(--c-podcast)}
+[data-box="generate"]{--tc:var(--c-generate)}
+[data-box="exam"]{--tc:var(--c-exam)}
+/* Lernset-Seite: Zeile direkt unter der Lernmodus-Schaltfläche */
+.opt-box{display:flex;flex-direction:column;gap:6px;min-width:0}
+.opt-box>.wizard-opt{flex:1}
+.opt-box .tile-note{position:static;transform:none}
 .tile-note{position:absolute;left:24px;right:24px;bottom:22px;display:flex;align-items:center;gap:4px;margin:0;background:var(--sheet);border:1px solid var(--line);border-radius:999px;padding:3px 3px 3px 14px;transition:transform .15s,border-color .15s}
 .tile-box:has(.tile:hover) .tile-note{transform:translateY(-2px)}
 .tile-note.has{border-color:var(--tc,var(--accent))}
