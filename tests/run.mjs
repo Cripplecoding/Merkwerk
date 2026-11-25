@@ -16,7 +16,7 @@ vm.createContext(ctx);
 vm.runInContext(readFileSync(join(src,"..","data","bildungsplaene.js"),"utf8"), ctx);
 vm.runInContext(files.map(f=>readFileSync(join(src,f),"utf8")).join("\n") + `
 ;globalThis.__api={EXAMPLE_TEXT,EXAMPLE_QUESTIONS,EXAMPLE_CARDS,relax,extractCardsLocal,validateCard,fcStart,fcAssign,fcResult,verifyQuestions,CAP,clozeMatch,judgeNearBlanks,makeSections,buildPlan,isoDate,parseIcsTimetable,deriveSlots,mixFor,subjectsFor,buildCalEvents,readGoodnotes,goodnotesSearchText,ocrImages,S:()=>S,plansFor,planSubjects,plansForSubject,subjectOptions,sameSubject,upsertAccount,currentAccount,storageFor,removeAccount,jwtPayload,curatedTopics,learnLinks,genModesHTML,ACC:()=>ACC,AI_CONFIG,remoteSample,aiParseJson,sampleErr,generateQuestions,buildCardPrompt,notenpunkte,noteFromNP,gradeEstimate,validateExamTask,gradeExam,givenText,whyPrompt,examPoints,EXAMPLE_UNITS,EXAMPLE_SCRIPTS,materialHash,numbersOf,validateUnit,mergeUnits,buildUnits,selectBasis,cleanSegments,localCheck,applyRepairs,checkAndRepair,splitSpeech,ttsPlan,ttsBatches,trimSilence,normalizeGain,assemblePcm,encodeWav,audPipeline,audStart,audMeta,audDeleteSet,idb,ttsStatus,synthesize,TTS,audErr,scriptPrompt,unitChunks,transcriptText,setFetch:f=>{globalThis.fetch=f;},
-  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry,initCaps,readFile,readImages,findGap,isImageFile,ocrLocal,scriptCache,TESSERACT};`, ctx);
+  audView,audEligible,audDefaultSel,fileIssue,quoteWhere,enforceSupport,recStale,estMinutes,scopeNote,audMigrate,audDeleteRec,audUpdateRec,audCheckFiles,audRecBlob,audRetrySave,AUD_UNSAVED,audErrActions,unitSources,guestAccount,planOverload,dayMinutes,shortNote,unitPrompt,fileEntry,initCaps,readFile,readImages,findGap,isImageFile,ocrLocal,scriptCache,TESSERACT,notePrompt,noteFilter,noteKeywords,noteFor,examPrompt,buildPrompt};`, ctx);
 const A = ctx.__api;
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 let chain = Promise.resolve(); // Async-Prüfungen nacheinander, weil sie CAP.sample teilen
@@ -753,6 +753,30 @@ ok("Interaktive Abfrage: Hinweis, wenn das Material keine 15 belegbaren Fragen h
   assert.equal(A.shortNote({}), "");
   assert.match(A.shortNote({short:{got:9,want:15}}), /9 statt 15/);
   assert.match(A.shortNote({short:{got:9,want:15}}), /erfindet keine Inhalte/);
+});
+ok("Zusatzanweisungen je Lernoption fließen in die Prompts, ohne KI als Stichwort-Filter", () => {
+  const set = { id:"z", name:"Bio", files:[{id:"f",name:"Beispiel",text:A.EXAMPLE_TEXT}] }; set.sections = A.makeSections(set.files);
+  assert.equal(A.notePrompt(""), "");
+  assert.doesNotMatch(A.buildCardPrompt(set, 10).prompt, /ZUSATZWUNSCH/);
+  set.notes = { cards:"  nur   Begriffe zur Fotolyse ", quiz:"schwerere Fragen, nur AFB III", exam:"x" };
+  assert.equal(A.noteFor(set, "cards"), "nur Begriffe zur Fotolyse");
+  const cp = A.buildCardPrompt(set, 10).prompt;
+  assert.match(cp, /ZUSATZWUNSCH DER LERNENDEN PERSON/); assert.match(cp, /nur Begriffe zur Fotolyse/);
+  assert.match(cp, /Regeln oben .* gehen immer vor/);
+  assert.match(A.buildPrompt(set, {mc:2}, null, []).prompt, /schwerere Fragen, nur AFB III/);
+  assert.match(A.examPrompt([set], "Biologie", 45, 30, "nur Calvin-Zyklus"), /nur Calvin-Zyklus[\s\S]*MATERIAL/);
+  assert.doesNotMatch(A.examPrompt([set], "Biologie", 45, 30), /ZUSATZWUNSCH/);
+  const units = A.EXAMPLE_UNITS.einheiten.map((u,i) => ({...u, id:"E"+(i+1)}));
+  assert.match(A.scriptPrompt({units}, ["E1"], "podcast", "de", "lockerer Ton"), /lockerer Ton[\s\S]*INHALTSGRUNDLAGE/);
+  // Ohne KI: Füllwörter und Zahlen zählen nicht als Stichwort
+  assert.equal(JSON.stringify(A.noteKeywords("nur Kapitel 3, schwerere Fragen")), "[]");
+  assert.equal(JSON.stringify(A.noteKeywords("Bitte nur Fotolyse und Rubisco")), JSON.stringify(["fotolyse","rubisco"]));
+  const cards = A.extractCardsLocal(set);
+  const f = A.noteFilter(cards, c => `${c.term} ${c.definition} ${c.quote}`, "nur Fotolyse");
+  assert.equal(f.hit, true); assert.ok(f.items.length >= 1 && f.items.length < cards.length);
+  assert.ok(f.items.some(c => c.term === "Fotolyse"));
+  const none = A.noteFilter(cards, c => c.term, "Quantenphysik");
+  assert.equal(none.hit, false); assert.equal(none.items.length, cards.length, "nichts gefunden → alle Karten");
 });
 await chain;
 console.log(`\n${n} Prüfungen bestanden`);

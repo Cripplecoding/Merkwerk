@@ -17,7 +17,7 @@ REGELN
 3. Etwa ${n} Karten, verteilt über das ganze Material. Jeder Begriff nur einmal, die wichtigsten zuerst.
 4. Prüfe jede Definition vor der Ausgabe Wort für Wort gegen das Material. Vertausche nie Begriffe oder Kategorien (zum Beispiel „glatter Preis“ und „gebrochener Preis“); im Zweifel lass die Karte weg.
 
-Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}`};
+Antworte nur mit JSON: {"cards":[{"term","definition","quote"}]}${notePrompt(noteFor(set,"cards"))}`};
 }
 function validateCard(set,c){
   if(!c||!c.term||!c.definition||!c.quote) return null;
@@ -77,14 +77,17 @@ function fcResult(F){ const n=F.known.length+F.practice.length; return {n,known:
 async function openCards(set,{rebuild=false}={}){
   if(!set.files.length){ toast("Lade zuerst Material hoch"); return; }
   if(!set.cards||!set.cards.length||rebuild){
-    let cards=[];
-    if(set.example) cards=exampleCards(set);
+    let cards=[], local=false;
+    if(set.example){ cards=exampleCards(set); local=true; }
     else if(CAP.sample){
       const box=$("#roundStatus"); const ctl=new AbortController();
       if(box){ box.hidden=false; box.innerHTML=`<div class="row"><span class="spin"></span><span>Claude erstellt Karteikarten aus deinem Material …</span><span class="spacer"></span><button class="btn sm" id="rsStop">Abbrechen</button></div>`; $("#rsStop").onclick=()=>ctl.abort(); }
       try{ const r=await generateCards(set,{signal:ctl.signal}); cards=r.cards; if(r.dropped) toast(`${r.dropped} Karten ohne gültigen Beleg verworfen`,3500); }
       catch(e){ if(box){ if(e&&e.code==="cancelled") box.hidden=true; else box.innerHTML=`<div class="note bad">${esc(sampleErr(e))}</div>`; } return; }
-    } else cards=extractCardsLocal(set);
+    } else { cards=extractCardsLocal(set); local=true; }
+    // Ohne Claude wirkt der Wunsch aus der Kachel als Stichwort-Filter
+    const note=noteFor(set,"cards");
+    if(local&&note&&cards.length){ const f=noteFilter(cards,c=>`${c.term} ${c.definition} ${c.quote}`,note); noteFilterToast(f,"Karten"); cards=f.items; }
     if(!cards.length){ const box=$("#roundStatus"); if(box){ box.hidden=false; box.innerHTML=`<div class="note bad">${CAP.sample?"Es konnte keine belegte Karte erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob der Text richtig gelesen wurde.":"Im Material wurden keine Begriffe mit Definition erkannt. Öffne Paukr in claude.ai, dann erstellt Claude die Karteikarten."}</div>`; } return; }
     set.cards=cards; set.fc=null;
   }

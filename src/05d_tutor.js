@@ -89,7 +89,7 @@ function gradeEstimate(pct,profile){
   return {main:noteFromNP(np),sub:upper?`${np} Notenpunkte`:"",np};
 }
 
-function examPrompt(sets,subject,minutes,total){
+function examPrompt(sets,subject,minutes,total,note=""){
   const n=examTaskCount(minutes); const lvl=levelOf();
   let budget=110000;
   const material=sets.map((s,si)=>{
@@ -106,7 +106,7 @@ REGELN
 5. "expectation": der Erwartungshorizont, also was eine volle Antwort enthalten muss, 2 bis 5 Sätze. "key_points": die Punkte, für die es BE gibt.
 6. "quote": ein wörtliches, zusammenhängendes Zitat aus dem Material (40 bis 300 Zeichen), das die Lösung belegt, exakt so geschrieben wie im Material. "set": die Nummer des Lernsets (1, 2, …), aus dem das Zitat stammt.
 
-Antworte nur mit JSON: {"title":"kurzer Titel der Klausur","tasks":[{"prompt","points":Zahl,"afb":"I"|"II"|"III","expectation","key_points":["…"],"quote","set":Zahl}]}
+Antworte nur mit JSON: {"title":"kurzer Titel der Klausur","tasks":[{"prompt","points":Zahl,"afb":"I"|"II"|"III","expectation","key_points":["…"],"quote","set":Zahl}]}${notePrompt(note)}
 
 MATERIAL
 ${material}`;
@@ -119,9 +119,9 @@ function validateExamTask(sets,t){
   return {id:rid("t"),prompt:String(t.prompt),points:clamp(Math.round(Number(t.points)||0),1,40),afb:["I","II","III"].includes(t.afb)?t.afb:"II",
     expectation:String(t.expectation),key_points:(t.key_points||[]).map(String),quote:String(t.quote),fileName:loc.fileName,setId:from.id};
 }
-async function generateExam(sets,subject,minutes,signal){
+async function generateExam(sets,subject,minutes,signal,note=""){
   const total=examPoints(minutes);
-  const r=await CAP.sample.json(examPrompt(sets,subject,minutes,total),{modelTier:"default",cache:false,signal});
+  const r=await CAP.sample.json(examPrompt(sets,subject,minutes,total,note),{modelTier:"default",cache:false,signal});
   const tasks=((r&&r.tasks)||[]).map(t=>validateExamTask(sets,t)).filter(Boolean);
   tasks.forEach((t,i)=>t.nr=i+1);
   return {title:String((r&&r.title)||"").trim(),tasks,dropped:((r&&r.tasks)||[]).length-tasks.length};
@@ -171,6 +171,7 @@ function openExamDialog(set,prefill={}){
     <label class="f">Fach<input type="text" id="exSubj" list="exSubjList" value="${esc(subject)}" placeholder="z. B. Biologie"><datalist id="exSubjList">${subjects.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
     <div class="stack" style="gap:6px"><span class="label">Lernsets</span><div id="exSets" class="stack" style="gap:4px"></div></div>
     <div class="stack" style="gap:6px"><span class="label">Bearbeitungszeit</span><div class="row" id="exDur">${EXAM_DURATIONS.map(d=>`<button class="chip" data-d="${d}" aria-pressed="${d===minutes}">${d?d+" Min.":"ohne Zeitlimit"}</button>`).join("")}</div></div>
+    <label class="f">Zusatzwünsche <span class="small muted">(freiwillig)</span><input type="text" id="exNote" maxlength="${NOTE_MAX}" value="${esc(set?noteFor(set,"exam"):"")}" placeholder="${esc(NOTE_HINT.exam)}" autocomplete="off"></label>
     <div id="exStatus"></div>
     <div class="row"><button class="btn primary" id="exGo">Klausur erstellen</button><button class="btn" data-close>Abbrechen</button></div>`,(m,close)=>{
     const drawSets=()=>{
@@ -188,9 +189,10 @@ function openExamDialog(set,prefill={}){
       const sets=SETS.filter(s=>picked&&picked.has(s.id)&&s.files.length);
       if(!sets.length){ toast("Wähle mindestens ein Lernset"); return; }
       const st=$("#exStatus",m), btn=$("#exGo",m); btn.disabled=true; ctl=new AbortController();
+      const note=set?await setNote(set,"exam",$("#exNote",m).value):cleanNote($("#exNote",m).value);
       st.innerHTML=`<div class="row"><span class="spin"></span><span>Claude stellt deine Klausur zusammen. Das dauert meist 30–90 Sekunden …</span></div>`;
       try{
-        const r=await generateExam(sets,subject,minutes,ctl.signal);
+        const r=await generateExam(sets,subject,minutes,ctl.signal,note);
         if(r.tasks.length<2){ st.innerHTML=`<div class="note bad">Es konnten keine belegten Aufgaben erstellt werden. Prüfe unter „Gelesenen Text ansehen“, ob dein Material richtig gelesen wurde.</div>`; btn.disabled=false; return; }
         const ex={id:rid("ex_"),title:r.title||`Probeklausur ${subject||sets[0].name}`,subject,setIds:sets.map(s=>s.id),minutes,createdAt:Date.now(),startedAt:Date.now(),tasks:r.tasks,answers:{},phase:"write"};
         S.exams=[ex,...(S.exams||[])].slice(0,12); save();

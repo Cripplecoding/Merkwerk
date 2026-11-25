@@ -106,7 +106,8 @@ function numbersOf(s){
   return (String(s||"").match(/(?<![\p{L}\d.,])\d+(?:[.,]\d+)*(?![\p{L}])/gu)||[]).map(n=>/^\d{1,3}(\.\d{3})+$/.test(n)?n.replace(/\./g,""):n.replace(",",".")).map(n=>n.replace(/[.,]$/,""));
 }
 const fmtTime=t=>{ t=Math.max(0,Math.floor(t||0)); const h=Math.floor(t/3600), m=Math.floor(t%3600/60), s=t%60; return (h?h+":"+pad(m):m)+":"+pad(s); };
-const audVariantKey=(fmt,lang)=>fmt+"|"+lang;
+// Ein Zusatzwunsch ergibt ein eigenes Skript (gleiche Inhaltsgrundlage)
+const audVariantKey=(fmt,lang,note)=>fmt+"|"+lang+(note?"|w"+audHash(note):"");
 const topicsKey=t=>t&&t.length?audHash([...t].map(relax).sort().join("|")):"alle";
 const basisKey=(len,themen)=>len+"|"+topicsKey(themen);
 const recBlobKey=(setId,rec)=>rec.blobKey||`a|${setId}|${rec.id}`;
@@ -266,7 +267,7 @@ function selectBasis(units,len,themen){
 
 /* ---------- Schritt 3: Skripte aus derselben Grundlage ---------- */
 function basisText(meta,ids){ const set=new Set(ids); return meta.units.filter(u=>set.has(u.id)).map(u=>`${u.id} [${u.thema} · Rang ${u.rang}${u.art==="widerspruch"?" · Widerspruch zwischen den Quellen":""}] ${u.aussage}\n   Beleg: „${u.zitat}“${u.zitat2?`\n   Gegenbeleg: „${u.zitat2}“`:""}`).join("\n"); }
-function scriptPrompt(meta,ids,fmt,lang){
+function scriptPrompt(meta,ids,fmt,lang,note=""){
   const langRule=lang==="de"?"Sprache: Deutsch.":`Sprache: ${AUD_LANGS[lang]}. Übertrage die Inhalte sinngemäß genau in diese Sprache, ohne etwas hinzuzufügen; nenne Fachbegriffe beim ersten Mal zusätzlich auf Deutsch, wenn das beim Lernen hilft.`;
   const common=`Grundlage ist AUSSCHLIESSLICH die INHALTSGRUNDLAGE unten: nummerierte Informationseinheiten aus den hochgeladenen Dateien, je mit Beleg.
 
@@ -292,7 +293,7 @@ Antworte nur mit JSON: {"titel":"…","segmente":[{"teil":"einleitung"|"haupt"|"
 ${common}
 
 Antworte nur mit JSON: {"titel":"…","segmente":[{"teil":"einleitung"|"haupt"|"abschluss","text":"…","einheiten":["E1"]}]}`;
-  return `${spec}\n\nINHALTSGRUNDLAGE\n${basisText(meta,ids)}`;
+  return `${spec}${notePrompt(note)}\n\nINHALTSGRUNDLAGE\n${basisText(meta,ids)}`;
 }
 function cleanSegments(list,fmt){
   return (Array.isArray(list)?list:[]).filter(s=>s&&String(s.text||"").trim()).map(s=>({
@@ -302,9 +303,9 @@ function cleanSegments(list,fmt){
     einheiten:[...new Set((Array.isArray(s.einheiten)?s.einheiten:[]).map(String))],
   }));
 }
-async function writeScript(set,meta,ids,fmt,lang,{signal}={}){
+async function writeScript(set,meta,ids,fmt,lang,{signal,note=""}={}){
   if(set.example) return {titel:EXAMPLE_SCRIPTS[fmt].titel,segments:cleanSegments(EXAMPLE_SCRIPTS[fmt].segmente,fmt)};
-  const r=await CAP.sample.json(scriptPrompt(meta,ids,fmt,lang),{modelTier:"default",cache:false,signal});
+  const r=await CAP.sample.json(scriptPrompt(meta,ids,fmt,lang,note),{modelTier:"default",cache:false,signal});
   const segments=cleanSegments(r&&r.segmente,fmt);
   if(!segments.length) throw aiErr("invalid_json");
   return {titel:String(r.titel||meta.titel||set.name).slice(0,120),segments};
@@ -622,7 +623,7 @@ const unitSources=(base,ids)=>{ const set=new Set(ids); return Object.fromEntrie
 
 /* ---------- Generierungsaufträge (laufen im Hintergrund weiter, auch wenn die Ansicht wechselt) ---------- */
 const AUD_JOBS={};
-const audJobKey=(setId,o)=>[setId,o.analyzeOnly?"analyse":"",audHash((o.files||[]).join(",")),basisKey(o.len,o.themen),o.fmt,o.lang,JSON.stringify(o.voices||{})].join("|");
+const audJobKey=(setId,o)=>[setId,o.analyzeOnly?"analyse":"",audHash((o.files||[]).join(",")),basisKey(o.len,o.themen),o.fmt,o.lang,JSON.stringify(o.voices||{}),o.note?audHash(o.note):""].join("|");
 function audJob(setId,o){ return AUD_JOBS[audJobKey(setId,o)]||null; }
 // Gleicher Auftrag läuft schon → denselben zurückgeben (kein doppeltes Erzeugen durch mehrfaches Klicken).
 // Ein erneuter Versuch nach einem Fehler behält die Aufnahme-ID, damit nichts doppelt gespeichert wird.
@@ -664,9 +665,9 @@ async function audPipeline(set,o,{signal,step}){
   const v=base.variants[bk]||(base.variants[bk]={len,themen:themen&&themen.length?[...themen]:null,unitIds:selectBasis(base.units,len,themen)});
   if(!v.unitIds.length) throw aiErr("no_units_topic");
   v.scripts ||= {};
-  const vk=audVariantKey(fmt,lang);
+  const vk=audVariantKey(fmt,lang,o.note);
   if(!v.scripts[vk]||force==="script"){
-    step(3); const sc=await writeScript(view,base,v.unitIds,fmt,lang,{signal});
+    step(3); const sc=await writeScript(view,base,v.unitIds,fmt,lang,{signal,note:o.note||""});
     step(4); const checked=enforceSupport(base,v.unitIds,await checkAndRepair(view,base,v.unitIds,sc,fmt,lang,{signal,onStatus:t=>step(4,t)}));
     v.scripts[vk]={...checked,fmt,lang,createdAt:Date.now()};
     await audSaveMeta(meta);
@@ -707,7 +708,7 @@ function audPrefs(set){
   if(set.example){ p.len="standard"; p.lang="de"; p.themen=null; }
   return p;
 }
-const audOpts=(P)=>({files:[...P.files],len:P.len,fmt:P.fmt,lang:P.lang,themen:P.themen,voices:audVoicesFor(P)});
+const audOpts=(P,set)=>({files:[...P.files],len:P.len,fmt:P.fmt,lang:P.lang,themen:P.themen,voices:audVoicesFor(P),note:set&&!set.example?noteFor(set,P.fmt):""});
 // Gewählte Stimmen für das aktuelle Format (nur Rollen dieses Formats, nur Stimmen, die der Dienst anbietet)
 function audVoicesFor(P){
   if(!TTS.ok||!TTS.catalog.length) return null;
@@ -751,10 +752,10 @@ async function renderAudio(m,set){
   const {view,blockers,warnings}=audCheckFiles(set,P.files);
   const src=materialHash(view), base=meta&&meta.bases[src];
   if(base&&P.themen) P.themen=P.themen.filter(t=>base.themen.some(x=>relax(x)===relax(t))); if(P.themen&&!P.themen.length) P.themen=null;
-  const bk=basisKey(P.len,P.themen), v=base&&base.variants[bk], vk=audVariantKey(P.fmt,P.lang);
+  const bk=basisKey(P.len,P.themen), v=base&&base.variants[bk], vk=audVariantKey(P.fmt,P.lang,set.example?"":noteFor(set,P.fmt));
   const sc=v&&v.scripts&&v.scripts[vk];
   const recs=(meta&&meta.recs)||[];
-  const o=audOpts(P), job=audJob(set.id,o)||audJob(set.id,{...o,analyzeOnly:true});
+  const o=audOpts(P,set), job=audJob(set.id,o)||audJob(set.id,{...o,analyzeOnly:true});
   const canAI=!!CAP.sample||set.example;
   const ids=base?selectBasis(base.units,P.len,P.themen):null;
   const est=estMinutes(base?{units:base.units,ids,fmt:P.fmt}:{view,len:P.len,fmt:P.fmt});
@@ -793,6 +794,10 @@ async function renderAudio(m,set){
        :TTS.checked?`<p class="small muted">${TTS.ok?"Der Sprachdienst nutzt seine Standardstimmen.":"Ohne Sprachdienst liest die Stimme deines Geräts das geprüfte Skript vor (Ersatz, kein Download)."}${P.fmt==="podcast"?" Im Podcastdialog sprechen zwei unterscheidbare Stimmen.":""}</p>`:`<p class="small muted"><span class="spin"></span> Verfügbare Stimmen werden abgefragt …</p>`}
        ${set.example?"":`<details class="small"><summary>Sprache: ${esc(AUD_LANGS[P.lang])}</summary><div class="row" style="margin-top:8px">${Object.entries(AUD_LANGS).map(([k,n])=>`<button type="button" class="chip" data-lang="${k}" aria-pressed="${k===P.lang}">${esc(n)}</button>`).join("")}</div><p class="small muted" style="margin-top:6px">Bei einer anderen Sprache als dem Material werden die Inhalte sinngemäß übertragen und genauso geprüft.</p></details>`}
      </div>
+     <div class="stack" style="gap:6px"><h3><label for="audNote">5. Zusatzwunsch</label> <span class="small muted">(freiwillig)</span></h3>
+       <input type="text" id="audNote" maxlength="${NOTE_MAX}" value="${esc(set.example?"":noteFor(set,P.fmt))}" placeholder="${esc(set.example?"Beim Beispiel nicht möglich":CAP.sample?NOTE_HINT[P.fmt]:"Zusatzwünsche gehen nur mit KI (in claude.ai)")}" ${set.example||!CAP.sample?"disabled":""} autocomplete="off">
+       <p class="small muted">Wirkt auf Aufbau, Schwerpunkt und Ton des Skripts. Die Inhalte kommen weiterhin nur aus deinen Dateien.</p>
+     </div>
      <div class="stack" style="gap:8px">
        <div class="row"><button class="btn primary" id="audGo" ${reasons.length||(job&&job.running)?"disabled":""} aria-describedby="audWhy">${sc&&!sc.check.blocked?"Audio aus dem geprüften Skript erzeugen":P.fmt==="podcast"?"Podcastdialog erstellen":"Einzelstimme erstellen"}</button>${sc?`<button class="btn" id="audRegen" ${job&&job.running?"disabled":""}>Skript neu erstellen</button>`:""}</div>
        <div id="audWhy" class="small">${reasons.map(r=>`<p class="bad-t">${esc(r)}</p>`).join("")}${!canAI?needClaude():""}</div>
@@ -813,8 +818,9 @@ async function renderAudio(m,set){
   $$("[data-len]",m).forEach(b=>b.onclick=()=>{ P.len=b.dataset.len; rer(); });
   $$("[data-lang]",m).forEach(b=>b.onclick=()=>{ P.lang=b.dataset.lang; rer(); });
   $$("[data-topic]",m).forEach(b=>b.onclick=()=>{ const t=b.dataset.topic; if(!t){ P.themen=null; } else { const cur=P.themen?[...P.themen]:[]; const i=cur.findIndex(x=>relax(x)===relax(t)); if(i>=0) cur.splice(i,1); else cur.push(t); P.themen=cur.length&&cur.length<base.themen.length?cur:null; } rer(); });
+  const an0=$("#audNote",m); if(an0) an0.onchange=async()=>{ await setNote(set,P.fmt,an0.value); rer(); };
   $$("[data-voice]",m).forEach(s=>s.onchange=()=>{ P.voices={...P.voices,[s.dataset.voice]:s.value||undefined}; rer(); });
-  const start=(extra={})=>{ const j=audStart(set,{...audOpts(P),...extra}); watchJob(m,set,j); };
+  const start=(extra={})=>{ const j=audStart(set,{...audOpts(P,set),...extra}); watchJob(m,set,j); };
   const go1=$("#audGo"); go1.onclick=()=>audPreflight(set,P,blockers,()=>start());
   const rg=$("#audRegen"); if(rg) rg.onclick=async()=>{ if(await confirmBox("Skript aus derselben Inhaltsgrundlage neu erstellen? Fertige Aufnahmen bleiben erhalten, bis du sie löschst.","Neu erstellen")) audPreflight(set,P,blockers,()=>start({force:"script"})); };
   const an=$("#audAnalyse"); if(an) an.onclick=()=>audPreflight(set,P,blockers,()=>start({analyzeOnly:true}));
