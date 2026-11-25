@@ -549,6 +549,30 @@ main{padding-block:30px 72px}
 .welcome-skip{gap:12px;justify-content:center;text-align:center}
 .home>section.stack{gap:20px}
 @media (max-width:560px){.tiles{gap:16px}.tile{min-height:0;padding:20px}.home{gap:40px}}
+/* Wunschzeile auf jeder Lernoption: Zusatzanweisung für die Erstellung */
+.tile-box{position:relative;display:flex;min-width:0}
+.tile-box>.tile{flex:1;padding-bottom:84px}
+.tile-box[data-box="quiz"]{--tc:var(--c-quiz)}
+.tile-box[data-box="cards"]{--tc:var(--c-cards)}
+.tile-box[data-box="monolog"]{--tc:var(--c-monolog)}
+.tile-box[data-box="podcast"]{--tc:var(--c-podcast)}
+.tile-box[data-box="generate"]{--tc:var(--c-generate)}
+.tile-box[data-box="exam"]{--tc:var(--c-exam)}
+.tile-note{position:absolute;left:24px;right:24px;bottom:22px;display:flex;align-items:center;gap:4px;margin:0;background:var(--sheet);border:1px solid var(--line);border-radius:999px;padding:3px 3px 3px 14px;transition:transform .15s,border-color .15s}
+.tile-box:has(.tile:hover) .tile-note{transform:translateY(-2px)}
+.tile-note.has{border-color:var(--tc,var(--accent))}
+.tile-note:focus-within{border-color:var(--tc,var(--accent));box-shadow:0 0 0 2px color-mix(in srgb,var(--tc,var(--accent)) 35%,transparent)}
+.tile-note input[type=text]{border:0;background:transparent;padding:7px 0;font-size:.9rem;border-radius:0;color:var(--ink)}
+.tile-note input[type=text]:focus{outline:none}
+.tile-note input::placeholder{color:var(--muted);opacity:1}
+.tile-send{flex:none;width:36px;height:36px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--tc,var(--accent));color:var(--c-ink-on,#fff);cursor:pointer}
+.tile-send .ic{width:18px;height:18px}
+.tile-send:focus-visible{outline:3px solid var(--tc,var(--accent));outline-offset:2px}
+.tile-send:disabled{cursor:not-allowed;opacity:.4}
+.tile-note input:disabled{cursor:not-allowed}
+.tile-note[aria-busy="true"] .tile-send{opacity:.6;cursor:progress}
+@media (prefers-reduced-motion: reduce){.tile-note{transition:none}.tile-box:has(.tile:hover) .tile-note{transform:none}}
+@media (max-width:560px){.tile-box>.tile{padding-bottom:76px}.tile-note{left:20px;right:20px;bottom:18px}}
 </style>
 
 <header class="top">

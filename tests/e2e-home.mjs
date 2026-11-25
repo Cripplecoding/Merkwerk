@@ -120,6 +120,25 @@ await p.waitForTimeout(200);
 assert.match(await p.textContent(".cur-set"), /Zellbiologie/);
 step("Lernset wechseln in der Lernansicht und auf der Startseite");
 
+// 8b. Wunschzeile auf jeder Lernoption: ohne KI nur bei Karteikarten (Stichwort-Filter), sonst gesperrt mit Hinweis
+assert.equal(await p.locator(".tile-note").count(), 6);
+for (const k of ["quiz", "monolog", "podcast", "generate", "exam"]) {
+  assert.ok(await p.isDisabled(`.tile-note[data-note="${k}"] input`), k);
+  assert.match(await p.getAttribute(`.tile-note[data-note="${k}"] input`, "placeholder"), /nur mit KI/);
+}
+await p.fill('.tile-note[data-note="cards"] input', "nur Mitochondrien");
+await p.screenshot({ path: join(shots, "wunschzeile-desktop.png") });
+await p.press('.tile-note[data-note="cards"] input', "Enter"); await p.waitForSelector("#fcCard");
+assert.match(await p.textContent(".fc-progress"), /\/\s*1\b/);
+assert.match(await p.textContent(".fc-term"), /Mitochondrien/);
+await home(p);
+assert.equal(await p.inputValue('.tile-note[data-note="cards"] input'), "nur Mitochondrien", "Wunsch bleibt am Lernset");
+assert.match(await p.getAttribute('.tile-note[data-note="cards"]', "class"), /\bhas\b/);
+await p.fill('.tile-note[data-note="cards"] input', ""); await p.click('.tile-note[data-note="cards"] .tile-send'); await p.waitForSelector("#fcCard");
+assert.match(await p.textContent(".fc-progress"), /\/\s*[4-9]\b/);
+await home(p);
+step("Wunschzeile: Zusatzanweisung je Lernoption, ohne KI als Stichwort-Filter für Karteikarten");
+
 // 9. Lernorganisation
 await p.click('.org-tile[data-org="lib"]'); await p.waitForSelector("h1"); assert.equal(await p.textContent("h1"), "Bibliothek");
 await home(p); await p.click('.org-tile[data-org="tt"]'); await p.waitForSelector("h1"); assert.match(await p.textContent("h1"), /Stundenplan/);

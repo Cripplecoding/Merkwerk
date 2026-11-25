@@ -292,7 +292,7 @@ FORMATE (Felder)
 - match: {"type":"match","afb","prompt","pairs":[{"left","right"}, 3 bis 5 Paare],"quote","sections"}
 - cloze: {"type":"cloze","afb","prompt":"Satz/Sätze mit ___ für jede Lücke (1-3 Lücken)","blanks":[["Lösung","erlaubte Variante"],...] in Reihenfolge der Lücken,"quote","sections"}
 
-Antworte nur mit JSON: {"questions":[...]}`};
+Antworte nur mit JSON: {"questions":[...]}${notePrompt(noteFor(set,"quiz"))}`};
 }
 function validateQ(set,q){
   if(!q||!TYPE_LABEL[q.type]||!q.prompt||!q.quote) return null;
@@ -364,7 +364,9 @@ function prepQuestion(q){
 async function startRound(set,{n=15,restrict=null,label=null,reuse=false,planRef=null,fresh=false}={}){
   let qs, short=null; // short: Das Material gab weniger belegbare (neue) Fragen her als gewünscht
   if(reuse && set.round){ qs=shuffle(set.round.qs.filter(q=>!q.disputed).map(q=>prepQuestion(q))); if(!qs.length){ toast("Keine Fragen übrig – starte einen neuen Durchgang"); return; } }
-  else if(set.example && !restrict && !fresh){ qs=exampleQuestions(set).map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
+  else if(set.example && !restrict && !fresh){ let ex=exampleQuestions(set); const note=noteFor(set,"quiz");
+    if(note){ const f=noteFilter(ex,q=>`${q.prompt} ${q.quote} ${solutionText(q)}`,note); noteFilterToast(f,"Fragen"); ex=f.items; }
+    qs=ex.map(prepQuestion); qs.forEach(q=>q.sections.forEach(id=>{ set.coverage[id]=(set.coverage[id]||0)+1; })); }
   else{
     if(!CAP.sample){ toast("Dafür braucht Paukr Claude (in claude.ai öffnen)"); return; }
     const box=$("#roundStatus"); const ctl=new AbortController();

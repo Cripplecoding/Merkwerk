@@ -162,7 +162,7 @@ REGELN
 - Gliedere mit kurzen Zwischenüberschriften (eigene Zeile, ohne Markdown-Zeichen) und Absätzen, getrennt durch Leerzeilen.
 - Jeder Fachbegriff bekommt einen eigenen Definitionssatz der Form „Begriff ist …“ oder „Als Begriff bezeichnet man …“.
 - Am Ende ein Absatz „Das Wichtigste in Kürze“ mit 4 bis 6 Sätzen.
-- 600 bis 1400 Wörter. Gib nur den Lerntext aus.
+- 600 bis 1400 Wörter. Gib nur den Lerntext aus.${notePrompt(noteFor(set,"generate"))}
 ${src?`\nQUELLEN\n${src}`:""}`,{modelTier:"default",signal});
     const t=text.replace(/^#+\s*/gm,"").replace(/\*\*/g,"").trim();
     if(t.length>200) files.push({id:rid("f_"),name:`Lerntext: ${set.topic}${wiki.length?" (Claude, aus Wikipedia)":" (Claude)"}`,kind:"generiert",text:t,ocr:false});
