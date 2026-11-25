@@ -252,9 +252,31 @@ function modeState(set,k){
   }
   return {s:"",cta:"Öffnen"};
 }
+// Wunschzeile (Startseite und Lernset-Seite)
+function noteFormHTML(set,k){
+  const M=modeByK(k), note=noteFor(set,k), can=noteUsable(set,k);
+  const ph=can?(CAP.sample?NOTE_HINT[k]:"Stichwort, z. B. ein Fachbegriff"):"Wünsche nur mit KI (claude.ai)";
+  return `<form class="tile-note${note?" has":""}" data-note="${k}" autocomplete="off">
+    <input type="text" name="note" maxlength="${NOTE_MAX}" value="${esc(note)}" placeholder="${esc(ph)}" aria-label="Zusatzanweisung für ${esc(M.t)}" ${can?"":"disabled"}>
+    <button type="submit" class="tile-send" aria-label="${esc(M.t)} mit dieser Anweisung erstellen" title="Mit dieser Anweisung erstellen" ${can?"":"disabled"}>${ic("send")}</button>
+  </form>`;
+}
+// Enter oder Senden speichert den Wunsch und erstellt neu; Verlassen des Felds speichert nur
+function bindNoteForms(root,getSet){
+  $$(".tile-note[data-note]",root).forEach(f=>{
+    const k=f.dataset.note, i=$("input",f);
+    i.onchange=async()=>{ const t=await setNote(getSet(),k,i.value); f.classList.toggle("has",!!t); };
+    f.onsubmit=async e=>{
+      e.preventDefault(); if(f.getAttribute("aria-busy")==="true") return;
+      const set=getSet(); const t=await setNote(set,k,i.value); f.classList.toggle("has",!!t);
+      if(!set) return pickSetFor(k,{fresh:true});
+      f.setAttribute("aria-busy","true");
+      try{ await launchMode(set,k,{fresh:true}); }finally{ if(document.body.contains(f)) f.removeAttribute("aria-busy"); }
+    };
+  });
+}
 function tileHTML(M,set){
-  const st=modeState(set,M.k), note=noteFor(set,M.k), can=noteUsable(set,M.k);
-  const ph=can?(CAP.sample?NOTE_HINT[M.k]:"Stichwort, z. B. ein Fachbegriff"):"Wünsche nur mit KI (claude.ai)";
+  const st=modeState(set,M.k);
   return `<div class="tile-box" data-box="${M.k}">
   <button type="button" class="tile" data-mode="${M.k}" aria-describedby="td_${M.k} ts_${M.k}">
     <span class="tile-ic">${ic(M.icon)}</span>
@@ -263,10 +285,7 @@ function tileHTML(M,set){
     <span class="tile-s${st.warn?" warn":""}" id="ts_${M.k}">${esc(st.s)}</span>
     <span class="tile-cta"><span class="tile-cta-t">${esc(st.cta)}</span>${ic("arrow")}</span>
   </button>
-  <form class="tile-note${note?" has":""}" data-note="${M.k}" autocomplete="off">
-    <input type="text" name="note" maxlength="${NOTE_MAX}" value="${esc(note)}" placeholder="${esc(ph)}" aria-label="Zusatzanweisung für ${esc(M.t)}" ${can?"":"disabled"}>
-    <button type="submit" class="tile-send" aria-label="${esc(M.t)} mit dieser Anweisung erstellen" title="Mit dieser Anweisung erstellen" ${can?"":"disabled"}>${ic("send")}</button>
-  </form>
+  ${noteFormHTML(set,M.k)}
   </div>`;
 }
 function bindTiles(root){
@@ -277,18 +296,7 @@ function bindTiles(root){
     const t=$(".tile-cta-t",b), was=t.textContent; b.setAttribute("aria-busy","true"); t.textContent="Wird geöffnet …";
     try{ await launchMode(set,k); }finally{ if(document.body.contains(b)){ b.removeAttribute("aria-busy"); t.textContent=was; } }
   });
-  // Wunschzeile: Enter oder Senden speichert den Wunsch und erstellt neu; Verlassen des Felds speichert nur
-  $$(".tile-note[data-note]",root).forEach(f=>{
-    const k=f.dataset.note, i=$("input",f);
-    i.onchange=async()=>{ const t=await setNote(activeSetOrNull(),k,i.value); f.classList.toggle("has",!!t); };
-    f.onsubmit=async e=>{
-      e.preventDefault(); if(f.getAttribute("aria-busy")==="true") return;
-      const set=activeSetOrNull(); const t=await setNote(set,k,i.value); f.classList.toggle("has",!!t);
-      if(!set) return pickSetFor(k,{fresh:true});
-      f.setAttribute("aria-busy","true");
-      try{ await launchMode(set,k,{fresh:true}); }finally{ if(document.body.contains(f)) f.removeAttribute("aria-busy"); }
-    };
-  });
+  bindNoteForms(root,activeSetOrNull);
 }
 // Aufnahmen nachladen (IndexedDB): „2 Aufnahmen“ und „Anhören“
 async function fillAudioTiles(root,set){

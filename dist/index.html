@@ -560,12 +560,16 @@ main{padding-block:30px 72px}
 /* Wunschzeile auf jeder Lernoption: Zusatzanweisung für die Erstellung */
 .tile-box{position:relative;display:flex;min-width:0}
 .tile-box>.tile{flex:1;padding-bottom:84px}
-.tile-box[data-box="quiz"]{--tc:var(--c-quiz)}
-.tile-box[data-box="cards"]{--tc:var(--c-cards)}
-.tile-box[data-box="monolog"]{--tc:var(--c-monolog)}
-.tile-box[data-box="podcast"]{--tc:var(--c-podcast)}
-.tile-box[data-box="generate"]{--tc:var(--c-generate)}
-.tile-box[data-box="exam"]{--tc:var(--c-exam)}
+[data-box="quiz"]{--tc:var(--c-quiz)}
+[data-box="cards"]{--tc:var(--c-cards)}
+[data-box="monolog"]{--tc:var(--c-monolog)}
+[data-box="podcast"]{--tc:var(--c-podcast)}
+[data-box="generate"]{--tc:var(--c-generate)}
+[data-box="exam"]{--tc:var(--c-exam)}
+/* Lernset-Seite: Zeile direkt unter der Lernmodus-Schaltfläche */
+.opt-box{display:flex;flex-direction:column;gap:6px;min-width:0}
+.opt-box>.wizard-opt{flex:1}
+.opt-box .tile-note{position:static;transform:none}
 .tile-note{position:absolute;left:24px;right:24px;bottom:22px;display:flex;align-items:center;gap:4px;margin:0;background:var(--sheet);border:1px solid var(--line);border-radius:999px;padding:3px 3px 3px 14px;transition:transform .15s,border-color .15s}
 .tile-box:has(.tile:hover) .tile-note{transform:translateY(-2px)}
 .tile-note.has{border-color:var(--tc,var(--accent))}
@@ -1953,11 +1957,11 @@ function renderSetPanel(el,set){
      <div id="roundStatus" hidden></div>
      <div class="stack" style="gap:8px"><span class="label">Lernmodus wählen</span>
        <div class="grid2" style="gap:10px">
-         <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
-         <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
-         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
-         <button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
-         <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
+         <div class="opt-box" data-box="quiz"><button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>${noteFormHTML(set,"quiz")}</div>
+         <div class="opt-box" data-box="cards"><button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>${noteFormHTML(set,"cards")}</div>
+         <div class="opt-box" data-box="monolog"><button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>${noteFormHTML(set,"monolog")}</div>
+         <div class="opt-box" data-box="podcast"><button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>${noteFormHTML(set,"podcast")}</div>
+         <div class="opt-box" data-box="exam"><button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>${noteFormHTML(set,"exam")}</div>
        </div>
      </div>
      ${set.round&&set.round.qs||set.cards&&set.cards.length?`<div class="row">
@@ -1991,6 +1995,7 @@ function renderSetPanel(el,set){
   const pg=$("#pendGo"); if(pg) pg.onclick=()=>{ const k=PENDING.mode; PENDING=null; launchMode(set,k); };
   const px=$("#pendX"); if(px) px.onclick=()=>{ PENDING=null; $("#pendNote").remove(); };
   $("#examBtn").onclick=()=>openExam?go("exam",{id:openExam.id}):openExamDialog(set);
+  bindNoteForms(el,()=>set);
   const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); await audDeleteSet(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
   $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
@@ -4127,9 +4132,31 @@ function modeState(set,k){
   }
   return {s:"",cta:"Öffnen"};
 }
+// Wunschzeile (Startseite und Lernset-Seite)
+function noteFormHTML(set,k){
+  const M=modeByK(k), note=noteFor(set,k), can=noteUsable(set,k);
+  const ph=can?(CAP.sample?NOTE_HINT[k]:"Stichwort, z. B. ein Fachbegriff"):"Wünsche nur mit KI (claude.ai)";
+  return `<form class="tile-note${note?" has":""}" data-note="${k}" autocomplete="off">
+    <input type="text" name="note" maxlength="${NOTE_MAX}" value="${esc(note)}" placeholder="${esc(ph)}" aria-label="Zusatzanweisung für ${esc(M.t)}" ${can?"":"disabled"}>
+    <button type="submit" class="tile-send" aria-label="${esc(M.t)} mit dieser Anweisung erstellen" title="Mit dieser Anweisung erstellen" ${can?"":"disabled"}>${ic("send")}</button>
+  </form>`;
+}
+// Enter oder Senden speichert den Wunsch und erstellt neu; Verlassen des Felds speichert nur
+function bindNoteForms(root,getSet){
+  $$(".tile-note[data-note]",root).forEach(f=>{
+    const k=f.dataset.note, i=$("input",f);
+    i.onchange=async()=>{ const t=await setNote(getSet(),k,i.value); f.classList.toggle("has",!!t); };
+    f.onsubmit=async e=>{
+      e.preventDefault(); if(f.getAttribute("aria-busy")==="true") return;
+      const set=getSet(); const t=await setNote(set,k,i.value); f.classList.toggle("has",!!t);
+      if(!set) return pickSetFor(k,{fresh:true});
+      f.setAttribute("aria-busy","true");
+      try{ await launchMode(set,k,{fresh:true}); }finally{ if(document.body.contains(f)) f.removeAttribute("aria-busy"); }
+    };
+  });
+}
 function tileHTML(M,set){
-  const st=modeState(set,M.k), note=noteFor(set,M.k), can=noteUsable(set,M.k);
-  const ph=can?(CAP.sample?NOTE_HINT[M.k]:"Stichwort, z. B. ein Fachbegriff"):"Wünsche nur mit KI (claude.ai)";
+  const st=modeState(set,M.k);
   return `<div class="tile-box" data-box="${M.k}">
   <button type="button" class="tile" data-mode="${M.k}" aria-describedby="td_${M.k} ts_${M.k}">
     <span class="tile-ic">${ic(M.icon)}</span>
@@ -4138,10 +4165,7 @@ function tileHTML(M,set){
     <span class="tile-s${st.warn?" warn":""}" id="ts_${M.k}">${esc(st.s)}</span>
     <span class="tile-cta"><span class="tile-cta-t">${esc(st.cta)}</span>${ic("arrow")}</span>
   </button>
-  <form class="tile-note${note?" has":""}" data-note="${M.k}" autocomplete="off">
-    <input type="text" name="note" maxlength="${NOTE_MAX}" value="${esc(note)}" placeholder="${esc(ph)}" aria-label="Zusatzanweisung für ${esc(M.t)}" ${can?"":"disabled"}>
-    <button type="submit" class="tile-send" aria-label="${esc(M.t)} mit dieser Anweisung erstellen" title="Mit dieser Anweisung erstellen" ${can?"":"disabled"}>${ic("send")}</button>
-  </form>
+  ${noteFormHTML(set,M.k)}
   </div>`;
 }
 function bindTiles(root){
@@ -4152,18 +4176,7 @@ function bindTiles(root){
     const t=$(".tile-cta-t",b), was=t.textContent; b.setAttribute("aria-busy","true"); t.textContent="Wird geöffnet …";
     try{ await launchMode(set,k); }finally{ if(document.body.contains(b)){ b.removeAttribute("aria-busy"); t.textContent=was; } }
   });
-  // Wunschzeile: Enter oder Senden speichert den Wunsch und erstellt neu; Verlassen des Felds speichert nur
-  $$(".tile-note[data-note]",root).forEach(f=>{
-    const k=f.dataset.note, i=$("input",f);
-    i.onchange=async()=>{ const t=await setNote(activeSetOrNull(),k,i.value); f.classList.toggle("has",!!t); };
-    f.onsubmit=async e=>{
-      e.preventDefault(); if(f.getAttribute("aria-busy")==="true") return;
-      const set=activeSetOrNull(); const t=await setNote(set,k,i.value); f.classList.toggle("has",!!t);
-      if(!set) return pickSetFor(k,{fresh:true});
-      f.setAttribute("aria-busy","true");
-      try{ await launchMode(set,k,{fresh:true}); }finally{ if(document.body.contains(f)) f.removeAttribute("aria-busy"); }
-    };
-  });
+  bindNoteForms(root,activeSetOrNull);
 }
 // Aufnahmen nachladen (IndexedDB): „2 Aufnahmen“ und „Anhören“
 async function fillAudioTiles(root,set){

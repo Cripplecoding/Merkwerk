@@ -480,11 +480,11 @@ function renderSetPanel(el,set){
      <div id="roundStatus" hidden></div>
      <div class="stack" style="gap:8px"><span class="label">Lernmodus wählen</span>
        <div class="grid2" style="gap:10px">
-         <button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>
-         <button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>
-         <button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
-         <button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>
-         <button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>
+         <div class="opt-box" data-box="quiz"><button class="wizard-opt" id="startBtn" ${set.files.length?"":"disabled"}><b>Interaktive Abfrage</b><span class="small muted">15 Prüfungsfragen mit Beleg: Multiple Choice, schriftlich, Zuordnung, Lückentext</span></button>${noteFormHTML(set,"quiz")}</div>
+         <div class="opt-box" data-box="cards"><button class="wizard-opt" id="cardsBtn" ${set.files.length?"":"disabled"}><b>Karteikarten</b><span class="small muted">${fcInfo(set)}</span></button>${noteFormHTML(set,"cards")}</div>
+         <div class="opt-box" data-box="monolog"><button class="wizard-opt" id="audioBtn"><b>Audiozusammenfassung</b><span class="small muted">${audEligible(set).length?"Zum Anhören aus deinen hochgeladenen Dateien, mit einer Stimme":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>${noteFormHTML(set,"monolog")}</div>
+         <div class="opt-box" data-box="podcast"><button class="wizard-opt" id="podcastBtn"><b>Podcast</b><span class="small muted">${audEligible(set).length?"Dieselben Inhalte als Gespräch zwischen zwei Stimmen":"Lade zuerst eigene Dateien hoch – recherchierte Inhalte sind keine Quelle für Audio"}</span></button>${noteFormHTML(set,"podcast")}</div>
+         <div class="opt-box" data-box="exam"><button class="wizard-opt" id="examBtn" ${set.files.length?"":"disabled"}><b>Probeklausur</b><span class="small muted">${openExam?`Fortsetzen: ${esc(openExam.title)}`:"Klausur mit Zeitlimit aus allen Lernsets des Fachs, Claude korrigiert und schätzt die Note"}</span></button>${noteFormHTML(set,"exam")}</div>
        </div>
      </div>
      ${set.round&&set.round.qs||set.cards&&set.cards.length?`<div class="row">
@@ -518,6 +518,7 @@ function renderSetPanel(el,set){
   const pg=$("#pendGo"); if(pg) pg.onclick=()=>{ const k=PENDING.mode; PENDING=null; launchMode(set,k); };
   const px=$("#pendX"); if(px) px.onclick=()=>{ PENDING=null; $("#pendNote").remove(); };
   $("#examBtn").onclick=()=>openExam?go("exam",{id:openExam.id}):openExamDialog(set);
+  bindNoteForms(el,()=>set);
   const cn=$("#cardsNew"); if(cn) cn.onclick=()=>openCards(set,{rebuild:true});
   $("#delSet").onclick=async()=>{ if(await confirmBox(`Lernset „${set.name}“ löschen?`)){ await idb.del(set.id); await audDeleteSet(set.id); SETS=SETS.filter(s=>s.id!==set.id); S.activeSet=SETS[0]?SETS[0].id:null; S.items.forEach(it=>{ if(it.setId===set.id) it.setId=null; }); save(); go("learn",{manage:true}); } };
   $$("[data-rm]").forEach(b=>b.onclick=async()=>{ set.files=set.files.filter(f=>f.id!==b.dataset.rm); set.sections=makeSections(set.files); set.coverage={}; set.cards=null; set.fc=null; await putSet(set); go("learn",{manage:true}); });
