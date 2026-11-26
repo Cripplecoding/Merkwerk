@@ -15,11 +15,11 @@ Danach `dist/index.html` per Doppelklick in Chrome, Edge oder Firefox öffnen. N
 
 ## Zwei Betriebsarten
 
-Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewerten) und die gemeinsame Bibliothek gibt es nur, wenn die Seite als **claude.ai-Artifact** läuft. Dafür den Inhalt von `dist/merkwerk-artifact.html` als Artifact veröffentlichen, `dist/bildungsplaene.js` als zusätzliche Datei unter demselben Namen, mit diesen Fähigkeiten:
+Die vollen Funktionen mit Claude (Fragen erstellen, Fotos lesen, Antworten bewerten) und die gemeinsame Bibliothek gibt es nur, wenn die Seite als **claude.ai-Artifact** läuft. Dafür den Inhalt von `dist/merkwerk-artifact.html` als Artifact veröffentlichen, `dist/bildungsplaene.js` als zusätzliche Datei unter demselben Namen, mit diesen Fähigkeiten (ohne `"images": true` lehnt claude.ai jedes Bild mit `images_unavailable` ab, dann liest Paukr keine Fotos, Scans und Handschrift):
 
 ```json
 {
-  "sample": {},
+  "sample": { "images": true },
   "db": { "rules": [
     { "path": "votes", "read": "view", "write": "owner" },
     { "path": "votes/{self}", "write": "interact" }

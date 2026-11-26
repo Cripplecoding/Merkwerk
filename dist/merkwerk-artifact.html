@@ -1123,7 +1123,7 @@ async function initCaps(){
 }
 function sampleErr(e){
   const c=e&&e.code;
-  if(c==="images_unavailable"||c==="image_rejected"){ if(c==="images_unavailable"&&CAP.images&&CAP.images.guess) CAP.images=null; return c==="image_rejected"?"Dieses Bild kann Claude nicht öffnen. Nutze JPG oder PNG (iPhone: Kamera-Einstellungen → Formate → „Maximale Kompatibilität“) oder mach einen Screenshot davon.":"Claude kann in dieser Ansicht keine Bilder lesen (z. B. in manchen Handy-Apps). Öffne Paukr im Browser auf claude.ai oder lade eine PDF mit Text hoch."; }
+  if(c==="images_unavailable"||c==="image_rejected"){ if(c==="images_unavailable"&&CAP.images&&CAP.images.guess) CAP.images=null; return c==="image_rejected"?"Dieses Bild kann Claude nicht öffnen. Nutze JPG oder PNG (iPhone: Kamera-Einstellungen → Formate → „Maximale Kompatibilität“) oder mach einen Screenshot davon.":"Claude darf hier keine Bilder lesen. Lade Paukr neu und erlaube Claude beim nächsten Upload auch das Lesen von Bildern. Hilft das nicht, öffne Paukr im Browser auf claude.ai oder lade eine PDF mit Text hoch."; }
   if(c==="not_granted"||c==="sampling_disabled"||c==="not_declared") return "Claude ist für diese Seite nicht freigegeben. Öffne Paukr in claude.ai und erlaube die Nutzung.";
   if(c==="rate_limited") return "Zu viele Anfragen oder Nutzungslimit erreicht. Versuch es in ein paar Minuten noch einmal.";
   if(c==="daily_limit") return e.message==="gesamt"?"Die kostenlosen KI-Anfragen für heute sind aufgebraucht. Morgen geht es weiter.":"Du hast dein Tageslimit für KI-Anfragen erreicht. Morgen geht es weiter.";
